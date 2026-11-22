@@ -8,7 +8,7 @@
     fungus: {
       id: 'fungus', name: 'Xenofungus', icon: '🟣', color: '#a865e8',
       brief: 'Fungus',
-      text: '<b>Cycle End:</b> Non-native units here take 1 damage. Rootbound and Native units heal 1 instead.',
+      text: '<b>Cycle End:</b> Non-native units here take 1 damage. Stepdaughter and Native units heal 1 instead.',
     },
     ridge: {
       id: 'ridge', name: 'High Ridge', icon: '⛰️', color: '#c8a97e',
@@ -31,8 +31,8 @@
       text: 'Units in this lane gain <b>Interceptor</b> (blocks Aerial units).',
     },
     wreck: {
-      id: 'wreck', name: 'Perihelion Hull', icon: '🛸', color: '#90a4ae',
-      brief: 'Wreck (Guard)',
+      id: 'wreck', name: 'Perihelion Wreckage', icon: '🛸', color: '#90a4ae',
+      brief: 'Wreckage (Guard)',
       text: 'Units in this lane gain <b>Guard</b>. Locations here take 1 less non-Psi damage (min 1).',
     },
   };
@@ -72,7 +72,7 @@
       },
     },
     rift: {
-      id: 'rift', name: 'Thermal Rift', icon: '🌋',
+      id: 'rift', name: 'Geothermal Rift', icon: '🌋',
       desc: 'High Ridges overlook volatile Thermal Boreholes. Fast, lethal skirmishes.',
       generate() {
         const lanes = Array.from({ length: 7 }, () => ({ terrain: null, pod: false }));
@@ -86,8 +86,8 @@
       },
     },
     debris: {
-      id: 'debris', name: 'Perihelion Scar', icon: '🛸',
-      desc: 'Shattered hull plating, surviving Sensor Arrays, and abundant Supply Pods.',
+      id: 'debris', name: 'Perihelion Wreckage', icon: '🛸',
+      desc: 'Shattered colony ship hull plating, surviving Sensor Arrays, and abundant Supply Pods.',
       generate() {
         const lanes = Array.from({ length: 7 }, () => ({ terrain: null, pod: false }));
         lanes[0].terrain = 'sensor'; lanes[0].pod = true;
@@ -100,7 +100,7 @@
       },
     },
     classic: {
-      id: 'classic', name: 'Silt Flats (Classic)', icon: '🏜️',
+      id: 'classic', name: 'Uranium Flats (Classic)', icon: '🏜️',
       desc: 'Flat, featureless dust plain with no terrain modifiers or Supply Pods.',
       generate() {
         return Array.from({ length: 7 }, () => ({ terrain: null, pod: false }));
@@ -108,34 +108,34 @@
     },
   };
 
-  /* ------------------------------------------------------------ colony doctrines (Social Engineering) */
+  /* ------------------------------------------------------------ Social Engineering policies */
   const DOCTRINES = {
     standard: {
-      id: 'standard', name: 'Standard Charter', icon: '⚖️',
+      id: 'standard', name: 'Frontier', icon: '⚖️',
       benefit: 'Balanced colony parameters.',
       drawback: 'None.',
       quote: 'We wrote the charter in orbit, before anyone had smelled the dust.',
     },
     market: {
       id: 'market', name: 'Free Market', icon: '💹',
-      benefit: 'Start with 2 Reserve Cells in hand.',
+      benefit: 'Start with 2 Energy Cells in hand.',
       drawback: 'All your Locations enter with -1 Integrity (min 1).',
       quote: 'Efficiency is merely greed that remembers to balance its ledgers.',
     },
     knowledge: {
-      id: 'knowledge', name: 'Knowledge Directive', icon: '🔬',
+      id: 'knowledge', name: 'Knowledge', icon: '🔬',
       benefit: 'Start at 2 Research (faster Breakthroughs and Tech).',
       drawback: 'Enemy Orders deal +1 damage to your units, locations, and colony.',
       quote: 'Every open archive is a target. We leave the doors unlocked anyway.',
     },
     power: {
-      id: 'power', name: 'Power Doctrine', icon: '⚔️',
+      id: 'power', name: 'Power', icon: '⚔️',
       benefit: 'All your units gain Zeal 1 (+1 Attack on your turn).',
       drawback: 'Research Milestones require +2 Research (6 / 10 / 15).',
       quote: 'Philosophy belongs to whoever is still standing at dawn.',
     },
     green: {
-      id: 'green', name: 'Green Pact', icon: '🌱',
+      id: 'green', name: 'Green', icon: '🌱',
       benefit: 'Your units heal 1 in Xenofungus instead of taking damage; lanes 2 & 6 gain Fungus if clear.',
       drawback: 'Your colony starts at 28 Integrity instead of 30.',
       quote: 'Listen to the soil before you pour concrete over it.',
@@ -154,52 +154,52 @@
       id: 'c1', num: 1, title: 'The First Perimeter', region: 'Rustline Basin',
       opp: 'ironwake', oppPreset: 'fortress', oppDoctrine: 'police', biome: 'debris',
       oppHp: 26,
-      brief: 'Foreman Dax Ortega has barricaded the Perihelion stern section and is stripping the reactors for scrap. Break his perimeter before his foundries drown the valley.',
-      victory: 'The stern reactors fall silent. Salvage crews salvage enough fuel cells to push inland.',
+      brief: 'Chairman Dax Ortega has barricaded the Perihelion stern section and is stripping the reactors for his Hive. Break his perimeter before his foundries drown the valley.',
+      victory: 'The stern reactors fall silent. Salvage crews recover enough energy cells to push inland.',
     },
     {
-      id: 'c2', num: 2, title: 'Shoals of the Smuggler', region: 'Shattered Archipelago',
+      id: 'c2', num: 2, title: 'Shoals of the Privateer', region: 'Shattered Archipelago',
       opp: 'tide', oppPreset: 'raiders', oppDoctrine: 'market', biome: 'tau_ceti',
       oppHp: 28,
-      brief: 'Captain Maro Quill controls the coastal supply drops. Expect aerial raiders bypassing your front line — secure Sensor Arrays or Interceptors.',
-      victory: 'Quill’s skiffs scatter into the storm clouds. The supply corridors are yours.',
+      brief: 'Captain Maro Quill controls the coastal supply drops. Expect aerial raiders and Needlejets bypassing your front line — secure Sensor Arrays or Interceptors.',
+      victory: 'Quill’s raiders scatter into the storm clouds. The supply corridors are yours.',
     },
     {
-      id: 'c3', num: 3, title: 'Sermon of the Wreck', region: 'Cinder Wastes',
+      id: 'c3', num: 3, title: 'Sermon of the Wreckage', region: 'Cinder Wastes',
       opp: 'cinder', oppPreset: 'crusade', oppDoctrine: 'power', biome: 'rift',
       oppHp: 30,
-      brief: 'Confessor Mara Solis preaches that the ship’s science brought ruin. Her Zealots hit brutally hard on the offensive — weather the storm and strike back while they are exposed.',
+      brief: 'Sister Mara Solis preaches that the ship’s science brought ruin. Her Believers hit brutally hard on the offensive — weather the storm and strike back while they are exposed.',
       victory: 'The pyres dim across the rift. Even the faithful cannot argue with an unbroken line.',
     },
     {
       id: 'c4', num: 4, title: 'Hostile Acquisition', region: 'Meridian Terrace',
       opp: 'auric', oppPreset: 'overcharge', oppDoctrine: 'market', biome: 'rift',
       oppHp: 30,
-      brief: 'Director Kofi Vance has tapped the Thermal Boreholes to bank huge reserves of Energy. Raid his economic Locations before his Overcharged mercenaries overwhelm you.',
-      victory: 'The Auric vaults open. Vance signs a temporary truce — and bills you for the ink.',
+      brief: 'CEO Kofi Vance has tapped the Thermal Boreholes to bank huge reserves of Energy. Raid his economic Locations before his Overcharged mercenaries overwhelm you.',
+      victory: 'The Vance vaults open. CEO Vance signs a temporary truce — and bills you for the ink.',
     },
     {
       id: 'c5', num: 5, title: 'The Flank at Redline', region: 'Twin Ridges',
       opp: 'redline', oppPreset: 'maneuver', oppDoctrine: 'power', biome: 'tau_ceti',
       oppHp: 32,
-      brief: 'Marshal Soren Kade’s veterans dominate the High Ridges with Mobile flankers and precision artillery. Deny them Monoliths and punish isolated units.',
-      victory: 'Kade salutes from the burning command post. The ridge line belongs to your banners.',
+      brief: 'Colonel Soren Kade’s veterans dominate the High Ridges with Mobile flankers and precision artillery. Deny them Monoliths and punish isolated units.',
+      victory: 'Colonel Kade salutes from the burning Command Center. The ridge line belongs to your banners.',
     },
     {
-      id: 'c6', num: 6, title: 'The Open Archive', region: 'Lumen Spire',
+      id: 'c6', num: 6, title: 'The Open Datalinks', region: 'Lumen Spire',
       opp: 'synod', oppPreset: 'transcend', oppDoctrine: 'knowledge', biome: 'debris',
       oppHp: 32,
-      brief: 'Archivist Thessaly Vane is racing toward the Voice of Tau Ceti and 22 Research. Shut down her Archives and raze her Projects before she achieves Ascent.',
+      brief: 'Academician Thessaly Vane is racing toward The Voice of Planet and 22 Research. Shut down her Network Nodes and raze her Secret Projects before she achieves Transcendence.',
       victory: 'The Spire’s relays cool. Inside the memory cores lies something older than humanity.',
     },
     {
-      id: 'c7', num: 7, title: 'The Dreaming Awakens', region: 'Heart of the Mycelium',
+      id: 'c7', num: 7, title: 'The Voice of Planet', region: 'Heart of the Mycelium',
       opp: 'rootbound', oppPreset: 'fungal', oppDoctrine: 'green', biome: 'monsoon',
       oppHp: 35,
-      bossName: 'The Chiron Echo', bossArt: '🧠',
+      bossName: 'The Planetmind', bossArt: '🧠',
       bossFlavor: 'The world beneath the spores has learned to speak with human voices.',
-      brief: 'The planet’s neural web has awakened inside the Monsoon Jungle. Psi-born Mind Worms and surging Xenofungus ignore Armor and Shields alike. End the bloom—or transcend it.',
-      victory: 'Silence settles over the fungal sea. Tau Ceti no longer fights your colony; it listens. The planet is yours.',
+      brief: 'Planet’s neural web has awakened inside the Monsoon Jungle. Psi-born Mind Worms and surging Xenofungus ignore Armor and Shields alike. End the bloom — or transcend it.',
+      victory: 'Silence settles over the fungal sea. Planet no longer fights your colony; it listens. Tau Ceti is yours.',
     },
   ];
 
