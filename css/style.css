@@ -92,6 +92,11 @@ b { color: var(--gold); font-weight: 700; }
 .faction:hover { transform: translateY(-0.5rem); }
 .faction.chosen { border-color: var(--fc); box-shadow: 0 0 3rem color-mix(in srgb, var(--fc) 45%, transparent); transform: translateY(-0.5rem); }
 .faction .f-glyph { font-size: 4.4rem; line-height: 1.05; }
+.faction .f-glyph.has-art {
+  width: 7.4rem; height: 7.4rem; margin: 0 auto 0.2rem; border-radius: 50%; overflow: hidden;
+  border: 0.26rem solid var(--fc); box-shadow: 0 0 1.4rem color-mix(in srgb, var(--fc) 50%, transparent);
+}
+.art-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .faction .f-name { font-size: 1.75rem; font-weight: 700; color: var(--fc); letter-spacing: 0.03em; line-height: 1.15; }
 .faction .f-leader { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
 .faction .f-motto { font-style: italic; font-size: 1.2rem; min-height: 4.4rem; line-height: 1.3; color: #d6e0f0; }
@@ -202,6 +207,7 @@ b { color: var(--gold); font-weight: 700; }
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--fc) 55%, #fff), color-mix(in srgb, var(--fc) 50%, #000) 75%);
   border: 0.35rem solid var(--fc); box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.5);
 }
+.portrait .art-img { border-radius: 50%; }
 .portrait .hp, .portrait .armor {
   position: absolute; bottom: -0.7rem; min-width: 3.5rem; height: 3.5rem; padding: 0 0.55rem; border-radius: 2rem;
   display: grid; place-items: center; font-size: 1.9rem; font-weight: 800; border: 0.25rem solid #0a0f18;
@@ -294,7 +300,12 @@ b { color: var(--gold); font-weight: 700; }
   display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: box-shadow 0.15s, transform 0.15s;
 }
 .unit .u-name { font-size: 0.7em; font-weight: 700; margin-top: 0.35em; padding: 0 0.35em; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.unit .u-art { flex: 1; display: grid; place-items: center; font-size: 3.7em; line-height: 1; filter: drop-shadow(0 0.08em 0.1em rgba(0, 0, 0, 0.6)); }
+.unit .u-art { flex: 1; width: 100%; display: grid; place-items: center; font-size: 3.7em; line-height: 1; filter: drop-shadow(0 0.08em 0.1em rgba(0, 0, 0, 0.6)); }
+.unit .u-art.has-art {
+  width: calc(100% - 0.6em); margin: 0.25em 0.3em 0.15em; border-radius: 0.5em; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--fc) 45%, rgba(255, 255, 255, 0.12));
+  filter: none; box-shadow: inset 0 0 0.8em rgba(0, 0, 0, 0.45);
+}
 .unit .u-kw { height: 1.7em; display: flex; gap: 0.16em; margin-bottom: 1.35em; flex-wrap: nowrap; }
 .unit .u-kw span { font-size: 0.78em; min-width: 1.55em; height: 1.55em; padding: 0 0.25em; border-radius: 1em; background: rgba(0, 0, 0, 0.62); border: 1px solid rgba(255, 255, 255, 0.25); display: grid; place-items: center; }
 .unit .u-kw span.promo { border-color: var(--gold); color: var(--gold); }
@@ -334,6 +345,11 @@ b { color: var(--gold); font-weight: 700; }
 }
 .site.project .s-name { color: var(--gold); }
 .site .s-art { font-size: 3rem; line-height: 1; flex: none; filter: drop-shadow(0 0.2rem 0.3rem rgba(0, 0, 0, 0.6)); }
+.site .s-art.has-art {
+  width: 5.6rem; height: 5.6rem; border-radius: 0.45rem; overflow: hidden; filter: none;
+  border: 1px solid color-mix(in srgb, var(--fc) 55%, rgba(255, 255, 255, 0.2));
+}
+.site.project .s-art.has-art { border-color: var(--gold); }
 .site .s-body { flex: 1; min-width: 0; }
 .site .s-name { font-size: 1.2rem; font-weight: 700; line-height: 1.1; }
 .site .s-brief { font-size: 1.04rem; line-height: 1.15; color: var(--muted); margin-top: 0.22rem; padding-right: 1.3rem; }
@@ -351,6 +367,15 @@ b { color: var(--gold); font-weight: 700; }
 .insp-flavor { font-style: italic; color: #aebed6; border-left: 2px solid var(--gold); padding-left: 0.75rem !important; background: rgba(255, 209, 102, 0.06) !important; }
 .insp-leader { text-align: center; padding: 0 0.8rem; display: flex; flex-direction: column; gap: 0.8rem; align-items: center; }
 .insp-leader .big { font-size: 7rem; line-height: 1; }
+.insp-leader .big.has-art {
+  width: 13rem; height: 13rem; border-radius: 50%; overflow: hidden;
+  border: 0.35rem solid var(--fc); box-shadow: 0 0 2rem color-mix(in srgb, var(--fc) 45%, transparent);
+}
+.quote-toast .qt-art { font-size: 4.4rem; flex: none; }
+.quote-toast .qt-art.has-art {
+  width: 11.2rem; height: 8rem; border-radius: 0.7rem; overflow: hidden;
+  border: 1.5px solid var(--gold); box-shadow: 0 0 1.4rem rgba(255, 209, 102, 0.35);
+}
 .insp-leader .nm { font-size: 1.9rem; font-weight: 700; color: var(--fc); }
 .insp-leader .sub { color: var(--muted); font-size: 1.32rem; line-height: 1.4; }
 .side-title { font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted); padding: 0.4rem 0.2rem; border-top: 1px solid var(--panel-line); }
