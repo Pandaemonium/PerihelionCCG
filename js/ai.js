@@ -21,7 +21,8 @@
     exposedFoe: 0.25,
     moveCost: 0.4,
     actCost: 0.15,
-    noRaid: 0,
+    noRaid: 0,   // test switch: never attack locations
+    noBuild: 0,  // test switch: never build locations
   };
 
   function unitValue(g, u) {
@@ -75,12 +76,14 @@
     return g.players[pid].board.filter((u) => E.alive(u) && !(u.jammed > 0) && E.effectiveAtk(g, u, null) > 0 && E.unscreened(g, u));
   }
 
-  function exposure(g, pid, hitters) {
+  /** How much of player pid's location value the enemy's units could strike as things stand. */
+  function exposure(g, pid) {
+    const hitters = g.players[1 - pid].board.filter((u) => E.alive(u) && !(u.jammed > 0) && E.effectiveAtk(g, u, null) > 0);
     let x = 0;
     g.players[pid].sites.forEach((s) => {
       let threat = 0;
       hitters.forEach((u) => {
-        if (Math.abs(u.lane - s.lane) <= E.reach(g, u)) threat += E.effectiveAtk(g, u, E.siteRef(s));
+        if (E.siteOpen(g, u, s)) threat += E.effectiveAtk(g, u, E.siteRef(s));
       });
       if (threat > 0) x += siteValue(g, s) * Math.min(1, threat / s.hp);
     });
@@ -102,8 +105,8 @@
     foe.board.forEach((u) => { s -= unitValue(g, u) * T.foeUnit; });
     me.sites.forEach((x) => { s += siteValue(g, x, T.staff) * T.mySite; });
     foe.sites.forEach((x) => { s -= siteValue(g, x) * T.foeSite; });
-    s -= T.exposedMine * exposure(g, pid, foeFree);
-    s += T.exposedFoe * exposure(g, 1 - pid, myFree);
+    s -= T.exposedMine * exposure(g, pid);
+    s += T.exposedFoe * exposure(g, 1 - pid);
     const hasAscent = me.sites.some((x) => E.siteActive(g, x) && CARDS[x.id].ascentProject);
     const foeAscent = foe.sites.some((x) => E.siteActive(g, x) && CARDS[x.id].ascentProject);
     let handVal = 0;
@@ -167,6 +170,7 @@
     const diff = difficulty || AI.difficulty || 'commander';
     let actions = AI.legalActions(g, pid);
     if (T.noRaid) actions = actions.filter((a) => !(a.type === 'attack' && a.target.k === 's'));
+    if (T.noBuild) actions = actions.filter((a) => !(a.type === 'play' && CARDS[a.id].type === 'site'));
     if (!actions.length) return null;
     const foe = g.players[1 - pid];
 
@@ -251,7 +255,9 @@
           const oc = d.overcharge ? c + d.overcharge : 999;
           return (c > p.energy && c <= p.energy + cells) || (oc > p.energy && oc <= p.energy + cells);
         });
-        if (unlock) return { type: 'play', hand: cell.uid, id: 'cell', target: null, lane: null };
+        // a nearly full hand would burn the next draw, so cash a Cell in rather than lose a card
+        const crowded = p.hand.length >= E.maxHand(g, pid) - 1;
+        if (unlock || crowded) return { type: 'play', hand: cell.uid, id: 'cell', target: null, lane: null };
       }
     }
     return null;

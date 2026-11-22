@@ -1,4 +1,10 @@
-/* TAU CETI — Deck storage, validation, share codes, and Expedition Draft generator. */
+/* TAU CETI — Deck rules, the saved-deck library, share codes, and Expedition Draft generator.
+ *
+ * A deck is { id?, name, faction, pact, doctrine, cards[] }:
+ *   faction  the main faction: supplies the leader, the leader power and the board colours
+ *   pact     optional partner faction (or null): up to PACT_LIMIT of its cards may be included,
+ *            but never its Secret Project
+ */
 (function (root) {
   'use strict';
   const V = (root.TauCeti = root.TauCeti || {});
@@ -6,12 +12,16 @@
   const FACTIONS = V.FACTIONS;
   const DOCTRINES = V.DOCTRINES || {};
 
-  const STORAGE_KEY = 'tauceti_custom_decks_v1';
+  const LEGACY_KEY = 'tauceti_custom_decks_v1'; // one unnamed deck per faction
+  const LIBRARY_KEY = 'tauceti_decks_v2';
+  const PREFS_KEY = 'tauceti_prefs_v1';
   const CAMPAIGN_KEY = 'tauceti_campaign_v1';
   const DRAFT_KEY = 'tauceti_expedition_v1';
 
   const Decks = {};
   Decks.DECK_SIZE = 30;
+  Decks.PACT_LIMIT = 10;
+  Decks.NAME_MAX = 32;
 
   function loadJSON(key, fallback) {
     try {
@@ -26,11 +36,46 @@
     } catch (e) { /* storage unavailable */ }
   }
 
-  /** Return all legal card ids for a faction's deckbuilder (faction cards + neutral non-tokens). */
-  Decks.poolFor = function (fid) {
-    const f = FACTIONS[fid];
-    return f.cards.concat(V.NEUTRAL_CARDS);
+  const facLabel = (fid) => FACTIONS[fid].name.replace(/^The /, '');
+  const copyLimit = (c) => (c.unique ? 1 : 2);
+  Decks.copyLimit = (id) => copyLimit(CARDS[id]);
+
+  /* ------------------------------------------------------------ deck rules */
+  /** Tidy a deck-like object: known factions only, no self-pact, a real doctrine, a clean name. */
+  Decks.normalize = function (d) {
+    d = d || {};
+    const faction = FACTIONS[d.faction] ? d.faction : Object.keys(FACTIONS)[0];
+    const pact = d.pact && FACTIONS[d.pact] && d.pact !== faction ? d.pact : null;
+    const name = String(d.name == null ? '' : d.name).replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, Decks.NAME_MAX);
+    const out = {
+      name: name || `${facLabel(faction)} deck`,
+      faction, pact,
+      doctrine: DOCTRINES[d.doctrine] ? d.doctrine : 'standard',
+      cards: Array.isArray(d.cards) ? d.cards.filter((id) => typeof id === 'string') : [],
+    };
+    if (d.id != null) out.id = String(d.id);
+    return out;
   };
+
+  /** Where a card comes from in this deck: 'main' | 'pact' | 'neutral', or null if it is not allowed. */
+  Decks.source = function (deck, id) {
+    const c = CARDS[id];
+    if (!c || c.token) return null;
+    if (c.faction === 'neutral') return 'neutral';
+    if (c.faction === deck.faction) return 'main';
+    if (deck.pact && c.faction === deck.pact && !c.project) return 'pact';
+    return null;
+  };
+
+  /** Every card id this deck may include: main faction, pact partner (no Secret Project), colonist. */
+  Decks.poolFor = function (fid, pact) {
+    const deck = { faction: fid, pact: pact && pact !== fid && FACTIONS[pact] ? pact : null };
+    let ids = FACTIONS[fid].cards.slice();
+    if (deck.pact) ids = ids.concat(FACTIONS[deck.pact].cards);
+    return ids.concat(V.NEUTRAL_CARDS).filter((id) => Decks.source(deck, id));
+  };
+
+  Decks.pactCount = (deck) => deck.cards.reduce((n, id) => n + (Decks.source(deck, id) === 'pact' ? 1 : 0), 0);
 
   Decks.countsFromList = function (list) {
     const map = {};
@@ -47,65 +92,146 @@
     return out;
   };
 
-  Decks.validate = function (fid, list) {
+  /** Why a card cannot be in this deck at all (ignoring counts), or null if it can. */
+  Decks.whyIllegal = function (deck, id) {
+    const c = CARDS[id];
+    if (!c || c.token) return 'Unknown card: ' + id;
+    if (Decks.source(deck, id)) return null;
+    if (deck.pact && c.faction === deck.pact && c.project) return `${c.name} is your Pact partner's Secret Project — only its own faction can build it.`;
+    return `${c.name} belongs to ${facLabel(c.faction)}, which is neither your faction nor your Pact partner.`;
+  };
+
+  /** Split a deck's cards into those the deck may hold and those it may not (after a faction or pact change). */
+  Decks.partition = function (deck) {
+    const legal = [], illegal = [];
+    deck.cards.forEach((id) => (Decks.source(deck, id) ? legal : illegal).push(id));
+    return { legal, illegal };
+  };
+
+  /**
+   * Check a deck against the construction rules.
+   * Accepts a deck object, or the older (factionId, cardList) form for single-faction decks.
+   */
+  Decks.validate = function (deck, list) {
+    if (typeof deck === 'string') deck = { faction: deck, pact: null, cards: list || [] };
     const errs = [];
-    const allowed = new Set(Decks.poolFor(fid));
+    const cards = deck.cards || [];
+    if (!FACTIONS[deck.faction]) return { ok: false, errors: ['Unknown faction: ' + deck.faction], count: cards.length, pact: 0 };
+    if (deck.pact && (!FACTIONS[deck.pact] || deck.pact === deck.faction)) errs.push('Invalid Pact partner.');
     const counts = {};
-    list.forEach((id) => {
+    const flagged = {};
+    let pact = 0;
+    cards.forEach((id) => {
+      const why = Decks.whyIllegal(deck, id);
+      if (why) { if (!flagged[id]) errs.push(why); flagged[id] = true; return; }
       const c = CARDS[id];
-      if (!c || c.token) { errs.push('Unknown card: ' + id); return; }
-      if (!allowed.has(id)) { errs.push(`${c.name} belongs to another faction.`); return; }
+      if (Decks.source(deck, id) === 'pact') pact++;
       counts[id] = (counts[id] || 0) + 1;
-      const max = c.unique ? 1 : 2;
-      if (counts[id] > max) errs.push(`${c.name} exceeds limit (${max}).`);
+      const max = copyLimit(c);
+      if (counts[id] === max + 1) errs.push(`${c.name} exceeds limit (${max}).`);
     });
-    if (list.length !== Decks.DECK_SIZE) errs.push(`Deck must have ${Decks.DECK_SIZE} cards (currently ${list.length}).`);
-    return { ok: errs.length === 0, errors: errs, count: list.length };
+    if (pact > Decks.PACT_LIMIT) errs.push(`Too many Pact cards: ${pact} (limit ${Decks.PACT_LIMIT}).`);
+    if (cards.length !== Decks.DECK_SIZE) errs.push(`Deck must have ${Decks.DECK_SIZE} cards (currently ${cards.length}).`);
+    return { ok: errs.length === 0, errors: errs, count: cards.length, pact };
   };
 
-  Decks.getCustom = function (fid) {
-    const all = loadJSON(STORAGE_KEY, {});
-    const saved = all[fid];
-    if (!saved || !Array.isArray(saved.cards)) return null;
-    if (!Decks.validate(fid, saved.cards).ok) return null;
-    return saved;
+  /* ------------------------------------------------------------ saved-deck library */
+  function migrateLegacy() {
+    const old = loadJSON(LEGACY_KEY, null);
+    const lib = { next: 1, decks: [] };
+    if (old && typeof old === 'object') {
+      Object.keys(old).forEach((fid) => {
+        const d = old[fid];
+        if (!FACTIONS[fid] || !d || !Array.isArray(d.cards)) return;
+        const deck = Decks.normalize({ name: `${facLabel(fid)} Custom`, faction: fid, pact: null, doctrine: d.doctrine, cards: d.cards });
+        deck.cards = deck.cards.filter((id) => CARDS[id] && !CARDS[id].token);
+        deck.id = 'd' + lib.next++;
+        lib.decks.push(deck);
+      });
+    }
+    return lib;
+  }
+
+  function loadLibrary() {
+    let lib = loadJSON(LIBRARY_KEY, null);
+    if (!lib || !Array.isArray(lib.decks)) {
+      lib = migrateLegacy();
+      if (lib.decks.length) saveJSON(LIBRARY_KEY, lib);
+    }
+    lib.decks = lib.decks.filter((d) => d && d.id != null && FACTIONS[d.faction]).map(Decks.normalize);
+    lib.next = Math.max(lib.next | 0, 1);
+    return lib;
+  }
+
+  /** All saved decks, oldest first. Includes unfinished decks; check Decks.validate(d).ok before playing one. */
+  Decks.library = () => loadLibrary().decks;
+  Decks.getDeck = (id) => loadLibrary().decks.find((d) => d.id === String(id)) || null;
+  Decks.decksFor = (fid) => loadLibrary().decks.filter((d) => d.faction === fid);
+  Decks.playableFor = (fid) => Decks.decksFor(fid).filter((d) => Decks.validate(d).ok);
+
+  /** Save a deck (finished or not). Without an id — or with an unknown one — it is added as a new deck. */
+  Decks.saveDeck = function (deck) {
+    const lib = loadLibrary();
+    const d = Decks.normalize(deck);
+    const at = d.id == null ? -1 : lib.decks.findIndex((x) => x.id === d.id);
+    if (at >= 0) lib.decks[at] = d;
+    else { d.id = 'd' + lib.next++; lib.decks.push(d); }
+    saveJSON(LIBRARY_KEY, lib);
+    return d;
   };
 
-  Decks.saveCustom = function (fid, cards, doctrine) {
-    const all = loadJSON(STORAGE_KEY, {});
-    all[fid] = { cards: cards.slice(), doctrine: DOCTRINES[doctrine] ? doctrine : 'standard' };
-    saveJSON(STORAGE_KEY, all);
+  Decks.deleteDeck = function (id) {
+    const lib = loadLibrary();
+    lib.decks = lib.decks.filter((d) => d.id !== String(id));
+    saveJSON(LIBRARY_KEY, lib);
   };
 
-  Decks.deleteCustom = function (fid) {
-    const all = loadJSON(STORAGE_KEY, {});
-    delete all[fid];
-    saveJSON(STORAGE_KEY, all);
+  /** A name not yet used in the library (ignoring the deck with id `exceptId`), e.g. "Canopy Swarm 2". */
+  Decks.uniqueName = function (base, exceptId) {
+    const taken = new Set(loadLibrary().decks.filter((d) => d.id !== exceptId).map((d) => d.name.toLowerCase()));
+    base = String(base || 'New deck').slice(0, Decks.NAME_MAX - 4).trim() || 'New deck';
+    if (!taken.has(base.toLowerCase())) return base;
+    for (let n = 2; n < 500; n++) if (!taken.has(`${base} ${n}`.toLowerCase())) return `${base} ${n}`;
+    return base;
   };
 
-  /** Encode a deck to a compact copy/paste string. */
-  Decks.encode = function (fid, doctrine, cards) {
-    const counts = Decks.countsFromList(cards);
+  /* small UI preferences (last faction and deck picked on the title screen) */
+  Decks.getPrefs = () => loadJSON(PREFS_KEY, {}) || {};
+  Decks.savePrefs = (p) => saveJSON(PREFS_KEY, p);
+
+  /* ------------------------------------------------------------ share codes */
+  /** Encode a deck to a compact copy/paste string: TC2:faction:pact:doctrine:card=n,card=n,… */
+  Decks.encode = function (deck) {
+    const counts = Decks.countsFromList(deck.cards);
     const body = Object.keys(counts).sort().map((id) => `${id}=${counts[id]}`).join(',');
-    return `TC1:${fid}:${doctrine || 'standard'}:${body}`;
+    return `TC2:${deck.faction}:${deck.pact || 'none'}:${deck.doctrine || 'standard'}:${body}`;
   };
 
+  /** Decode a TC2 code (or an older single-faction TC1 / V1 code). Returns a deck, or { error }. */
   Decks.decode = function (str) {
     if (!str || typeof str !== 'string') return { error: 'Empty code.' };
     const parts = str.trim().split(':');
-    if (parts.length < 4 || (parts[0] !== 'TC1' && parts[0] !== 'V1')) return { error: 'Invalid Tau Ceti deck code.' };
+    const ver = parts[0];
+    const legacy = ver === 'TC1' || ver === 'V1';
+    if ((!legacy && ver !== 'TC2') || parts.length < (legacy ? 4 : 5)) return { error: 'Invalid Tau Ceti deck code.' };
     const fid = parts[1];
-    const doctrine = DOCTRINES[parts[2]] ? parts[2] : 'standard';
     if (!FACTIONS[fid]) return { error: 'Unknown faction: ' + fid };
+    let pact = null;
+    if (!legacy && parts[2] !== 'none') {
+      if (!FACTIONS[parts[2]] || parts[2] === fid) return { error: 'Unknown Pact partner: ' + parts[2] };
+      pact = parts[2];
+    }
+    const docPart = parts[legacy ? 2 : 3];
+    const doctrine = DOCTRINES[docPart] ? docPart : 'standard';
     const cards = [];
-    parts.slice(3).join(':').split(',').filter(Boolean).forEach((entry) => {
+    parts.slice(legacy ? 3 : 4).join(':').split(',').filter(Boolean).forEach((entry) => {
       const [id, nStr] = entry.split('=');
       const n = Math.min(2, Math.max(0, parseInt(nStr, 10) || 0));
-      for (let i = 0; i < n; i++) cards.push(id);
+      for (let i = 0; i < n; i++) cards.push(id.trim());
     });
-    const v = Decks.validate(fid, cards);
+    const v = Decks.validate({ faction: fid, pact, cards });
     if (!v.ok) return { error: v.errors[0] };
-    return { fid, doctrine, cards };
+    return { faction: fid, fid, pact, doctrine, cards };
   };
 
   /* ------------------------------------------------------------ campaign progress */

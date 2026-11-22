@@ -16,8 +16,10 @@
   let seen = new Set();
   let hintMsg = null;
   let myFaction = 'rootbound';
-  let myPreset = 'swarm'; // preset key or 'custom'
+  let myPreset = 'swarm'; // a preset key of myFaction, or 'deck:<id>' for a saved deck from the library
   let myDoctrine = 'green';
+  const prefs = Object.assign({ faction: null, picks: {} }, Decks.getPrefs());
+  if (!prefs.picks || typeof prefs.picks !== 'object') prefs.picks = {};
   let oppChoice = 'random';
   let myBiome = 'tau_ceti';
   let myDiff = 'commander';
@@ -40,26 +42,50 @@
     worm: 'Dormant Brood (2/2 Psi Mind Worm)',
   };
 
-  function getActiveDeckList(fid, presetKey) {
-    if (presetKey === 'custom') {
-      const saved = Decks.getCustom(fid);
-      if (saved) return saved.cards.slice();
+  const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const savedId = (pick) => (typeof pick === 'string' && pick.indexOf('deck:') === 0 ? pick.slice(5) : null);
+
+  /**
+   * The deck a pick stands for: a faction preset, or a playable saved deck of that faction.
+   * Falls back to the faction's first preset if the pick is gone or no longer legal.
+   */
+  function deckFor(fid, pick) {
+    const f = FACTIONS[fid];
+    const id = savedId(pick);
+    if (id) {
+      const d = Decks.getDeck(id);
+      if (d && d.faction === fid && Decks.validate(d).ok) {
+        const n = Decks.pactCount(d);
+        const desc = d.pact
+          ? `Your own deck — a Pact with ${facName(d.pact)} (${n} Pact card${n === 1 ? '' : 's'}).`
+          : 'Your own single-faction deck.';
+        return { pick: 'deck:' + d.id, saved: true, name: d.name, faction: fid, pact: d.pact, doctrine: d.doctrine, cards: d.cards.slice(), desc };
+      }
     }
-    return V.buildDeck(fid, presetKey);
+    const key = f.presets[pick] ? pick : Object.keys(f.presets)[0];
+    const p = f.presets[key];
+    return { pick: key, saved: false, name: p.name, faction: fid, pact: null, doctrine: p.doctrine || 'standard', cards: V.buildDeck(fid, key), desc: p.desc };
+  }
+  const activeDeck = () => deckFor(myFaction, myPreset);
+
+  function savePrefs() {
+    prefs.faction = myFaction;
+    prefs.picks[myFaction] = myPreset;
+    Decks.savePrefs(prefs);
   }
 
+  /** Choose a deck for the current faction; its doctrine comes with it. */
+  function pickDeck(pick) {
+    const d = deckFor(myFaction, pick);
+    myPreset = d.pick;
+    myDoctrine = d.doctrine;
+    savePrefs();
+  }
+
+  /** Switch faction, returning to the deck last used with it (or its first preset). */
   function syncFactionDefaults(fid) {
     myFaction = fid;
-    const custom = Decks.getCustom(fid);
-    const f = FACTIONS[fid];
-    const firstKey = Object.keys(f.presets)[0];
-    if (custom) {
-      myPreset = 'custom';
-      myDoctrine = custom.doctrine || 'standard';
-    } else {
-      myPreset = firstKey;
-      myDoctrine = f.presets[firstKey].doctrine || 'standard';
-    }
+    pickDeck(prefs.picks[fid]);
   }
 
   const hasArt = (id) => !!(V.ART && V.ART[id]);
@@ -187,7 +213,7 @@
     if (p.powerUsed) pcls.push('used');
     if (sel && sel.kind === 'power' && pid === HUMAN) pcls.push('selected');
     const tcls = isTarget({ k: 'l', pid }) ? 'targetable ' + (pid === HUMAN ? 'friendly' : 'hostile') : '';
-    const docTag = p.doctrine !== 'standard' ? ` · ${doc.icon} ${doc.name}` : '';
+    const docTag = (p.pact ? ` + ${facName(p.pact)}` : '') + (p.doctrine !== 'standard' ? ` · ${doc.icon} ${doc.name}` : '');
 
     const lArtId = isBoss ? 'leader_boss' : 'leader_' + p.faction;
     const portraitInner = hasArt(lArtId) ? artImg(lArtId) : `<span>${leaderArt}</span>`;
@@ -202,7 +228,7 @@
         <div class="l-info">
           <div>
             <div class="l-name">${leaderName}</div>
-            <div class="l-fac">${f.name}${docTag}</div>
+            <div class="l-fac" title="${f.name}${docTag}">${p.pact ? facName(p.faction) : f.name}${docTag}</div>
           </div>
           <div class="energy" title="Energy">${pips}<span class="num">${p.energy}/${p.maxEnergy}</span></div>
           <div class="research" data-insp="research" data-pid="${pid}">
@@ -352,6 +378,12 @@
     [/Thermal Borehole/, 'Thermal Borehole', 'Cycle Start: +1 Energy if a unit is here; your Location here takes 1 damage.'],
     [/Sensor Array/, 'Sensor Array', 'Units in this lane gain Interceptor (blocks Aerial).'],
     [/neighbouring/, 'Neighbouring lanes', 'The lanes directly left and right.'],
+    [/Black Box/, 'Black Box', 'A set of three Colonist Orders. Each one grows stronger for every other Black Box you have already played this game.'],
+    [/has terrain|no terrain|lane’s terrain/, 'Terrain', 'The feature in a lane’s centre strip: Xenofungus, High Ridge, Thermal Borehole, Alien Monolith, Sensor Array or Perihelion Hull. Both sides share it.'],
+    [/Alien Monolith/, 'Alien Monolith', 'The first time each unit ends a cycle here, it gains +1/+1 and restores 2 health.'],
+    [/Breakthrough/, 'Breakthrough', 'A Research milestone. There are three; you reach them at 4, 8 and 13 Research (6, 10 and 15 under Power Doctrine).'],
+    [/Mind Worm/, 'Mind Worm', 'A 2/2 unit with Psi.'],
+    [/Sprout/, 'Sprout', 'A 1/1 Rootbound unit.'],
   ];
 
   function combatPreviewNote(ref) {
@@ -381,8 +413,9 @@
     return `<div style="border-left:2px solid #ff6b6b;background:rgba(255,107,107,0.12)"><b>⚔️ Strike Preview</b><br>Deals <b>${aAtk}${aPsi ? ' Psi' : ''}</b> to enemy colony.</div>`;
   }
 
-  function inspectCard(id, o) {
+  function inspectCard(id, o, into) {
     const d = CARDS[id];
+    o = o || {};
     const opt = {};
     let kws = Object.keys(KW).filter((k) => d.kw && d.kw[k]);
     const notes = [];
@@ -428,7 +461,7 @@
     GLOSSARY.forEach(([re, name, text]) => { if (re.test(d.text)) notes.push(`<div><b>${name}</b> — ${text}</div>`); });
     if (d.type === 'site' && !d.project) notes.push(`<div><b>Location</b> — Built behind a lane. Razing deals ${E.RAZE_DAMAGE} damage to its colony.</div>`);
     if (d.type === 'order' && !d.noResearch) notes.push('<div><b>Order</b> — Playing it gives you 1 Research.</div>');
-    $('#inspector').innerHTML = cardHTML(d, opt) + `<div class="insp-notes">${[...new Set(notes)].join('')}</div>`;
+    (into || $('#inspector')).innerHTML = cardHTML(d, opt) + `<div class="insp-notes">${[...new Set(notes)].join('')}</div>`;
   }
 
   function inspectLane(lane) {
@@ -476,12 +509,17 @@
         <div class="nm">${isBoss ? g.bossName : f.leader}</div>
         <div class="sub">${f.name}<br>“${f.motto}”</div>
         <div>Colony integrity ${Math.max(0, p.hp)} / ${p.maxHp}${p.armor ? ` · Armor ${p.armor}` : ''}</div>
-        <div class="insp-notes">${prev}<div><b>${doc.icon} ${doc.name}</b> — ${doc.benefit} ${doc.drawback !== 'None.' ? '<i>(' + doc.drawback + ')</i>' : ''}</div></div>`;
+        <div class="insp-notes">${prev}${p.pact ? `<div><b>🤝 Pact with ${facName(p.pact)}</b> — This deck includes up to ${Decks.PACT_LIMIT} ${facName(p.pact)} cards.</div>` : ''}<div><b>${doc.icon} ${doc.name}</b> — ${doc.benefit} ${doc.drawback !== 'None.' ? '<i>(' + doc.drawback + ')</i>' : ''}</div></div>`;
     }
     $('#inspector').innerHTML = `<div class="insp-leader f-${p.faction}">${html}</div>`;
   }
 
   document.addEventListener('mouseover', (e) => {
+    if (e.target.closest('#screen-builder')) {
+      const c = e.target.closest('[data-card]');
+      if (c && CARDS[c.dataset.card]) inspectCard(c.dataset.card, null, $('#bd-inspector'));
+      return;
+    }
     if (!g || !e.target.closest('#screen-game')) return;
     const t = e.target.closest('[data-card],[data-insp]');
     if (!t) return;
@@ -512,15 +550,21 @@
 
   const who = (pid) => (pid === HUMAN ? 'You' : 'The enemy');
   const whose = (pid) => (pid === HUMAN ? 'Your' : 'Enemy');
+  const logCard = (id, bold) => {
+    const c = CARDS[id];
+    if (!c) return id;
+    const tag = bold ? 'b' : 'span';
+    return `<${tag} class="log-card" data-card="${id}">${c.name}</${tag}>`;
+  };
   function refName(ref) {
     if (ref.k === 'l') return ref.pid === HUMAN ? 'your colony' : 'the enemy colony';
     if (ref.k === 'c') return laneName(ref.lane);
     if (ref.k === 's') {
       const f = E.findSite(g, ref.uid);
-      return f ? (f.pid === HUMAN ? 'your ' : 'the enemy ') + CARDS[f.site.id].name : 'a location';
+      return f ? (f.pid === HUMAN ? 'your ' : 'the enemy ') + logCard(f.site.id) : 'a location';
     }
     const f = E.find(g, ref.uid);
-    return f ? (f.pid === HUMAN ? 'your ' : 'the enemy ') + CARDS[f.unit.id].name : 'a unit';
+    return f ? (f.pid === HUMAN ? 'your ' : 'the enemy ') + logCard(f.unit.id) : 'a unit';
   }
 
   function floater(rect, e, i) {
@@ -618,16 +662,16 @@
         if (e.t === 'dmg') (e.psi ? SFX.psi() : SFX.dmg());
         else if (e.t === 'heal') SFX.heal();
         else if (e.t === 'block') SFX.block();
-        else if (e.t === 'promote') { SFX.milestone(); logLine(`${whose(e.pid)} <b>${CARDS[e.id].name}</b> promoted to Veteran!`, 'gold'); }
+        else if (e.t === 'promote') { SFX.milestone(); logLine(`${whose(e.pid)} ${logCard(e.id, true)} promoted to Veteran!`, 'gold'); }
       } else if (e.t === 'death') {
         const el = elFor(e.ref);
         if (el) ghost(el);
-        logLine(`${whose(e.pid)} ${CARDS[e.id].name} is destroyed.`, foe);
+        logLine(`${whose(e.pid)} ${logCard(e.id)} is destroyed.`, foe);
       } else if (e.t === 'raze') {
         const el = elFor(e.ref);
         if (el) ghost(el);
         SFX.raze();
-        logLine(`${whose(e.pid)} ${CARDS[e.id].name} is razed — the colony takes ${e.dmg || E.RAZE_DAMAGE} damage.`, foe);
+        logLine(`${whose(e.pid)} ${logCard(e.id)} is razed — the colony takes ${e.dmg || E.RAZE_DAMAGE} damage.`, foe);
       } else if (e.t === 'move') {
         const el = elFor(e.ref);
         if (el) slides.push({ ref: e.ref, rect: el.getBoundingClientRect() });
@@ -644,7 +688,7 @@
       } else if (e.t === 'project_built') {
         const c = CARDS[e.id];
         SFX.project();
-        logLine(`${who(e.pid)} completed Secret Project: <b>${c.name}</b>!`, 'gold');
+        logLine(`${who(e.pid)} completed Secret Project: ${logCard(e.id, true)}!`, 'gold');
         showQuoteToast(c.art, `Secret Project Completed · ${who(e.pid)}`, c.name, c.flavor || c.brief, e.id);
       } else if (e.t === 'pod_claim') {
         SFX.pod();
@@ -657,9 +701,9 @@
       } else if (e.t === 'fatigue') {
         logLine(`${e.pid === HUMAN ? 'Your' : "The enemy's"} deck is empty — the colony takes ${e.n} damage.`, 'sys');
       } else if (e.t === 'burn') {
-        logLine(`${e.pid === HUMAN ? 'Your' : "The enemy's"} hand is full — ${e.pid === HUMAN ? CARDS[e.id].name : 'a card'} is lost.`, 'sys');
+        logLine(`${e.pid === HUMAN ? 'Your' : "The enemy's"} hand is full — ${e.pid === HUMAN ? logCard(e.id) : 'a card'} is lost.`, 'sys');
       } else if (e.t === 'gain' && e.pid === HUMAN) {
-        logLine(`You receive <b>${CARDS[e.id].name}</b>.`);
+        logLine(`You receive ${logCard(e.id, true)}.`);
       } else if (e.t === 'steal') {
         logLine(`${who(e.pid)} seized control of a unit.`, foe);
       }
@@ -689,26 +733,26 @@
     if (a.type === 'attack') {
       const f = E.find(g, a.uid);
       SFX.attack();
-      logLine(`${whose(pid)} ${CARDS[f.unit.id].name} attacks ${refName(a.target)}.`, foe);
+      logLine(`${whose(pid)} ${logCard(f.unit.id)} attacks ${refName(a.target)}.`, foe);
       await lunge(elFor({ k: 'u', uid: a.uid }), elFor(a.target));
       E.attack(g, pid, a.uid, a.target);
     } else if (a.type === 'move') {
       const f = E.find(g, a.uid);
-      logLine(`${whose(pid)} ${CARDS[f.unit.id].name} moves to ${laneName(a.lane)}.`, foe);
+      logLine(`${whose(pid)} ${logCard(f.unit.id)} moves to ${laneName(a.lane)}.`, foe);
       E.move(g, pid, a.uid, a.lane);
     } else if (a.type === 'play') {
       const hc = g.players[pid].hand.find((h) => h.uid === a.hand);
       const d = CARDS[hc.id];
       const verb = d.type === 'unit' ? ['deploy', 'deploys'] : d.type === 'site' ? ['build', 'builds'] : ['play', 'plays'];
       const where = a.lane != null ? ' in ' + laneName(a.lane) : '';
-      logLine(`${who(pid)} ${verb[pid === HUMAN ? 0 : 1]} <b>${d.name}</b>${where}${a.target ? (where ? ', targeting ' : ' on ') + refName(a.target) : ''}.`, foe);
+      logLine(`${who(pid)} ${verb[pid === HUMAN ? 0 : 1]} ${logCard(hc.id, true)}${where}${a.target ? (where ? ', targeting ' : ' on ') + refName(a.target) : ''}.`, foe);
       if (d.type === 'site') SFX.build(); else SFX.play();
       if (pid === BOT) await flash(cardHTML(d, { cost: E.cost(g, pid, hc) }), a.target || (a.lane != null ? { k: 'c', lane: a.lane } : null), 'Enemy plays');
       E.playCard(g, pid, a.hand, a.target, a.lane);
     } else if (a.type === 'power') {
       const f = FACTIONS[g.players[pid].faction];
       SFX.play();
-      logLine(`${who(pid)} ${pid === HUMAN ? 'use' : 'uses'} <b>${f.power.name}</b>${a.target ? ' on ' + refName(a.target) : ''}.`, foe);
+      logLine(`${who(pid)} ${pid === HUMAN ? 'use' : 'uses'} <b class="log-card" data-insp="power" data-pid="${pid}">${f.power.name}</b>${a.target ? ' on ' + refName(a.target) : ''}.`, foe);
       if (pid === BOT) {
         await flash(`<div class="power-card f-${f.id}"><div class="big">${f.power.art}</div><div class="nm">${f.power.name}</div><div>${f.power.text}</div></div>`,
           a.target, 'Enemy leader power');
@@ -844,11 +888,18 @@
       return warn('An enemy Guard opposite or adjacent must be attacked first.');
     }
     if (u.summonedTurn === g.turn) return warn('On the turn it arrives, a Blitz unit can only attack units.');
-    if (E.hasKw(g, u, 'aerial') && front.some((x) => E.hasKw(g, x, 'interceptor'))) {
+    const aerial = E.hasKw(g, u, 'aerial');
+    if (aerial && front.some((x) => E.hasKw(g, x, 'interceptor'))) {
       return warn('An enemy Interceptor is opposite or adjacent — it screens locations and the colony against Aerial units.');
     }
-    if (front.length && !E.hasKw(g, u, 'aerial')) return warn('An enemy unit is opposite or adjacent — it screens the locations and colony behind it.');
-    return warn('That location is out of reach.');
+    if (!aerial && front.some((x) => E.hasKw(g, x, 'guard'))) return warn('An enemy Guard opposite or adjacent must be attacked first.');
+    if (ref.k === 'l') return warn('An enemy unit is opposite or adjacent to this unit — it screens the colony.');
+    const st = E.findSite(g, ref.uid);
+    if (!st || Math.abs(st.site.lane - u.lane) > E.reach(g, u)) return warn('That location is out of reach.');
+    const lo = Math.min(u.lane, st.site.lane), hi = Math.max(u.lane, st.site.lane);
+    const blocker = g.players[1 - u.owner].board.find((x) => E.alive(x) && x.lane >= lo && x.lane <= hi);
+    if (blocker) return warn(`${CARDS[blocker.id].name} in ${laneName(blocker.lane)} stands between this unit and that location.`);
+    return warn('That location cannot be attacked right now.');
   }
 
   function clickRef(ref) {
@@ -925,24 +976,6 @@
   $('#modal').addEventListener('click', (e) => {
     if (e.target.id === 'modal' && modalClosable) return closeModal();
 
-    // Deckbuilder interactions
-    const addCard = e.target.closest('[data-badd]');
-    if (addCard && builder) return builderAdd(addCard.dataset.badd);
-    const remCard = e.target.closest('[data-brem]');
-    if (remCard && builder) return builderRemove(remCard.dataset.brem);
-    const bfil = e.target.closest('[data-bfil]');
-    if (bfil && builder) { builder.filter = bfil.dataset.bfil; return renderBuilder(); }
-    const bpre = e.target.closest('[data-bpre]');
-    if (bpre && builder) {
-      const f = FACTIONS[builder.fid];
-      builder.counts = Decks.countsFromList(V.buildDeck(builder.fid, bpre.dataset.bpre));
-      builder.doctrine = f.presets[bpre.dataset.bpre].doctrine || 'standard';
-      builder.msg = `Loaded preset: ${f.presets[bpre.dataset.bpre].name}.`;
-      return renderBuilder();
-    }
-    const bdoc = e.target.closest('[data-bdoc]');
-    if (bdoc && builder) { builder.doctrine = bdoc.dataset.bdoc; return renderBuilder(); }
-
     // Campaign launch
     const campGo = e.target.closest('[data-camp]');
     if (campGo) {
@@ -969,44 +1002,12 @@
     const b = e.target.closest('[data-do]');
     if (!b) return;
     const what = b.dataset.do;
-    if (what === 'bsave' && builder) {
-      const list = Decks.listFromCounts(builder.counts);
-      const val = Decks.validate(builder.fid, list);
-      if (!val.ok) { builder.msg = val.errors[0]; return renderBuilder(); }
-      Decks.saveCustom(builder.fid, list, builder.doctrine);
-      myFaction = builder.fid;
-      myPreset = 'custom';
-      myDoctrine = builder.doctrine;
-      builder = null;
-      closeModal();
-      renderTitle();
-      return;
-    }
-    if (what === 'bclear' && builder) { builder.counts = {}; builder.msg = 'Deck cleared.'; return renderBuilder(); }
-    if (what === 'bexport' && builder) {
-      const code = Decks.encode(builder.fid, builder.doctrine, Decks.listFromCounts(builder.counts));
-      const inp = $('#b-code');
-      if (inp) { inp.value = code; inp.select(); }
-      try { navigator.clipboard.writeText(code); builder.msg = 'Deck code copied to clipboard!'; }
-      catch (err) { builder.msg = 'Deck code generated below.'; }
-      renderBuilder(code);
-      return;
-    }
-    if (what === 'bimport' && builder) {
-      const inp = $('#b-code');
-      const res = Decks.decode(inp ? inp.value : '');
-      if (res.error) { builder.msg = res.error; return renderBuilder(); }
-      builder.fid = res.fid;
-      builder.doctrine = res.doctrine;
-      builder.counts = Decks.countsFromList(res.cards);
-      builder.msg = `Imported ${FACTIONS[res.fid].name} deck!`;
-      return renderBuilder();
-    }
     if (what === 'draft-new') { Decks.startDraft(myFaction, myDoctrine); return showDraftModal(); }
     if (what === 'draft-fight') { closeModal(); return launchDraftBattle(); }
     if (what === 'draft-abandon') { Decks.clearDraft(); return showDraftModal(); }
 
     closeModal();
+    if (what === 'confirm-yes') { const fn = confirmYes; confirmYes = null; if (fn) fn(); return; }
     if (what === 'rematch') startCurrentModeAgain();
     if (what === 'next-camp') {
       const nextIdx = CAMPAIGN.findIndex((x) => x.id === activeMode.mission.id) + 1;
@@ -1030,7 +1031,9 @@
           <ul>
             <li>Each lane holds one <b>unit</b> in front, one <b>location</b> behind, and a shared <b>Planetary Terrain</b> tile in the center.</li>
             <li>Units reach their own lane and neighbouring lanes (+1 Reach on a <b>High Ridge</b> or with <b>Artillery</b>).</li>
-            <li>Ground units must fight enemy units in reach first (<b>Guard</b> first). <b>Aerial</b> units fly over ground units—only <b>Interceptors</b> screen them.</li>
+            <li>An enemy <b>Guard</b> opposite or beside a ground unit must be attacked first. Otherwise it may strike any enemy unit in reach.</li>
+            <li>A <b>location</b> is screened by enemy units standing in its own lane or between it and the attacker. The <b>colony</b> is screened by any enemy unit opposite or beside the attacker.</li>
+            <li><b>Aerial</b> units fly over ground units—only <b>Interceptors</b> screen them.</li>
             <li>Razing a Location deals ${E.RAZE_DAMAGE} damage to its colony (<b>${E.PROJECT_RAZE_DAMAGE} damage</b> for a Secret Project!).</li>
             <li>Deploy or move a unit into a <b>📦 Supply Pod</b> lane to claim orbital rewards.</li>
           </ul>
@@ -1044,6 +1047,8 @@
             <span>⊘ Jam</span><span>Disables a unit or location until the end of its owner’s next turn.</span>
             <span>🏛 Secret Project</span><span>Unique legendary location (max 1 per deck) with global colony effects.</span>
           </div>
+          <h3>Decks & Pacts</h3>
+          <p>A deck is ${Decks.DECK_SIZE} cards: up to 2 copies of each card, 1 of a Secret Project. Your <b>faction</b> supplies the leader and leader power. You may sign a <b>Pact</b> with one other faction and include up to ${Decks.PACT_LIMIT} of its cards — but not its Secret Project. Build your own in the <b>Deckbuilder</b>.</p>
           <h3>Research & Colony Doctrines</h3>
           <p>Every Order and every staffed Landing Site grants Research. Milestones grant permanent Breakthroughs, and <b>Colony Doctrines</b> let you trade one planetary advantage against a sharp drawback—classic Alpha Centauri social engineering.</p>
         </div>
@@ -1054,15 +1059,14 @@
 
   function showDeck(fid) {
     const f = FACTIONS[fid];
-    const presetKey = fid === myFaction ? myPreset : Object.keys(f.presets)[0];
-    const list = getActiveDeckList(fid, presetKey);
-    const counts = Decks.countsFromList(list);
+    const deck = fid === myFaction ? activeDeck() : deckFor(fid, null);
+    const counts = Decks.countsFromList(deck.cards);
     const sorted = Object.keys(counts).sort((a, b) => CARDS[a].cost - CARDS[b].cost || CARDS[a].name.localeCompare(CARDS[b].name));
     const one = (id, qty) => cardHTML(CARDS[id], { extra: `<div class="qty">${qty}</div>` });
-    const label = presetKey === 'custom' ? 'Custom Deck' : f.presets[presetKey].name;
+    const label = esc(deck.name) + (deck.pact ? ` · Pact with ${facName(deck.pact)}` : '');
     openModal(`<div class="f-${fid}">
       <h2 style="color:var(--fc)">${f.art} ${f.name} — ${label}</h2>
-      <p>${f.style} Every deck is 30 cards (max 2 copies; max 1 copy of unique Secret Projects). Both sides begin with a Landing Site in lane 4.</p>
+      <p>${f.style} Every deck is ${Decks.DECK_SIZE} cards (max 2 copies; 1 copy of a Secret Project) and may include up to ${Decks.PACT_LIMIT} cards from one Pact partner. Both sides begin with a Landing Site in lane 4.</p>
       <div class="gallery">${sorted.map((id) => one(id, '×' + counts[id])).join('')}${one('landing', 'start')}</div>
       <div class="modal-actions">
         <button class="btn ghost" data-do="close">Close</button>
@@ -1070,129 +1074,484 @@
     </div>`);
   }
 
-  /* ============================================================ Deckbuilder */
-  function openBuilder(fid) {
-    const f = FACTIONS[fid];
-    const custom = Decks.getCustom(fid);
-    const baseList = custom ? custom.cards : V.buildDeck(fid, myPreset === 'custom' ? Object.keys(f.presets)[0] : myPreset);
-    builder = {
-      fid,
-      doctrine: custom ? custom.doctrine : myDoctrine,
-      counts: Decks.countsFromList(baseList),
-      filter: 'all',
-      msg: 'Click cards on the left to add them; click rows on the right to remove.',
-    };
-    renderBuilder();
+  /* ============================================================ Deckbuilder (full screen) */
+  let confirmYes = null;
+  function confirmModal(title, text, yesLabel, onYes, noLabel) {
+    confirmYes = onYes;
+    openModal(`<div class="result">
+      <h2 style="font-size:3.2rem;letter-spacing:0.4rem">${title}</h2>
+      <p>${text}</p>
+      <div class="modal-actions">
+        <button class="btn ghost" data-do="close">${noLabel || 'Cancel'}</button>
+        <button class="btn primary" data-do="confirm-yes">${yesLabel}</button>
+      </div>
+    </div>`);
   }
+
+  const byCost = (a, b) => CARDS[a].cost - CARDS[b].cost || CARDS[a].name.localeCompare(CARDS[b].name);
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const builderList = () => Decks.listFromCounts(builder.counts);
+  const builderDeck = () => ({
+    id: builder.id, name: builder.name, faction: builder.faction, pact: builder.pact,
+    doctrine: builder.doctrine, cards: builderList(),
+  });
+  const blankDeck = (fid) => ({ name: Decks.uniqueName(`New ${facName(fid)} deck`), faction: fid, pact: null, doctrine: 'standard', cards: [] });
+  const BUILDER_HINT = 'Click a card to add it. Right-click it, or click its row in the deck list, to remove a copy.';
+
+  function loadIntoBuilder(deck, msg, dirty) {
+    builder = {
+      id: deck.id || null,
+      name: deck.name,
+      faction: deck.faction,
+      pact: deck.pact || null,
+      doctrine: deck.doctrine || 'standard',
+      counts: Decks.countsFromList(deck.cards),
+      src: 'all', type: 'all', cost: 'all', search: '',
+      dirty: !!dirty,
+      msg: msg || BUILDER_HINT,
+      bad: false,
+    };
+    $('#bd-name').value = builder.name;
+    $('#bd-search').value = '';
+    $('#bd-code').value = '';
+    $('#bd-inspector').innerHTML = '<div class="insp-empty">Hover a card to read it in full.</div>';
+    renderBuilder();
+    $('#bd-grid').scrollTop = 0;
+  }
+
+  /** Open the builder on the deck picked on the title screen (a preset opens as a new, unsaved variant). */
+  function openBuilder() {
+    const cur = activeDeck();
+    if (cur.saved) loadIntoBuilder(Decks.getDeck(savedId(cur.pick)));
+    else {
+      loadIntoBuilder({ name: Decks.uniqueName(cur.name + ' variant'), faction: cur.faction, pact: null, doctrine: myDoctrine, cards: cur.cards },
+        `Started from the ${cur.name} preset. ${BUILDER_HINT}`);
+    }
+    $('#screen-title').classList.add('hidden');
+    $('#screen-builder').classList.remove('hidden');
+  }
+
+  function closeBuilder() {
+    builder = null;
+    $('#screen-builder').classList.add('hidden');
+    pickDeck(myPreset); // the picked deck may have been edited, renamed or deleted
+    showTitle();
+  }
+
+  /** Run fn, first asking for confirmation if the deck being edited has unsaved changes. */
+  function guardDirty(fn) {
+    if (!builder || !builder.dirty) return fn();
+    confirmModal('Unsaved changes', `<b>${esc(builder.name)}</b> has changes that have not been saved.`, 'Discard changes', fn, 'Keep editing');
+  }
+
+  function bdSay(msg, bad) { builder.msg = msg; builder.bad = !!bad; }
 
   function builderAdd(id) {
     const c = CARDS[id];
     if (!c) return;
-    const total = Object.values(builder.counts).reduce((a, b) => a + b, 0);
+    const deck = builderDeck();
+    const why = Decks.whyIllegal(deck, id);
     const cur = builder.counts[id] || 0;
-    const max = c.unique ? 1 : 2;
-    if (total >= Decks.DECK_SIZE) { builder.msg = `Deck is already at ${Decks.DECK_SIZE} cards.`; return renderBuilder(); }
-    if (cur >= max) { builder.msg = `Max ${max} copy(s) of ${c.name}.`; return renderBuilder(); }
-    builder.counts[id] = cur + 1;
-    SFX.click();
-    renderBuilder();
+    const max = Decks.copyLimit(id);
+    if (why) bdSay(why, true);
+    else if (deck.cards.length >= Decks.DECK_SIZE) bdSay(`The deck is full (${Decks.DECK_SIZE} cards). Remove a card first.`, true);
+    else if (cur >= max) bdSay(max === 1 ? `${c.name} is a Secret Project — one copy only.` : `You already have ${max} copies of ${c.name}.`, true);
+    else if (Decks.source(deck, id) === 'pact' && Decks.pactCount(deck) >= Decks.PACT_LIMIT) {
+      bdSay(`Pact limit reached: at most ${Decks.PACT_LIMIT} ${facName(builder.pact)} cards.`, true);
+    } else {
+      builder.counts[id] = cur + 1;
+      builder.dirty = true;
+      bdSay(`Added ${c.name}.`);
+      SFX.click();
+    }
+    renderBuilderCounts();
   }
 
   function builderRemove(id) {
     if (!builder.counts[id]) return;
     builder.counts[id]--;
     if (builder.counts[id] <= 0) delete builder.counts[id];
+    builder.dirty = true;
+    bdSay(`Removed ${CARDS[id].name}.`);
     SFX.click();
-    renderBuilder();
+    renderBuilderCounts();
   }
 
-  function renderBuilder(codeVal) {
-    const f = FACTIONS[builder.fid];
-    const pool = Decks.poolFor(builder.fid).filter((id) => {
-      const c = CARDS[id];
-      if (builder.filter === 'faction') return c.faction === builder.fid;
-      if (builder.filter === 'neutral') return c.faction === 'neutral';
-      if (builder.filter === 'project') return !!c.project;
-      if (builder.filter === 'unit' || builder.filter === 'site' || builder.filter === 'order') return c.type === builder.filter;
-      return true;
-    }).sort((a, b) => CARDS[a].cost - CARDS[b].cost || CARDS[a].name.localeCompare(CARDS[b].name));
+  /** Change the main faction and/or Pact partner, dropping cards that no longer fit (after a confirmation). */
+  function builderReshape(faction, pact, label) {
+    const part = Decks.partition({ faction, pact, cards: builderList() });
+    const apply = () => {
+      builder.faction = faction;
+      builder.pact = pact;
+      builder.counts = Decks.countsFromList(part.legal);
+      if (builder.src === 'pact' && !builder.pact) builder.src = 'all';
+      builder.dirty = true;
+      bdSay(part.illegal.length ? `${label} Removed ${plural(part.illegal.length, 'card')} that no longer fit.` : label);
+      renderBuilder();
+      $('#bd-grid').scrollTop = 0;
+    };
+    if (!part.illegal.length) return apply();
+    confirmModal(faction === builder.faction ? 'Change Pact?' : 'Change faction?',
+      `${label} <b>${plural(part.illegal.length, 'card')}</b> in this deck would no longer be allowed and will be removed.`,
+      'Change and remove', apply, 'Keep as is');
+  }
 
-    const list = Decks.listFromCounts(builder.counts);
+  function builderSetFaction(fid) {
+    if (fid === builder.faction) return;
+    // Picking the Pact partner as the main faction swaps the two, so no cards are lost outright.
+    const pact = builder.pact === fid ? builder.faction : builder.pact;
+    builderReshape(fid, pact, builder.pact === fid
+      ? `${facName(fid)} now leads, with ${facName(pact)} as Pact partner.`
+      : `${facName(fid)} now leads this deck.`);
+  }
+
+  function builderSetPact(pid) {
+    const pact = pid === 'none' ? null : pid;
+    if (pact === builder.pact || pact === builder.faction) return;
+    builderReshape(builder.faction, pact, pact ? `Pact signed with ${facName(pact)}.` : 'Pact dissolved.');
+  }
+
+  function builderLoadPreset(key) {
+    const f = FACTIONS[builder.faction];
+    const p = f.presets[key];
+    if (!p) return;
+    const apply = () => {
+      builder.pact = null;
+      builder.doctrine = p.doctrine || 'standard';
+      builder.counts = Decks.countsFromList(V.buildDeck(f.id, key));
+      if (builder.src === 'pact') builder.src = 'all';
+      builder.dirty = true;
+      bdSay(`Loaded the ${p.name} preset.`);
+      renderBuilder();
+    };
+    const n = builderList().length;
+    if (!n) return apply();
+    confirmModal('Load preset?', `This replaces the ${plural(n, 'card')} in this deck with the <b>${p.name}</b> preset.`, 'Load preset', apply);
+  }
+
+  /** Save the deck being edited (finished or not). Returns the saved deck if it is ready to play, else null. */
+  function builderSave(asCopy) {
+    const deck = builderDeck();
+    deck.name = $('#bd-name').value;
+    if (asCopy) { deck.id = null; deck.name = (deck.name.trim() || 'Deck') + ' copy'; }
+    deck.name = Decks.uniqueName(Decks.normalize(deck).name, deck.id);
+    const saved = Decks.saveDeck(deck);
+    builder.id = saved.id;
+    builder.name = saved.name;
+    builder.dirty = false;
+    $('#bd-name').value = saved.name;
+    const v = Decks.validate(saved);
+    bdSay(v.ok ? `Saved “${saved.name}”. It is ready to play.` : `Saved “${saved.name}” as unfinished — ${v.errors[0]}`, !v.ok);
+    renderBuilder();
+    return v.ok ? saved : null;
+  }
+
+  function builderUse() {
+    const saved = builderSave(false);
+    if (!saved) return;
+    myFaction = saved.faction;
+    myPreset = 'deck:' + saved.id;
+    closeBuilder();
+  }
+
+  function builderDelete() {
+    if (!builder.id) return;
+    confirmModal('Delete deck?', `<b>${esc(builder.name)}</b> will be removed from your library. This cannot be undone.`, 'Delete deck', () => {
+      const fid = builder.faction;
+      const pick = 'deck:' + builder.id;
+      Decks.deleteDeck(builder.id);
+      Object.keys(prefs.picks).forEach((k) => { if (prefs.picks[k] === pick) delete prefs.picks[k]; });
+      Decks.savePrefs(prefs);
+      loadIntoBuilder(blankDeck(fid), 'Deck deleted. This is a new, empty deck.');
+    });
+  }
+
+  function builderClear() {
+    const n = builderList().length;
+    if (!n) return;
+    confirmModal('Clear deck?', `Remove all ${plural(n, 'card')} from this deck? (Nothing is saved until you press Save.)`, 'Clear deck', () => {
+      builder.counts = {};
+      builder.dirty = true;
+      bdSay('Deck cleared.');
+      renderBuilder();
+    });
+  }
+
+  function builderExport() {
+    const deck = builderDeck();
+    const v = Decks.validate(deck);
+    if (!v.ok) { bdSay(`Finish the deck before exporting it — ${v.errors[0]}`, true); return renderBuilderDeck(); }
+    const code = Decks.encode(deck);
+    const inp = $('#bd-code');
+    inp.value = code;
+    inp.select();
+    bdSay('Deck code is in the box below — copy it to share this deck.');
+    renderBuilderDeck();
+    try {
+      navigator.clipboard.writeText(code).then(() => {
+        if (!builder) return;
+        bdSay('Deck code copied to the clipboard (it is also in the box below).');
+        renderBuilderDeck();
+      }, () => {});
+    } catch (err) { /* clipboard unavailable: the code stays selected in the box */ }
+  }
+
+  function builderImport() {
+    const res = Decks.decode($('#bd-code').value);
+    if (res.error) { bdSay('Import failed — ' + res.error, true); return renderBuilderDeck(); }
+    guardDirty(() => loadIntoBuilder(
+      { name: Decks.uniqueName(`Imported ${facName(res.faction)} deck`), faction: res.faction, pact: res.pact, doctrine: res.doctrine, cards: res.cards },
+      'Deck imported. Press Save to add it to your library.', true));
+  }
+
+  /* ---- rendering ---- */
+  function renderBuilder() {
+    renderBuilderLibrary();
+    renderBuilderSetup();
+    renderBuilderFilters();
+    renderBuilderGrid();
+    renderBuilderDeck();
+  }
+
+  function renderBuilderLibrary() {
+    const row = (d, on, unsaved) => {
+      const v = Decks.validate(d);
+      const pact = d.pact ? `<span class="bl-pact" title="Pact with ${facName(d.pact)}">+${FACTIONS[d.pact].art}</span>` : '';
+      return `<div class="bl-row f-${d.faction} ${on ? 'on' : ''}" ${unsaved ? '' : `data-bdeck="${d.id}"`}
+        title="${esc(d.name)} — ${facName(d.faction)}${d.pact ? ' with ' + facName(d.pact) : ''}">
+        <span class="bl-art">${FACTIONS[d.faction].art}${pact}</span>
+        <span class="bl-name">${esc(d.name)}${on && builder.dirty && !unsaved ? ' <i>· edited</i>' : ''}</span>
+        <span class="bl-n ${v.ok ? 'ok' : ''}">${unsaved ? 'not saved' : v.ok ? '✔ ready' : d.cards.length + ' / ' + Decks.DECK_SIZE}</span>
+      </div>`;
+    };
+    let html = Decks.library().map((d) => (d.id === builder.id ? row(builderDeck(), true, false) : row(d, false, false))).join('');
+    if (!builder.id) html += row(builderDeck(), true, true);
+    $('#bd-lib-list').innerHTML = html;
+    const on = $('#bd-lib-list .bl-row.on');
+    if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
+  }
+
+  function renderBuilderSetup() {
+    const f = FACTIONS[builder.faction];
+    const doc = DOCTRINES[builder.doctrine] || DOCTRINES.standard;
+    const facChips = Object.values(FACTIONS).map((x) =>
+      `<span class="chip f-${x.id} ${x.id === builder.faction ? 'on' : ''}" data-bfac="${x.id}" title="${x.leader} — ${x.power.name}: ${esc(x.power.text)}">${x.art} ${facName(x.id)}</span>`).join('');
+    const pactChips = `<span class="chip f-neutral ${builder.pact ? '' : 'on'}" data-bpact="none">No Pact</span>` +
+      Object.values(FACTIONS).filter((x) => x.id !== builder.faction).map((x) =>
+        `<span class="chip f-${x.id} ${x.id === builder.pact ? 'on' : ''}" data-bpact="${x.id}">${x.art} ${facName(x.id)}</span>`).join('');
+    const docChips = Object.values(DOCTRINES).map((d) =>
+      `<span class="chip f-${f.id} ${builder.doctrine === d.id ? 'on' : ''}" data-bdoc="${d.id}" title="${esc(d.benefit)} (${esc(d.drawback)})">${d.icon} ${d.name}</span>`).join('');
+    const presets = Object.keys(f.presets).map((pk) =>
+      `<span class="chip f-${f.id}" data-bpre="${pk}" title="${esc(f.presets[pk].desc)}">${f.presets[pk].name}</span>`).join('');
+    const pactNote = builder.pact
+      ? `Up to <b>${Decks.PACT_LIMIT}</b> ${facName(builder.pact)} cards. Its Secret Project stays with its own faction.`
+      : `Optional — add up to <b>${Decks.PACT_LIMIT}</b> cards from one other faction.`;
+    $('#bd-setup').innerHTML = `
+      <span class="label">Faction</span>
+      <div class="chips">${facChips}</div>
+      <div class="bd-note f-${f.id}">
+        <span><b>${f.leader}</b> · ${f.power.art} ${f.power.name} (${f.power.cost}): ${f.power.text}</span>
+        <span class="bd-presets"><span class="label">Load preset</span>${presets}</span>
+      </div>
+      <span class="label">Pact</span>
+      <div class="bd-row"><div class="chips">${pactChips}</div><span class="bd-inline">${pactNote}</span></div>
+      <span class="label">Doctrine</span>
+      <div class="bd-row"><div class="chips">${docChips}</div></div>
+      <div class="bd-note"><span><b>${doc.icon} ${doc.name}:</b> ${doc.benefit}${doc.drawback !== 'None.' ? ` <i>(${doc.drawback})</i>` : ''}</span></div>`;
+  }
+
+  function renderBuilderFilters() {
+    const chip = (attr, val, cur, label, cls) =>
+      `<span class="chip ${cls || 'f-neutral'} ${cur === val ? 'on' : ''}" ${attr}="${val}">${label}</span>`;
+    const src = [chip('data-bsrc', 'all', builder.src, 'All cards'), chip('data-bsrc', 'main', builder.src, facName(builder.faction), 'f-' + builder.faction)];
+    if (builder.pact) src.push(chip('data-bsrc', 'pact', builder.src, 'Pact: ' + facName(builder.pact), 'f-' + builder.pact));
+    src.push(chip('data-bsrc', 'neutral', builder.src, 'Colonist'));
+    const types = [['all', 'Any type'], ['unit', 'Units'], ['order', 'Orders'], ['site', 'Locations'], ['project', 'Projects']]
+      .map(([k, l]) => chip('data-btype', k, builder.type, l));
+    const costs = [['all', 'Any cost'], ['1', '0–1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5'], ['6', '6+']]
+      .map(([k, l]) => chip('data-bcost', k, builder.cost, l));
+    $('#bd-filter-chips').innerHTML = `<div class="chips">${src.join('')}</div><div class="chips">${types.join('')}</div><div class="chips">${costs.join('')}</div>`;
+  }
+
+  function builderMatches(id) {
+    const c = CARDS[id];
+    if (builder.type === 'project' ? !c.project : builder.type !== 'all' && c.type !== builder.type) return false;
+    if (builder.cost !== 'all') {
+      const n = +builder.cost;
+      if (n === 1 ? c.cost > 1 : n === 6 ? c.cost < 6 : c.cost !== n) return false;
+    }
+    const q = builder.search.trim().toLowerCase();
+    if (!q) return true;
+    const kws = Object.keys(c.kw || {}).map((k) => (KW[k] ? KW[k].name : k)).join(' ');
+    const kind = c.project ? 'secret project location' : c.type === 'site' ? 'location' : c.type;
+    const hay = `${c.name} ${String(c.text || '').replace(/<[^>]+>/g, '')} ${kws} ${kind}`.toLowerCase();
+    return q.split(/\s+/).every((w) => hay.includes(w));
+  }
+
+  function renderBuilderGrid() {
+    const deck = builderDeck();
+    const groups = [['main', builder.faction, facName(builder.faction), '']];
+    if (builder.pact) {
+      groups.push(['pact', builder.pact, 'Pact · ' + facName(builder.pact),
+        `<span id="bd-pact-n"></span> — no more than ${Decks.PACT_LIMIT} of these in the deck`]);
+    }
+    groups.push(['neutral', 'neutral', 'Colonist', 'open to every faction']);
+    const pool = Decks.poolFor(builder.faction, builder.pact);
+    let shown = 0;
+    const html = groups.filter(([src]) => builder.src === 'all' || builder.src === src).map(([src, fid, label, note]) => {
+      const ids = pool.filter((id) => Decks.source(deck, id) === src && builderMatches(id)).sort(byCost);
+      shown += ids.length;
+      if (!ids.length) return '';
+      return `<div class="bd-group f-${fid}"><span class="g-name">${label}</span><span class="g-note">${plural(ids.length, 'card')}${note ? ' · ' + note : ''}</span></div>
+        <div class="bd-cards">${ids.map((id) => `<div class="b-card-wrap" data-badd="${id}" data-card="${id}">
+          <div class="b-count"></div>${cardHTML(CARDS[id])}</div>`).join('')}</div>`;
+    }).join('');
+    $('#bd-grid').innerHTML = shown ? html : '<div class="bd-empty">No cards match these filters.</div>';
+    updateBuilderGrid();
+  }
+
+  /** Refresh the copy badges and dimming in the card pool without rebuilding it. */
+  function updateBuilderGrid() {
+    const deck = builderDeck();
+    const pactN = Decks.pactCount(deck);
+    document.querySelectorAll('#bd-grid .b-card-wrap').forEach((w) => {
+      const id = w.dataset.badd;
+      const cur = builder.counts[id] || 0;
+      const max = Decks.copyLimit(id);
+      const badge = w.firstElementChild;
+      badge.textContent = `${cur}/${max}`;
+      badge.classList.toggle('has', cur > 0);
+      w.classList.toggle('maxed', cur >= max);
+      w.classList.toggle('blocked', cur < max && Decks.source(deck, id) === 'pact' && pactN >= Decks.PACT_LIMIT);
+    });
+    const pn = $('#bd-pact-n');
+    if (pn) pn.textContent = `${pactN} / ${Decks.PACT_LIMIT} in deck`;
+  }
+
+  function renderBuilderCounts() {
+    updateBuilderGrid();
+    renderBuilderDeck();
+    renderBuilderLibrary();
+  }
+
+  function renderBuilderDeck() {
+    const deck = builderDeck();
+    const list = deck.cards;
     const total = list.length;
-    const val = Decks.validate(builder.fid, list);
+    const v = Decks.validate(deck);
+    const pactN = v.pact;
 
-    // Cost curve buckets 0..7+
     const buckets = [0, 0, 0, 0, 0, 0, 0, 0];
     list.forEach((id) => { buckets[Math.min(7, CARDS[id].cost)]++; });
     const maxB = Math.max(1, ...buckets);
-    const curveHTML = buckets.map((n, i) => `
+    const curve = buckets.map((n, i) => `
       <div class="curve-col">
         <div class="curve-n">${n || ''}</div>
         <div class="curve-bar" style="height:${Math.round((n / maxB) * 100)}%"></div>
         <div class="curve-n">${i === 7 ? '7+' : i}</div>
       </div>`).join('');
 
-    const sortedDeck = Object.keys(builder.counts).sort((a, b) => CARDS[a].cost - CARDS[b].cost || CARDS[a].name.localeCompare(CARDS[b].name));
-    const filterTabs = [['all', 'All'], ['faction', facName(builder.fid)], ['neutral', 'Colonist'], ['project', 'Projects'], ['unit', 'Units'], ['site', 'Locations'], ['order', 'Orders']];
-    const presetBtns = Object.keys(f.presets).map((pk) => `<button class="chip f-${f.id}" data-bpre="${pk}">Load: ${f.presets[pk].name}</button>`).join('');
-    const docChips = Object.values(DOCTRINES).map((d) =>
-      `<span class="chip f-${f.id} ${builder.doctrine === d.id ? 'on' : ''}" data-bdoc="${d.id}" title="${d.benefit}">${d.icon} ${d.name}</span>`).join('');
+    const count = (fn) => list.filter((id) => fn(CARDS[id])).length;
+    const units = count((c) => c.type === 'unit');
+    const orders = count((c) => c.type === 'order');
+    const projects = count((c) => c.project);
+    const sites = count((c) => c.type === 'site') - projects;
+    const heavy = count((c) => c.cost >= 5);
 
-    openModal(`<div class="builder f-${f.id}">
-      <div class="builder-head">
-        <h2 style="margin:0;color:var(--fc)">${f.art} ${f.name} Deckbuilder</h2>
-        <div class="chips">${presetBtns}</div>
+    // Rule problems (block play) and softer advice (does not).
+    const issues = v.errors.filter((e) => !/^Deck must have/.test(e)).map((e) => `<div class="bd-issue err">${e}</div>`);
+    if (total === Decks.DECK_SIZE && v.ok) {
+      if (units < 10) issues.push(`<div class="bd-issue warn">Only ${plural(units, 'unit')} — your locations and colony will be hard to screen.</div>`);
+      if (sites + projects === 0) issues.push('<div class="bd-issue warn">No locations besides the Landing Site.</div>');
+      if (heavy > 9) issues.push(`<div class="bd-issue warn">${heavy} cards cost 5 or more — expect slow opening turns.</div>`);
+    }
+
+    $('#bd-stats').innerHTML = `
+      <div class="bd-count">
+        <strong class="${total === Decks.DECK_SIZE ? 'ok' : ''}">${total} / ${Decks.DECK_SIZE} cards</strong>
+        ${builder.pact ? `<span class="bd-pactn f-${builder.pact} ${pactN > Decks.PACT_LIMIT ? 'over' : ''}">Pact ${pactN} / ${Decks.PACT_LIMIT}</span>` : '<span class="bd-pactn f-neutral">No Pact</span>'}
       </div>
-      <div class="builder-filters">
-        <span class="label">Filter</span>
-        ${filterTabs.map(([k, lbl]) => `<span class="chip f-${f.id} ${builder.filter === k ? 'on' : ''}" data-bfil="${k}">${lbl}</span>`).join('')}
-      </div>
-      <div class="builder-filters">
-        <span class="label">Doctrine</span>
-        <div class="chips">${docChips}</div>
-      </div>
-      <div class="builder-body">
-        <div class="builder-grid">
-          ${pool.map((id) => {
-            const c = CARDS[id];
-            const cur = builder.counts[id] || 0;
-            const max = c.unique ? 1 : 2;
-            return `<div class="b-card-wrap ${cur >= max ? 'maxed' : ''}" data-badd="${id}">
-              <div class="b-count ${cur ? 'has' : ''}">${cur}/${max}</div>
-              ${cardHTML(c)}
-            </div>`;
-          }).join('')}
-        </div>
-        <div class="b-side">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <strong style="color:${total === Decks.DECK_SIZE ? 'var(--good)' : 'var(--gold)'}">${total} / ${Decks.DECK_SIZE} Cards</strong>
-            <button class="btn ghost small" data-do="bclear">Clear</button>
-          </div>
-          <div class="curve">${curveHTML}</div>
-          <div class="b-list">
-            ${sortedDeck.map((id) => {
-              const c = CARDS[id];
-              return `<div class="b-row f-${c.faction}" data-brem="${id}">
-                <span class="br-cost">${c.cost}</span>
-                <span class="br-name">${c.art} ${c.name}</span>
-                <span class="br-qty">×${builder.counts[id]}</span>
-              </div>`;
-            }).join('') || '<p style="color:var(--muted);text-align:center;margin-top:4rem">Empty deck</p>'}
-          </div>
-          <div class="code-row">
-            <input id="b-code" type="text" placeholder="Paste deck code…" value="${codeVal || ''}">
-            <button class="btn ghost small" data-do="bexport">Export</button>
-            <button class="btn ghost small" data-do="bimport">Import</button>
-          </div>
-          <div style="font-size:1.22rem;color:${val.ok ? 'var(--good)' : '#ffb0a0'}">${builder.msg || ''}</div>
-          <div style="display:flex;gap:0.8rem">
-            <button class="btn ghost" style="flex:1" data-do="close">Cancel</button>
-            <button class="btn primary" style="flex:1" data-do="bsave" ${val.ok ? '' : 'disabled'}>Save Deck</button>
-          </div>
-        </div>
-      </div>
-    </div>`);
+      <div class="curve">${curve}</div>
+      <div class="bd-types">${plural(units, 'unit')} · ${plural(orders, 'order')} · ${plural(sites, 'location')}${projects ? ' · ' + plural(projects, 'project') : ''}</div>
+      ${issues.join('')}`;
+
+    $('#bd-list').innerHTML = Object.keys(builder.counts).sort(byCost).map((id) => {
+      const c = CARDS[id];
+      const src = Decks.source(deck, id);
+      return `<div class="b-row f-${c.faction} ${src ? '' : 'illegal'}" data-brem="${id}" data-card="${id}" title="Click to remove a copy">
+        <span class="br-cost">${c.cost}</span>
+        <span class="br-name">${c.art} ${c.name}</span>
+        ${src === 'pact' ? '<span class="br-pact">Pact</span>' : ''}
+        <span class="br-qty">×${builder.counts[id]}</span>
+      </div>`;
+    }).join('') || '<div class="bd-empty">Empty deck — click cards in the pool to add them.</div>';
+
+    const msg = $('#bd-msg');
+    msg.textContent = builder.msg || '';
+    msg.classList.toggle('bad', !!builder.bad);
+    $('#bd-play').disabled = !v.ok;
+    $('#bd-play').textContent = v.ok ? 'Save & use this deck' : `Needs ${Decks.DECK_SIZE} legal cards to play`;
+    $('#bd-export').disabled = !v.ok;
+    $('#bd-delete').disabled = !builder.id;
+    $('#bd-clear').disabled = !total;
   }
+
+  /* ---- input ---- */
+  $('#screen-builder').addEventListener('click', (e) => {
+    if (!builder) return;
+    const hit = (q) => e.target.closest(q);
+    let el;
+    if ((el = hit('[data-brem]'))) return builderRemove(el.dataset.brem);
+    if ((el = hit('[data-badd]'))) return builderAdd(el.dataset.badd);
+    if ((el = hit('[data-bfac]'))) { SFX.click(); return builderSetFaction(el.dataset.bfac); }
+    if ((el = hit('[data-bpact]'))) { SFX.click(); return builderSetPact(el.dataset.bpact); }
+    if ((el = hit('[data-bdoc]'))) {
+      SFX.click();
+      if (builder.doctrine !== el.dataset.bdoc) { builder.doctrine = el.dataset.bdoc; builder.dirty = true; }
+      renderBuilderSetup();
+      return renderBuilderLibrary();
+    }
+    if ((el = hit('[data-bpre]'))) { SFX.click(); return builderLoadPreset(el.dataset.bpre); }
+    if ((el = hit('[data-bsrc]'))) { builder.src = el.dataset.bsrc; renderBuilderFilters(); renderBuilderGrid(); $('#bd-grid').scrollTop = 0; return; }
+    if ((el = hit('[data-btype]'))) { builder.type = el.dataset.btype; renderBuilderFilters(); renderBuilderGrid(); $('#bd-grid').scrollTop = 0; return; }
+    if ((el = hit('[data-bcost]'))) { builder.cost = el.dataset.bcost; renderBuilderFilters(); renderBuilderGrid(); $('#bd-grid').scrollTop = 0; return; }
+    if ((el = hit('[data-bdeck]'))) {
+      const id = el.dataset.bdeck;
+      if (id === builder.id) return;
+      SFX.click();
+      return guardDirty(() => { const d = Decks.getDeck(id); if (d) loadIntoBuilder(d); });
+    }
+    if (hit('#bd-back')) { SFX.click(); return guardDirty(closeBuilder); }
+    if (hit('#bd-new')) { SFX.click(); return guardDirty(() => loadIntoBuilder(blankDeck(builder.faction), 'New empty deck. ' + BUILDER_HINT)); }
+    if (hit('#bd-save')) { SFX.click(); return builderSave(false); }
+    if (hit('#bd-copy')) { SFX.click(); return builderSave(true); }
+    if (hit('#bd-clear')) return builderClear();
+    if (hit('#bd-delete')) return builderDelete();
+    if (hit('#bd-export')) return builderExport();
+    if (hit('#bd-import')) return builderImport();
+    if (hit('#bd-play')) { SFX.click(); return builderUse(); }
+  });
+
+  $('#screen-builder').addEventListener('contextmenu', (e) => {
+    const el = e.target.closest('[data-badd],[data-brem]');
+    if (!el || !builder) return;
+    e.preventDefault();
+    builderRemove(el.dataset.badd || el.dataset.brem);
+  });
+
+  $('#bd-search').addEventListener('input', (e) => {
+    if (!builder) return;
+    builder.search = e.target.value;
+    renderBuilderGrid();
+    $('#bd-grid').scrollTop = 0;
+  });
+
+  $('#bd-name').addEventListener('input', (e) => {
+    if (!builder) return;
+    builder.name = e.target.value.trim() || 'Untitled deck';
+    builder.dirty = true;
+    renderBuilderLibrary();
+  });
 
   /* ============================================================ Planetary Conquest Campaign */
   function showCampaignModal() {
@@ -1224,12 +1583,13 @@
 
   function launchCampaignMission(m) {
     activeMode = { kind: 'campaign', mission: m };
-    const myDeck = getActiveDeckList(myFaction, myPreset);
+    const mine = activeDeck();
     const oppDeck = V.buildDeck(m.opp, m.oppPreset);
     startGame({
       opp: m.opp,
       biome: m.biome,
-      deck0: myDeck,
+      deck0: mine.cards,
+      pact0: mine.pact,
       deck1: oppDeck,
       doctrine0: myDoctrine,
       doctrine1: m.oppDoctrine,
@@ -1398,12 +1758,16 @@
     }).join('');
 
     const f = FACTIONS[myFaction];
-    const hasCustom = !!Decks.getCustom(myFaction);
-    const deckOpts = Object.keys(f.presets).map((pk) => ({ id: pk, name: f.presets[pk].name }));
-    if (hasCustom) deckOpts.push({ id: 'custom', name: '★ Custom' });
-    if (!deckOpts.some((o) => o.id === myPreset)) myPreset = deckOpts[0].id;
+    const curDeck = activeDeck();
+    if (curDeck.pick !== myPreset) pickDeck(curDeck.pick); // the saved deck was deleted or is no longer playable
+    const deckOpts = Object.keys(f.presets).map((pk) => ({ id: pk, name: f.presets[pk].name, tip: f.presets[pk].desc }))
+      .concat(Decks.playableFor(myFaction).map((d) => ({
+        id: 'deck:' + d.id,
+        name: '★ ' + esc(d.name) + (d.pact ? ' +' + FACTIONS[d.pact].art : ''),
+        tip: d.pact ? 'Your deck — Pact with ' + facName(d.pact) : 'Your deck',
+      })));
     $('#deck-chips').innerHTML = deckOpts.map((o) =>
-      `<span class="chip f-${myFaction} ${o.id === myPreset ? 'on' : ''}" data-preset="${o.id}">${o.name}</span>`).join('');
+      `<span class="chip f-${myFaction} ${o.id === myPreset ? 'on' : ''}" data-preset="${o.id}" title="${esc(o.tip)}">${o.name}</span>`).join('');
 
     $('#doc-chips').innerHTML = Object.values(DOCTRINES).map((d) =>
       `<span class="chip f-${myFaction} ${d.id === myDoctrine ? 'on' : ''}" data-doc="${d.id}">${d.icon} ${d.name}</span>`).join('');
@@ -1421,7 +1785,7 @@
 
     const doc = DOCTRINES[myDoctrine] || DOCTRINES.standard;
     const biome = BIOMES[myBiome] || BIOMES.tau_ceti;
-    const deckDesc = myPreset === 'custom' ? 'Your custom 30-card colony manifest.' : f.presets[myPreset].desc;
+    const deckDesc = curDeck.desc;
     $('#setup-desc').innerHTML = `
       <span><b>Deck:</b> ${deckDesc}</span>
       <span><b>${doc.icon} ${doc.name}:</b> ${doc.benefit} ${doc.drawback !== 'None.' ? '(' + doc.drawback + ')' : ''}</span>
@@ -1449,9 +1813,7 @@
     const pre = e.target.closest('[data-preset]');
     if (pre) {
       SFX.click();
-      myPreset = pre.dataset.preset;
-      if (myPreset === 'custom') { const c = Decks.getCustom(myFaction); if (c) myDoctrine = c.doctrine; }
-      else myDoctrine = FACTIONS[myFaction].presets[myPreset].doctrine || 'standard';
+      pickDeck(pre.dataset.preset);
       return renderTitle();
     }
     const doc = e.target.closest('[data-doc]');
@@ -1464,7 +1826,7 @@
     if (dif) { SFX.click(); myDiff = dif.dataset.diff; return renderTitle(); }
   });
 
-  $('#btn-builder').addEventListener('click', () => { SFX.click(); openBuilder(myFaction); });
+  $('#btn-builder').addEventListener('click', () => { SFX.click(); openBuilder(); });
   $('#btn-campaign').addEventListener('click', () => { SFX.click(); showCampaignModal(); });
   $('#btn-draft').addEventListener('click', () => { SFX.click(); showDraftModal(); });
   $('#btn-start').addEventListener('click', () => { activeMode = { kind: 'skirmish' }; startGame(); });
@@ -1490,7 +1852,10 @@
     const seed = o.seed || ((Math.random() * 0x7fffffff) | 0) + 1;
     const first = o.first != null ? o.first : Math.random() < 0.5 ? 0 : 1;
 
-    const deck0 = o.deck0 || getActiveDeckList(p0Fac, myPreset);
+    // A deck passed in (campaign, Expedition Draft) brings its own pact; otherwise use the deck picked on the title screen.
+    const mine = o.deck0 ? null : deckFor(p0Fac, p0Fac === myFaction ? myPreset : null);
+    const deck0 = o.deck0 || mine.cards;
+    const pact0 = o.deck0 ? (o.pact0 || null) : mine.pact;
     const doc0 = o.doctrine0 || myDoctrine;
     const doc1 = o.doctrine1 || FACTIONS[opp].presets[oppPre].doctrine || 'standard';
     const biome = o.biome || myBiome;
@@ -1498,6 +1863,7 @@
     g = E.newGame(p0Fac, opp, seed, first, {
       biome,
       deck0,
+      pact0,
       deck1: o.deck1,
       preset1: oppPre,
       doctrine0: doc0,
@@ -1515,8 +1881,8 @@
     $('#screen-title').classList.add('hidden');
     $('#screen-game').classList.remove('hidden');
     logLine(`${FACTIONS[p0Fac].name} versus ${o.bossName || FACTIONS[opp].name} on ${BIOMES[biome].name}.`, 'sys');
-    if (g.active === BOT) logLine('The enemy moves first. You start with an extra card and a Reserve Cell.', 'sys');
-    else logLine('You move first. The enemy starts with an extra card and a Reserve Cell.', 'sys');
+    if (g.active === BOT) logLine('The enemy moves first. You start with two extra cards and a Reserve Cell.', 'sys');
+    else logLine('You move first. The enemy starts with two extra cards and a Reserve Cell.', 'sys');
 
     if (o.auto) fastForward(o.auto);
     busy = true;
@@ -1546,7 +1912,7 @@
   }
 
   /* ============================================================ boot */
-  syncFactionDefaults(myFaction);
+  syncFactionDefaults(FACTIONS[prefs.faction] ? prefs.faction : myFaction);
   renderTitle();
   const q = new URLSearchParams(location.search);
   if (q.get('f') && FACTIONS[q.get('f')]) {
@@ -1561,7 +1927,7 @@
   }
   if (q.get('modal') === 'help') showHelp();
   if (q.get('modal') === 'deck') showDeck(myFaction);
-  if (q.get('modal') === 'builder') openBuilder(myFaction);
+  if (q.get('modal') === 'builder') openBuilder();
   if (q.get('modal') === 'campaign') showCampaignModal();
   if (q.get('modal') === 'draft') showDraftModal();
   window.TauCetiUI = { get game() { return g; }, startGame, showTitle };
