@@ -3,13 +3,14 @@
  * Usage: node test/tune.js key=value[,key=value...] [gamesPerPairing]
  *   e.g. node test/tune.js foeSite=2 20
  */
+require('../js/world.js');
 require('../js/cards.js');
 require('../js/engine.js');
 require('../js/ai.js');
-const { Engine: E, AI, FACTIONS } = globalThis.Veyra;
+const { Engine: E, AI, FACTIONS } = globalThis.TauCeti;
 
 if (process.env.RAZE) E.RAZE_DAMAGE = +process.env.RAZE; // rule experiment
-if (process.env.SITEHP) Object.values(globalThis.Veyra.CARDS).forEach((c) => { if (c.type === 'site') c.hp = Math.max(1, c.hp + +process.env.SITEHP); }); // rule experiment
+if (process.env.SITEHP) Object.values(globalThis.TauCeti.CARDS).forEach((c) => { if (c.type === 'site') c.hp = Math.max(1, c.hp + +process.env.SITEHP); }); // rule experiment
 const variant = Object.assign({}, AI.TUNE);
 (process.argv[2] || '').split(',').filter(Boolean).forEach((kv) => {
   const [k, v] = kv.split('=');
