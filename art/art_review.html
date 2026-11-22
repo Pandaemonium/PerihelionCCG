@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tau Ceti — Art Review Studio</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    html { font-size: 10px; }
+    body {
+      height: auto; min-height: 100vh; overflow-y: auto; user-select: text;
+      font-size: 1.5rem; padding: 0 0 4rem;
+    }
+    .rv-top {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(8, 13, 24, 0.94); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--panel-line); padding: 1.2rem 2.4rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+    .rv-bar { display: flex; align-items: center; justify-content: space-between; gap: 1.6rem; flex-wrap: wrap; }
+    .rv-brand { display: flex; align-items: center; gap: 1.4rem; }
+    .rv-brand h1 { margin: 0; font-size: 2.2rem; font-weight: 300; letter-spacing: 0.35rem; text-transform: uppercase; color: var(--gold); }
+    .rv-pill {
+      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 1rem;
+      border-radius: 10rem; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.05em;
+      border: 1px solid var(--panel-line); background: rgba(255,255,255,0.04); color: var(--muted);
+    }
+    .rv-pill.live { border-color: var(--good); color: var(--good); background: rgba(88,214,141,0.12); }
+    .rv-pill.busy { border-color: var(--gold); color: var(--gold); background: rgba(255,209,102,0.14); animation: pulse 1.4s infinite; }
+    .rv-stats { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
+    .rv-stat { padding: 0.35rem 0.9rem; border-radius: 0.6rem; font-size: 1.25rem; font-weight: 700; background: rgba(255,255,255,0.05); }
+    .rv-stat.ok { color: var(--good); }
+    .rv-stat.rr { color: #ff9f43; }
+    .rv-stat.un { color: var(--muted); }
+    .rv-filters { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .rv-search {
+      background: #0b1220; border: 1px solid var(--panel-line); color: var(--ink);
+      border-radius: 0.8rem; padding: 0.55rem 1.1rem; font: inherit; font-size: 1.35rem; width: 22rem;
+    }
+    .rv-main { max-width: 152rem; margin: 2.2rem auto; padding: 0 2.4rem; }
+
+    /* Single-card inspector layout */
+    .stage {
+      display: grid; grid-template-columns: auto minmax(34rem, 1fr) minmax(38rem, 48rem);
+      gap: 2.6rem; align-items: start;
+    }
+    .stage-col {
+      background: rgba(14, 22, 38, 0.78); border: 1px solid var(--panel-line);
+      border-radius: 1.6rem; padding: 2rem; display: flex; flex-direction: column; gap: 1.4rem;
+    }
+    .col-title {
+      font-size: 1.15rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted);
+      font-weight: 700; display: flex; justify-content: space-between; align-items: center;
+    }
+    .card-stage { display: flex; flex-direction: column; align-items: center; gap: 1.8rem; padding: 0.8rem 0.4rem; }
+    .card-stage .card { font-size: 2.25rem; }
+    .board-preview { display: flex; gap: 1.4rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .board-preview .unit { font-size: 1.5rem; cursor: default; }
+    .board-preview .site { width: 23rem; cursor: default; }
+    .leader-card-preview {
+      width: 28rem; padding: 2rem; border-radius: 1.6rem; text-align: center;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--fc) 18%, #111a2c), #0d1524);
+      border: 2px solid var(--fc); display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    }
+    .leader-card-preview .lp-img {
+      width: 16rem; height: 16rem; border-radius: 50%; overflow: hidden;
+      border: 0.4rem solid var(--fc); box-shadow: 0 0 2.4rem color-mix(in srgb, var(--fc) 50%, transparent);
+    }
+    .leader-card-preview .lp-name { font-size: 2.2rem; font-weight: 700; color: var(--fc); }
+    .leader-card-preview .lp-sub { font-size: 1.35rem; color: var(--muted); }
+    .leader-card-preview .lp-motto { font-style: italic; font-size: 1.4rem; color: #dbe6f8; }
+
+    .raw-frame {
+      position: relative; width: 100%; border-radius: 1.2rem; overflow: hidden;
+      border: 1px solid var(--panel-line); background: #070b14; min-height: 28rem;
+      display: grid; place-items: center;
+    }
+    .raw-frame img { width: 100%; height: auto; max-height: 52rem; object-fit: contain; display: block; }
+    .raw-overlay {
+      position: absolute; inset: 0; background: rgba(7, 11, 20, 0.82); backdrop-filter: blur(4px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+      color: var(--gold); font-size: 1.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .spinner {
+      width: 4.2rem; height: 4.2rem; border-radius: 50%;
+      border: 0.4rem solid rgba(255, 209, 102, 0.25); border-top-color: var(--gold);
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.7rem; font-size: 1.3rem; }
+    .meta-item { background: rgba(255,255,255,0.04); padding: 0.6rem 0.9rem; border-radius: 0.7rem; }
+    .meta-item span { display: block; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .prompt-box {
+      width: 100%; min-height: 18rem; resize: vertical; background: #080e1a;
+      border: 1px solid #354b74; border-radius: 0.9rem; color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 1.35rem; line-height: 1.48;
+      padding: 1.1rem; outline: none;
+    }
+    .prompt-box:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.2); }
+    .ctrl-row { display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
+    .ctrl-row select, .ctrl-row input[type="text"], .ctrl-row input[type="number"] {
+      background: #0a1120; border: 1px solid var(--panel-line); color: var(--ink);
+      border-radius: 0.7rem; padding: 0.65rem 1rem; font: inherit; font-size: 1.35rem;
+    }
+    .btn.approve { background: linear-gradient(180deg, #42b874, #28844f); border-color: #6fe39f; color: #051c0f; }
+    .btn.approve:hover:not(:disabled) { background: linear-gradient(180deg, #52ce86, #32995d); }
+    .btn.reroll { background: linear-gradient(180deg, #f39c12, #c97208); border-color: #ffd080; color: #1f1100; }
+    .btn.reroll:hover:not(:disabled) { background: linear-gradient(180deg, #ffae2b, #db7f0e); }
+    .status-badge {
+      padding: 0.3rem 0.9rem; border-radius: 10rem; font-size: 1.15rem; font-weight: 800; text-transform: uppercase;
+    }
+    .st-approved { background: rgba(88, 214, 141, 0.2); color: var(--good); border: 1px solid var(--good); }
+    .st-reroll { background: rgba(243, 156, 18, 0.2); color: #ffb347; border: 1px solid #f39c12; }
+    .st-unreviewed { background: rgba(141, 155, 179, 0.14); color: var(--muted); border: 1px solid var(--panel-line); }
+    .toast-msg { font-size: 1.3rem; min-height: 2rem; color: var(--energy); }
+    .toast-msg.err { color: #ff8c8c; }
+    .toast-msg.ok { color: var(--good); }
+    .nav-bar {
+      display: flex; justify-content: space-between; align-items: center; gap: 1.2rem;
+      margin-top: 1.8rem; padding: 1.2rem 2rem; border-radius: 1.2rem;
+      background: rgba(14, 22, 38, 0.78); border: 1px solid var(--panel-line); flex-wrap: wrap;
+    }
+    .kbd {
+      display: inline-block; padding: 0.1rem 0.5rem; border-radius: 0.4rem; font-size: 1.1rem;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: var(--ink);
+      font-family: ui-monospace, monospace;
+    }
+
+    /* Grid browser view */
+    .grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(23rem, 1fr)); gap: 1.8rem; }
+    .grid-item {
+      position: relative; background: rgba(14, 22, 38, 0.8); border: 2px solid var(--panel-line);
+      border-radius: 1.2rem; padding: 1.2rem; cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; gap: 0.8rem; transition: transform 0.12s, border-color 0.12s;
+    }
+    .grid-item:hover { transform: translateY(-3px); border-color: var(--gold); }
+    .grid-item.st-approved-card { border-color: rgba(88, 214, 141, 0.55); }
+    .grid-item.st-reroll-card { border-color: rgba(243, 156, 18, 0.8); }
+    .grid-item .card { font-size: 1.5rem; pointer-events: none; }
+    .grid-item .gi-foot { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; }
+
+    /* Modal export / queue */
+    .q-box { width: 96rem; max-width: 90vw; }
+    .q-pre {
+      background: #070c16; border: 1px solid var(--panel-line); border-radius: 0.8rem;
+      padding: 1.2rem; font-family: ui-monospace, Consolas, monospace; font-size: 1.25rem;
+      color: #cfe4ff; white-space: pre-wrap; word-break: break-all; max-height: 26rem; overflow-y: auto;
+    }
+    @media (max-width: 1180px) {
+      .stage { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="stars"></div>
+
+  <header class="rv-top">
+    <div class="rv-bar">
+      <div class="rv-brand">
+        <h1>Tau Ceti · Art Review</h1>
+        <span id="server-pill" class="rv-pill">Checking local GPU server…</span>
+        <button id="btn-pause" class="btn ghost small hidden">⏸ Pause Queue</button>
+      </div>
+      <div class="rv-stats">
+        <span class="rv-stat ok" id="st-ok">0 Approved</span>
+        <span class="rv-stat rr" id="st-rr">0 Reroll</span>
+        <span class="rv-stat un" id="st-un">0 Unreviewed</span>
+        <button id="btn-view" class="btn ghost small">Grid View</button>
+        <button id="btn-queue" class="btn mode-btn small">Reroll Queue / Export</button>
+        <a href="../index.html" class="btn ghost small" style="text-decoration:none">Play Game</a>
+      </div>
+    </div>
+    <div class="rv-filters">
+      <div id="status-chips" class="chips"></div>
+      <div id="group-chips" class="chips"></div>
+      <input id="search" class="rv-search" type="search" placeholder="Search card name, ID, or prompt…">
+    </div>
+  </header>
+
+  <main class="rv-main">
+    <div id="single-view"></div>
+    <div id="grid-view" class="grid-view hidden"></div>
+    <div id="nav-bar" class="nav-bar"></div>
+  </main>
+
+  <div id="modal" class="modal hidden"><div id="modal-box" class="modal-box"></div></div>
+
+  <script src="../js/world.js"></script>
+  <script src="../js/art.js"></script>
+  <script src="../js/cards.js"></script>
+  <script src="../tools/art_prompts.js"></script>
+  <script src="review_state.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    const V = window.TauCeti || {};
+    const CARDS = V.CARDS || {};
+    const FACTIONS = V.FACTIONS || {};
+    const RAW_PROMPTS = window.TauCetiPrompts || [];
+    const DISK_STATE = window.TauCetiReviewState || {};
+
+    const REVIEW_KEY = 'tauceti_art_review_v1';
+    const $ = (s, r) => (r || document).querySelector(s);
+
+    // State persisted in localStorage AND synced with art/review_state.json when live server runs
+    function loadState() {
+      try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || '{}'); }
+      catch (e) { return {}; }
+    }
+    const saved = loadState();
+    const statuses = Object.assign({}, DISK_STATE.statuses || {}, saved.statuses || {});
+    const editedPrompts = Object.assign({}, DISK_STATE.prompts || {}, saved.prompts || {});
+    const notes = Object.assign({}, DISK_STATE.notes || {}, saved.notes || {});
+
+    let syncTimer = null;
+    function syncStateToDisk() {
+      if (!serverLive) return;
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        fetch('/api/review_state', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ statuses, prompts: editedPrompts, notes }),
+        }).catch(() => {});
+      }, 250);
+    }
+
+    function persist() {
+      try {
+        localStorage.setItem(REVIEW_KEY, JSON.stringify({ statuses, prompts: editedPrompts, notes }));
+      } catch (e) {}
+      syncStateToDisk();
+    }
+
+    // Working runtime state — automatically discovers ANY new cards/factions added to js/cards.js!
+    const promptMap = {};
+    const origPromptMap = {};
+    RAW_PROMPTS.forEach((p) => {
+      promptMap[p.id] = p;
+      origPromptMap[p.id] = p.prompt;
+    });
+
+    function defaultPromptFor(id, isLeader, card, fac) {
+      if (isLeader) {
+        const f = FACTIONS[fac];
+        const name = f ? f.leader : id;
+        return `Photorealistic 35mm cinema portrait still of ${name}, leader of ${f ? f.name : 'an exoplanet colony'}, weathered practical sci-fi attire, atmospheric exoplanet colony background, subtle film grain, centered bust framing.`;
+      }
+      const flavor = card && card.flavor ? ` Mood: ${card.flavor}` : '';
+      const desc = card ? `${card.name}, sci-fi ${card.project ? 'monumental Secret Project structure' : card.type} on an alien frontier planet.${flavor}` : id;
+      return `${desc} Photorealistic 35mm anamorphic cinema still, practical textures, volumetric atmosphere, natural lens optics, Sid Meier Alpha Centauri aesthetic.`;
+    }
+
+    const ALL_ITEMS = [];
+    const seenIds = new Set();
+    const addEntry = (id, isLeader) => {
+      if (seenIds.has(id)) return;
+      seenIds.add(id);
+      const card = isLeader ? null : CARDS[id];
+      const fac = isLeader
+        ? (id === 'leader_boss' ? 'boss' : id.replace('leader_', ''))
+        : (card ? card.faction : 'neutral');
+      if (!origPromptMap[id]) origPromptMap[id] = defaultPromptFor(id, isLeader, card, fac);
+      ALL_ITEMS.push({
+        id,
+        kind: isLeader ? 'leader' : (card && card.project ? 'project' : (card ? card.type : 'card')),
+        name: isLeader
+          ? (id === 'leader_boss' ? 'The Chiron Echo' : (FACTIONS[fac] ? FACTIONS[fac].leader : id))
+          : (card ? card.name : id),
+        faction: fac,
+        card,
+        leaderFaction: isLeader && FACTIONS[fac] ? FACTIONS[fac] : null,
+      });
+    };
+
+    // 1. All existing prompt entries in order
+    RAW_PROMPTS.forEach((p) => addEntry(p.id, p.kind === 'leader'));
+    // 2. Any brand-new factions or cards added to js/cards.js without prompts/art yet!
+    Object.keys(FACTIONS).forEach((fid) => addEntry('leader_' + fid, true));
+    addEntry('leader_boss', true);
+    Object.keys(CARDS).forEach((cid) => addEntry(cid, false));
+
+    let filterStatus = 'all';
+    let filterGroup = 'all';
+    let searchTerm = '';
+    let viewMode = 'single'; // 'single' | 'grid'
+    let curIndex = 0;
+    let autoAdvance = true;
+    let serverLive = false;
+    let serverBusy = false;
+    let generatingId = null;
+    let queuePaused = false;
+    let rerollOrder = [];
+    let freshRerolls = {}; // id -> { seed, elapsed }
+    let webpSizes = {};
+    let cacheBust = {}; // id -> timestamp
+    let activeModel = 'realvis';
+    let toast = { text: '', cls: '' };
+
+    function pendingRerollIds() {
+      // Preserve explicit FIFO order first, then any other flagged IDs
+      const seen = new Set();
+      const out = [];
+      rerollOrder.forEach((id) => {
+        if (statuses[id] === 'reroll' && !seen.has(id)) { seen.add(id); out.push(id); }
+      });
+      ALL_ITEMS.forEach((it) => {
+        if (statuses[it.id] === 'reroll' && !seen.has(it.id)) { seen.add(it.id); out.push(it.id); }
+      });
+      rerollOrder = out;
+      return out;
+    }
+
+    function queuePosition(id) {
+      if (generatingId === id) return 0;
+      const idx = pendingRerollIds().indexOf(id);
+      return idx >= 0 ? idx + 1 : -1;
+    }
+
+    const facLabel = (fid) => fid === 'neutral' ? 'Colonist'
+      : fid === 'boss' ? 'Campaign Boss'
+      : (FACTIONS[fid] ? FACTIONS[fid].name.replace(/^The /, '') : fid);
+
+    function currentPrompt(id) {
+      return editedPrompts[id] != null ? editedPrompts[id] : (origPromptMap[id] || '');
+    }
+
+    function hasArtFile(id) {
+      return !!(webpSizes[id] != null || (V.ART && V.ART[id]) || cacheBust[id]);
+    }
+
+    function filteredItems() {
+      const q = searchTerm.trim().toLowerCase();
+      return ALL_ITEMS.filter((it) => {
+        const st = statuses[it.id] || 'unreviewed';
+        if (filterStatus === 'missing' && hasArtFile(it.id)) return false;
+        if (filterStatus === 'unreviewed' && st !== 'unreviewed') return false;
+        if (filterStatus === 'approved' && st !== 'approved') return false;
+        if (filterStatus === 'reroll' && st !== 'reroll') return false;
+        if (filterStatus === 'edited' && editedPrompts[it.id] == null) return false;
+
+        if (filterGroup === 'leaders' && it.kind !== 'leader') return false;
+        else if (filterGroup === 'projects' && it.kind !== 'project') return false;
+        else if (filterGroup !== 'all' && filterGroup !== 'leaders' && filterGroup !== 'projects' && it.faction !== filterGroup) return false;
+
+        if (q) {
+          const hay = (it.id + ' ' + it.name + ' ' + currentPrompt(it.id) + ' ' + (it.card ? it.card.text : '')).toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function imgSrc(id, raw) {
+      const bust = cacheBust[id] ? '?t=' + cacheBust[id] : '';
+      return raw ? `raw/${id}.png${bust}` : `${id}.webp${bust}`;
+    }
+
+    function renderCardHTML(it) {
+      const bust = cacheBust[it.id] ? '?t=' + cacheBust[it.id] : '';
+      const hasImg = hasArtFile(it.id);
+      if (it.kind === 'leader') {
+        const f = it.leaderFaction;
+        const fc = f ? 'f-' + f.id : 'f-boss';
+        const title = f ? f.leader : 'The Chiron Echo';
+        const sub = f ? f.name : 'Planetary Conquest Final Boss';
+        const motto = f ? `“${f.motto}”` : '“The world beneath the spores has learned to speak with human voices.”';
+        const lArt = hasImg ? `<img class="art-img" src="${it.id}.webp${bust}" alt="">` : `<div style="font-size:7rem;display:grid;place-items:center;height:100%">${f ? f.art : '🧠'}</div>`;
+        return `<div class="leader-card-preview ${fc}">
+          <div class="lp-img">${lArt}</div>
+          <div class="lp-name">${title}</div>
+          <div class="lp-sub">${sub}</div>
+          <div class="lp-motto">${motto}</div>
+          ${f ? `<div style="font-size:1.25rem;background:rgba(0,0,0,0.35);padding:.7rem 1rem;border-radius:.8rem"><b>${f.power.art} ${f.power.name} (${f.power.cost})</b><br>${f.power.text}</div>` : ''}
+        </div>`;
+      }
+      const d = it.card;
+      const isUnit = d.type === 'unit';
+      const isSite = d.type === 'site';
+      const kind = d.project ? 'Project' : isSite ? 'Location' : isUnit ? 'Unit' : 'Order';
+      const body = d.text || (d.flavor ? `<i>${d.flavor}</i>` : '');
+      const stats = isUnit
+        ? `<div class="c-atk">${d.atk}</div><div class="c-hp">${d.hp}</div>`
+        : isSite ? `<div class="c-hp c-int" title="Integrity">${d.hp}</div>` : '';
+      const cls = [isUnit ? 'unit-card' : isSite ? 'site-card' : 'order', 'f-' + d.faction];
+      if (d.project) cls.push('project');
+      const artInner = hasImg ? `<img class="art-img" src="${it.id}.webp${bust}" alt="">` : `<span>${d.art || '❔'}</span>`;
+      return `<div class="card ${cls.join(' ')}">
+        <div class="c-cost">${d.cost}</div>
+        <div class="c-art">${artInner}</div>
+        <div class="c-name">${d.name}</div>
+        <div class="c-type">${kind} · ${facLabel(d.faction)}</div>
+        <div class="c-text"><div>${body}</div></div>${stats}
+      </div>`;
+    }
+
+    function renderBoardPreview(it) {
+      if (!it.card) return '';
+      const d = it.card;
+      const bust = cacheBust[it.id] ? '?t=' + cacheBust[it.id] : '';
+      const hasImg = hasArtFile(it.id);
+      if (d.type === 'unit') {
+        const kws = Object.keys(d.kw || {}).slice(0, 4).map((k) => {
+          const info = V.KEYWORDS[k];
+          return info ? `<span>${info.icon}</span>` : '';
+        }).join('');
+        return `<div class="board-preview">
+          <div class="unit f-${d.faction}">
+            <div class="u-name">${d.name}</div>
+            <div class="u-art ${hasImg ? 'has-art' : ''}">${hasImg ? `<img class="art-img" src="${it.id}.webp${bust}" alt="">` : (d.art || '❔')}</div>
+            <div class="u-kw">${kws}</div>
+            <div class="c-atk">${d.atk}</div>
+            <div class="c-hp">${d.hp}</div>
+          </div>
+        </div>`;
+      }
+      if (d.type === 'site') {
+        return `<div class="board-preview">
+          <div class="site f-${d.faction} ${d.project ? 'project' : ''}">
+            <div class="s-art ${hasImg ? 'has-art' : ''}">${hasImg ? `<img class="art-img" src="${it.id}.webp${bust}" alt="">` : (d.art || '❔')}</div>
+            <div class="s-body"><div class="s-name">${d.name}</div><div class="s-brief">${d.brief || ''}</div></div>
+            <div class="c-hp c-int">${d.hp}</div>
+          </div>
+        </div>`;
+      }
+      return '';
+    }
+
+    function updateHeader() {
+      let ok = 0, rr = 0, un = 0;
+      ALL_ITEMS.forEach((it) => {
+        const st = statuses[it.id];
+        if (st === 'approved') ok++;
+        else if (st === 'reroll') rr++;
+        else un++;
+      });
+      $('#st-ok').textContent = `${ok} Approved`;
+      $('#st-rr').textContent = `${rr} Reroll`;
+      $('#st-un').textContent = `${un} Unreviewed`;
+      $('#btn-view').textContent = viewMode === 'single' ? 'Grid View' : 'Single View';
+
+      const pill = $('#server-pill');
+      const pauseBtn = $('#btn-pause');
+      const qIds = pendingRerollIds();
+      const qCount = qIds.length;
+      if (serverLive) {
+        pauseBtn.classList.toggle('hidden', qCount === 0 && !serverBusy);
+        pauseBtn.textContent = queuePaused ? `▶ Resume Queue (${qCount})` : '⏸ Pause Queue';
+      } else {
+        pauseBtn.classList.add('hidden');
+      }
+
+      if (serverBusy && generatingId) {
+        const gItem = ALL_ITEMS.find((x) => x.id === generatingId);
+        const rem = Math.max(0, qCount - (statuses[generatingId] === 'reroll' ? 1 : 0));
+        pill.className = 'rv-pill busy';
+        pill.textContent = `⚡ Rerolling ${gItem ? gItem.name : generatingId}${rem > 0 ? ` (+${rem} queued)` : ''}…`;
+      } else if (serverLive && queuePaused && qCount > 0) {
+        pill.className = 'rv-pill';
+        pill.textContent = `⏸ Queue Paused (${qCount} waiting)`;
+      } else if (serverLive) {
+        pill.className = 'rv-pill live';
+        pill.textContent = '● Live GPU Server Ready';
+      } else {
+        pill.className = 'rv-pill';
+        pill.textContent = '○ Offline Mode (run tools\\start_art_review.cmd for live rerolls)';
+      }
+
+      const missingCount = ALL_ITEMS.filter((it) => !hasArtFile(it.id)).length;
+      const stTabs = [
+        ['all', 'All'],
+        ...(missingCount ? [['missing', `Missing Art (${missingCount})`]] : [['missing', 'Missing Art']]),
+        ['unreviewed', 'Unreviewed'], ['approved', 'Approved'], ['reroll', 'Reroll'], ['edited', 'Edited'],
+      ];
+      $('#status-chips').innerHTML = stTabs.map(([k, lbl]) =>
+        `<span class="chip f-neutral ${filterStatus === k ? 'on' : ''}" data-fst="${k}">${lbl}</span>`).join('');
+
+      const grpTabs = [
+        ['all', 'All'], ['leaders', 'Leaders'], ['projects', 'Projects'],
+        ...Object.keys(FACTIONS).map((id) => [id, facLabel(id)]),
+        ['neutral', 'Colonist'],
+      ];
+      $('#group-chips').innerHTML = grpTabs.map(([k, lbl]) => {
+        const fc = FACTIONS[k] ? 'f-' + k : 'f-neutral';
+        return `<span class="chip ${fc} ${filterGroup === k ? 'on' : ''}" data-fgrp="${k}">${lbl}</span>`;
+      }).join('');
+    }
+
+    function render() {
+      updateHeader();
+      const list = filteredItems();
+      if (curIndex >= list.length) curIndex = Math.max(0, list.length - 1);
+
+      const singleEl = $('#single-view');
+      const gridEl = $('#grid-view');
+      const navEl = $('#nav-bar');
+
+      if (!list.length) {
+        singleEl.classList.remove('hidden');
+        gridEl.classList.add('hidden');
+        singleEl.innerHTML = `<div class="stage-col" style="text-align:center;padding:6rem">
+          <h2 style="margin:0;color:var(--muted)">No cards match the current filter.</h2>
+          <p>Try switching status or faction filters above.</p>
+        </div>`;
+        navEl.innerHTML = '';
+        return;
+      }
+
+      if (viewMode === 'grid') {
+        singleEl.classList.add('hidden');
+        gridEl.classList.remove('hidden');
+        navEl.innerHTML = `<span style="color:var(--muted)">Showing ${list.length} of ${ALL_ITEMS.length} assets. Click any card to review, edit its prompt, or reroll.</span>`;
+        gridEl.innerHTML = list.map((it, idx) => {
+          const st = statuses[it.id] || 'unreviewed';
+          const stCls = st === 'approved' ? 'st-approved-card' : st === 'reroll' ? 'st-reroll-card' : '';
+          const badge = st === 'approved' ? '<span class="status-badge st-approved">✓ Approved</span>'
+            : st === 'reroll' ? '<span class="status-badge st-reroll">↻ Reroll</span>'
+            : '<span class="status-badge st-unreviewed">Unreviewed</span>';
+          return `<div class="grid-item ${stCls}" data-open="${idx}">
+            ${renderCardHTML(it)}
+            <div class="gi-foot">
+              <span style="color:var(--muted)">${it.id}</span>
+              ${badge}
+            </div>
+          </div>`;
+        }).join('');
+        return;
+      }
+
+      singleEl.classList.remove('hidden');
+      gridEl.classList.add('hidden');
+      const it = list[curIndex];
+      const st = statuses[it.id] || 'unreviewed';
+      const qPos = queuePosition(it.id);
+      const isGenThis = generatingId === it.id;
+      const fresh = freshRerolls[it.id];
+      const stBadge = isGenThis ? '<span class="status-badge st-reroll">⚡ Rerolling Now…</span>'
+        : st === 'approved' ? '<span class="status-badge st-approved">✓ Approved</span>'
+        : st === 'reroll' ? `<span class="status-badge st-reroll">↻ Queued (#${qPos})</span>`
+        : fresh ? `<span class="status-badge st-approved" style="border-color:var(--energy);color:var(--energy);background:rgba(79,209,255,0.14)">✨ Fresh Reroll (${fresh.elapsed}s)</span>`
+        : '<span class="status-badge st-unreviewed">Unreviewed</span>';
+      const hasImg = hasArtFile(it.id);
+      const kb = hasImg ? (webpSizes[it.id] != null ? `${webpSizes[it.id]} KB WebP` : 'WebP ready') : 'No art yet';
+      const isEdited = editedPrompts[it.id] != null && editedPrompts[it.id] !== origPromptMap[it.id];
+      const savedModel = (notes[it.id] && notes[it.id].model) || activeModel;
+      const savedSeed = (notes[it.id] && notes[it.id].seed) || '';
+      const bust = cacheBust[it.id] ? '?t=' + cacheBust[it.id] : '';
+
+      let rerollBtnHTML;
+      if (!serverLive) {
+        rerollBtnHTML = `<button id="btn-reroll-action" class="btn reroll" style="flex:1">${hasImg ? '⚑ Queue Reroll (R)' : '✨ Queue Generate (R)'}</button>`;
+      } else if (isGenThis) {
+        rerollBtnHTML = `<button id="btn-reroll-action" class="btn reroll" style="flex:1" disabled>⏳ Generating…</button>`;
+      } else if (st === 'reroll') {
+        rerollBtnHTML = `<button id="btn-reroll-action" class="btn reroll" style="flex:1" disabled>⏳ Queued (#${qPos})</button>`;
+      } else if (serverBusy) {
+        rerollBtnHTML = `<button id="btn-reroll-action" class="btn reroll" style="flex:1">${hasImg ? '+ Queue Reroll (R)' : '+ Queue Generate (R)'}</button>`;
+      } else {
+        rerollBtnHTML = `<button id="btn-reroll-action" class="btn reroll" style="flex:1">${hasImg ? '↻ Reroll Now (R)' : '✨ Generate Now (R)'}</button>`;
+      }
+
+      const rawInner = hasImg
+        ? `<img id="raw-img" src="raw/${it.id}.png${bust}" onerror="if(!this.dataset.f1){this.dataset.f1=1;this.src='raw/${it.id}.jpg${bust}';}else if(!this.dataset.f2){this.dataset.f2=1;this.src='${it.id}.webp${bust}';}" alt="${it.name}">`
+        : `<div style="text-align:center;padding:5rem 2rem;color:var(--muted)"><div style="font-size:5rem;margin-bottom:1rem">${it.card ? it.card.art : '🪐'}</div><b>No artwork generated yet</b><br>Tweak the prompt on the right and click <b>Generate</b> (or run <code>tools\\gen_missing_art.cmd</code>).</div>`;
+
+      singleEl.innerHTML = `<div class="stage" data-cur-id="${it.id}">
+        <div class="stage-col">
+          <div class="col-title"><span>Final In-Game Card</span><span id="cur-kb">${kb}</span></div>
+          <div class="card-stage">
+            ${renderCardHTML(it)}
+            ${renderBoardPreview(it)}
+          </div>
+        </div>
+
+        <div class="stage-col">
+          <div class="col-title"><span>Full Source Artwork (${it.id})</span><span id="cur-badge">${stBadge}</span></div>
+          <div class="raw-frame" id="raw-frame">
+            ${rawInner}
+            ${isGenThis ? '<div class="raw-overlay"><div class="spinner"></div><div>Generating on Arc A750…</div></div>' : ''}
+          </div>
+          ${it.card && it.card.flavor ? `<div class="insp-notes"><div class="insp-flavor">${it.card.flavor}</div></div>` : ''}
+        </div>
+
+        <div class="stage-col">
+          <div class="col-title"><span>Art Prompt & Controls</span><span>${curIndex + 1} / ${list.length}</span></div>
+          <div class="meta-grid">
+            <div class="meta-item"><span>Asset ID</span><b>${it.id}</b></div>
+            <div class="meta-item"><span>Faction / Kind</span>${facLabel(it.faction)} · ${it.kind}</div>
+          </div>
+
+          <div>
+            <div class="col-title" style="margin-bottom:.5rem">
+              <span>Generation Prompt ${isEdited ? '<b style="color:var(--gold)">(edited)</b>' : ''}</span>
+              <button class="btn ghost small" id="btn-reset-prompt" ${isEdited ? '' : 'disabled'}>↺ Reset</button>
+            </div>
+            <textarea id="prompt-edit" class="prompt-box">${currentPrompt(it.id).replace(/</g, '&lt;')}</textarea>
+          </div>
+
+          <div class="ctrl-row">
+            <label style="font-size:1.25rem;color:var(--muted)">Model</label>
+            <select id="sel-model" style="flex:1">
+              <option value="realvis" ${savedModel === 'realvis' ? 'selected' : ''}>RealVisXL V5 Lightning (~18s)</option>
+              <option value="cyberrealistic" ${savedModel === 'cyberrealistic' ? 'selected' : ''}>CyberRealistic SD1.5 (~12s)</option>
+              <option value="dev" ${savedModel === 'dev' ? 'selected' : ''}>FLUX.1 Dev Q3 (~8m)</option>
+              <option value="unchained" ${savedModel === 'unchained' ? 'selected' : ''}>FLUX Unchained Q3 (~8m)</option>
+            </select>
+            <input id="inp-seed" type="text" placeholder="Random seed" value="${savedSeed}" style="width:13rem">
+          </div>
+
+          <div class="ctrl-row">
+            <button id="btn-approve" class="btn approve" style="flex:1" ${isGenThis ? 'disabled' : ''}>✓ Approve (A)</button>
+            ${rerollBtnHTML}
+          </div>
+
+          <div class="ctrl-row">
+            <button id="btn-save-prompt" class="btn mode-btn small" style="flex:1">💾 Save Prompt</button>
+            <button id="btn-clear-st" class="btn ghost small">${st === 'reroll' ? '✕ Unqueue' : 'Clear Status'}</button>
+          </div>
+
+          <div id="toast" class="toast-msg ${toast.cls}">${toast.text}</div>
+        </div>
+      </div>`;
+
+      navEl.innerHTML = `
+        <div class="ctrl-row">
+          <button id="btn-prev" class="btn ghost">← Previous</button>
+          <button id="btn-next" class="btn ghost">Next →</button>
+          <label style="display:inline-flex;align-items:center;gap:.5rem;font-size:1.3rem;color:var(--muted);cursor:pointer">
+            <input type="checkbox" id="chk-auto" ${autoAdvance ? 'checked' : ''}> Auto-advance on Approve / Queue
+          </label>
+        </div>
+        <div style="font-size:1.25rem;color:var(--muted)">
+          Shortcuts: <span class="kbd">←</span> <span class="kbd">→</span> navigate · <span class="kbd">A</span> approve · <span class="kbd">R</span> reroll / queue · <span class="kbd">G</span> grid
+        </div>`;
+
+      wireSingleHandlers(it, list);
+    }
+
+    function setToast(text, cls) {
+      toast = { text, cls: cls || '' };
+      const el = $('#toast');
+      if (el) { el.textContent = text; el.className = 'toast-msg ' + (cls || ''); }
+    }
+
+    function wireSingleHandlers(it, list) {
+      const box = $('#prompt-edit');
+      const selM = $('#sel-model');
+      const inpS = $('#inp-seed');
+
+      const saveLocalEdit = () => {
+        const txt = box.value.trim();
+        if (txt && txt !== origPromptMap[it.id]) editedPrompts[it.id] = txt;
+        else delete editedPrompts[it.id];
+        activeModel = selM.value;
+        notes[it.id] = { model: selM.value, seed: inpS.value.trim() };
+        persist();
+      };
+
+      box.addEventListener('input', saveLocalEdit);
+      box.addEventListener('change', saveLocalEdit);
+      selM.addEventListener('change', saveLocalEdit);
+      inpS.addEventListener('change', saveLocalEdit);
+
+      $('#btn-reset-prompt').addEventListener('click', () => {
+        delete editedPrompts[it.id];
+        persist();
+        setToast('Prompt reset to original.', '');
+        render();
+      });
+
+      $('#btn-save-prompt').addEventListener('click', async () => {
+        saveLocalEdit();
+        const txt = box.value.trim();
+        if (!txt) return setToast('Prompt cannot be empty.', 'err');
+        if (serverLive) {
+          try {
+            const res = await fetch('/api/save_prompt', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: it.id, prompt: txt }),
+            }).then((r) => r.json());
+            if (!res.ok) throw new Error(res.error);
+            origPromptMap[it.id] = txt;
+            delete editedPrompts[it.id];
+            persist();
+            setToast('Saved directly to tools/art_prompts.json!', 'ok');
+            render();
+          } catch (err) {
+            setToast('Save error: ' + err.message, 'err');
+          }
+        } else {
+          setToast('Saved in browser review state. Use "Reroll Queue / Export" to download updated art_prompts.json.', 'ok');
+          render();
+        }
+      });
+
+      $('#btn-approve').addEventListener('click', () => approveCurrent());
+      $('#btn-reroll-action').addEventListener('click', () => {
+        saveLocalEdit();
+        queueRerollCurrent();
+      });
+
+      $('#btn-clear-st').addEventListener('click', () => {
+        delete statuses[it.id];
+        delete freshRerolls[it.id];
+        rerollOrder = rerollOrder.filter((x) => x !== it.id);
+        persist();
+        setToast('Status cleared.', '');
+        render();
+      });
+
+      $('#btn-prev').addEventListener('click', () => step(-1));
+      $('#btn-next').addEventListener('click', () => step(1));
+      $('#chk-auto').addEventListener('change', (e) => { autoAdvance = e.target.checked; });
+    }
+
+    function step(delta) {
+      const list = filteredItems();
+      if (!list.length) return;
+      curIndex = (curIndex + delta + list.length) % list.length;
+      toast = { text: '', cls: '' };
+      render();
+    }
+
+    function approveCurrent() {
+      const list = filteredItems();
+      const it = list[curIndex];
+      if (!it || generatingId === it.id) return;
+      statuses[it.id] = 'approved';
+      delete freshRerolls[it.id];
+      rerollOrder = rerollOrder.filter((x) => x !== it.id);
+      persist();
+      toast = { text: `Approved ${it.name}.`, cls: 'ok' };
+      if (autoAdvance) {
+        const nextList = filteredItems();
+        if (filterStatus === 'unreviewed' || filterStatus === 'reroll') {
+          if (curIndex >= nextList.length) curIndex = Math.max(0, nextList.length - 1);
+        } else if (curIndex < nextList.length - 1) {
+          curIndex++;
+        }
+      }
+      render();
+    }
+
+    function queueRerollCurrent() {
+      const list = filteredItems();
+      const it = list[curIndex];
+      if (!it || generatingId === it.id) return;
+      const wasBusy = serverBusy;
+      statuses[it.id] = 'reroll';
+      delete freshRerolls[it.id];
+      if (!rerollOrder.includes(it.id)) rerollOrder.push(it.id);
+      persist();
+      toast = {
+        text: serverLive
+          ? (wasBusy ? `Queued ${it.name} for automatic reroll (#${queuePosition(it.id)}).` : `Starting live reroll of ${it.name}…`)
+          : `Queued ${it.name} for reroll.`,
+        cls: '',
+      };
+      if (autoAdvance && filterStatus !== 'reroll' && curIndex < list.length - 1 && (wasBusy || !serverLive)) {
+        curIndex++;
+      }
+      render();
+      if (serverLive && !queuePaused) pumpQueue();
+    }
+
+    /** Update header, reroll button, and visible artwork without disrupting any focused prompt textarea. */
+    function refreshLiveUI(affectedId, finished) {
+      updateHeader();
+      const focused = document.activeElement;
+      const typing = focused && (focused.tagName === 'TEXTAREA' || focused.tagName === 'INPUT' || focused.tagName === 'SELECT');
+      const stage = $('#single-view .stage');
+      const visibleId = stage ? stage.dataset.curId : null;
+
+      if (viewMode === 'grid') {
+        if (!typing) render();
+        return;
+      }
+      if (!typing && visibleId === affectedId) {
+        render();
+        return;
+      }
+      // Even while typing on another card, keep the Reroll Now <-> Queue Reroll button accurate!
+      const btn = $('#btn-reroll-action');
+      if (btn && visibleId && serverLive) {
+        const st = statuses[visibleId] || 'unreviewed';
+        const qPos = queuePosition(visibleId);
+        if (generatingId === visibleId) { btn.disabled = true; btn.textContent = '⏳ Rerolling Now…'; }
+        else if (st === 'reroll') { btn.disabled = true; btn.textContent = `⏳ Queued (#${qPos})`; }
+        else if (serverBusy) { btn.disabled = false; btn.textContent = '+ Queue Reroll (R)'; }
+        else { btn.disabled = false; btn.textContent = '↻ Reroll Now (R)'; }
+      }
+      if (finished && visibleId === affectedId) {
+        // Hot-swap images in place if user was typing on the same card
+        const bust = '?t=' + cacheBust[affectedId];
+        document.querySelectorAll('#single-view img.art-img').forEach((img) => { img.src = `${affectedId}.webp${bust}`; });
+        const rawImg = $('#raw-img');
+        if (rawImg) { delete rawImg.dataset.f1; delete rawImg.dataset.f2; rawImg.src = `raw/${affectedId}.png${bust}`; }
+        const ov = $('#raw-frame .raw-overlay');
+        if (ov) ov.remove();
+      }
+    }
+
+    async function pumpQueue() {
+      if (!serverLive || serverBusy || queuePaused) return;
+      const q = pendingRerollIds();
+      if (!q.length) return;
+      const id = q[0];
+      const item = ALL_ITEMS.find((x) => x.id === id);
+      const model = (notes[id] && notes[id].model) || activeModel;
+      const seed = (notes[id] && notes[id].seed) || '';
+      const promptText = currentPrompt(id);
+
+      serverBusy = true;
+      generatingId = id;
+      refreshLiveUI(id, false);
+
+      try {
+        const res = await fetch('/api/reroll', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, prompt: promptText, model, seed: seed || null }),
+        }).then((r) => r.json());
+        if (!res.ok) throw new Error(res.error || 'Reroll failed');
+        origPromptMap[id] = promptText;
+        delete editedPrompts[id];
+        if (statuses[id] === 'reroll') delete statuses[id];
+        rerollOrder = rerollOrder.filter((x) => x !== id);
+        freshRerolls[id] = { seed: res.seed, elapsed: res.elapsed };
+        if (notes[id] && notes[id].seed) notes[id].seed = ''; // clear one-shot seed so next reroll is fresh
+        persist();
+        cacheBust[id] = Date.now();
+        webpSizes[id] = res.webp_kb;
+        toast = { text: `✨ Rerolled ${item ? item.name : id} in ${res.elapsed}s (${res.webp_kb} KB WebP). Ready to review!`, cls: 'ok' };
+      } catch (err) {
+        queuePaused = true;
+        toast = { text: `Reroll failed on ${id} (queue paused): ${err.message}`, cls: 'err' };
+      } finally {
+        serverBusy = false;
+        generatingId = null;
+        refreshLiveUI(id, true);
+      }
+      if (!queuePaused) setTimeout(pumpQueue, 150);
+    }
+
+    function openQueueModal() {
+      const flagged = ALL_ITEMS.filter((it) => statuses[it.id] === 'reroll');
+      const edited = ALL_ITEMS.filter((it) => editedPrompts[it.id] != null && editedPrompts[it.id] !== origPromptMap[it.id]);
+      const idList = flagged.map((x) => x.id).join(' ');
+      const randSeed = Math.floor(Math.random() * 900000) + 100000;
+      const psCmd = flagged.length
+        ? `C:\\AI\\ComfyUI\\.venv\\Scripts\\python.exe -u tools\\gen_local_art.py --model ${activeModel} --overwrite --seed-base ${randSeed} --ids ${idList}`
+        : '# No cards currently flagged for reroll.';
+
+      $('#modal-box').innerHTML = `<div class="q-box">
+        <h2>Reroll Queue & Export</h2>
+        <p><b>${flagged.length}</b> card(s) flagged for reroll · <b>${edited.length}</b> unsaved prompt edit(s).</p>
+        ${flagged.length ? `<p style="color:var(--gold)">Flagged IDs: ${flagged.map((x) => `<code>${x.id}</code>`).join(', ')}</p>` : ''}
+        <h3>PowerShell Reroll Command</h3>
+        <div class="q-pre" id="q-cmd">${psCmd}</div>
+        <div class="modal-actions">
+          ${serverLive && flagged.length ? `<button class="btn reroll" id="btn-batch-live">${queuePaused ? '▶ Resume' : '⚡ Start'} Auto-Reroll Queue (${flagged.length})</button>` : ''}
+          <button class="btn mode-btn" id="btn-copy-cmd" ${flagged.length ? '' : 'disabled'}>Copy Command</button>
+          <button class="btn ghost" id="btn-dl-prompts">Download art_prompts.json</button>
+          <button class="btn ghost" id="btn-export-state">Backup Review State</button>
+          <label class="btn ghost" style="display:inline-flex;align-items:center;cursor:pointer">Import Review State<input type="file" id="inp-import-state" accept=".json" style="display:none"></label>
+          <button class="btn primary" id="btn-close-modal">Close</button>
+        </div>
+        <div id="q-status" class="toast-msg" style="text-align:center;margin-top:1rem"></div>
+      </div>`;
+      $('#modal').classList.remove('hidden');
+
+      $('#btn-close-modal').addEventListener('click', () => $('#modal').classList.add('hidden'));
+      $('#btn-export-state').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify({ statuses, prompts: editedPrompts, notes }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'tauceti_art_review_backup.json';
+        a.click();
+        $('#q-status').textContent = 'Downloaded tauceti_art_review_backup.json (use Import Review State to restore on localhost!).';
+      });
+      $('#inp-import-state').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            Object.assign(statuses, data.statuses || {});
+            Object.assign(editedPrompts, data.prompts || {});
+            Object.assign(notes, data.notes || {});
+            persist();
+            pendingRerollIds();
+            render();
+            const qn = pendingRerollIds().length;
+            $('#q-status').textContent = serverLive && qn
+              ? `Imported! Automatically starting background rerolls for ${qn} queued card(s)…`
+              : 'Imported review state! Approvals, rerolls, and edited prompts restored.';
+            if (serverLive && qn && !queuePaused) pumpQueue();
+          } catch (err) { $('#q-status').textContent = 'Invalid backup JSON: ' + err.message; }
+        };
+        reader.readAsText(file);
+      });
+      const copyBtn = $('#btn-copy-cmd');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(psCmd); $('#q-status').textContent = 'Command copied to clipboard!'; }
+          catch (e) { $('#q-status').textContent = 'Select and copy the command above.'; }
+        });
+      }
+      $('#btn-dl-prompts').addEventListener('click', () => {
+        const merged = RAW_PROMPTS.map((p) => Object.assign({}, p, { prompt: currentPrompt(p.id) }));
+        const blob = new Blob([JSON.stringify(merged, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'art_prompts.json';
+        a.click();
+        $('#q-status').textContent = 'Downloaded updated art_prompts.json (drop into tools\\art_prompts.json).';
+      });
+      const batchBtn = $('#btn-batch-live');
+      if (batchBtn) {
+        batchBtn.addEventListener('click', () => {
+          queuePaused = false;
+          $('#modal').classList.add('hidden');
+          pumpQueue();
+          updateHeader();
+        });
+      }
+    }
+
+    // Event bindings
+    document.addEventListener('click', (e) => {
+      const st = e.target.closest('[data-fst]');
+      if (st) { filterStatus = st.dataset.fst; curIndex = 0; return render(); }
+      const grp = e.target.closest('[data-fgrp]');
+      if (grp) { filterGroup = grp.dataset.fgrp; curIndex = 0; return render(); }
+      const open = e.target.closest('[data-open]');
+      if (open) { curIndex = +open.dataset.open; viewMode = 'single'; toast = { text: '', cls: '' }; return render(); }
+      if (e.target.id === 'modal') $('#modal').classList.add('hidden');
+    });
+
+    $('#search').addEventListener('input', (e) => { searchTerm = e.target.value; curIndex = 0; render(); });
+    $('#btn-view').addEventListener('click', () => { viewMode = viewMode === 'single' ? 'grid' : 'single'; render(); });
+    $('#btn-queue').addEventListener('click', openQueueModal);
+    $('#btn-pause').addEventListener('click', () => {
+      queuePaused = !queuePaused;
+      updateHeader();
+      if (!queuePaused) pumpQueue();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (!$('#modal').classList.contains('hidden')) {
+        if (e.key === 'Escape') $('#modal').classList.add('hidden');
+        return;
+      }
+      if (e.key === 'ArrowRight') step(1);
+      else if (e.key === 'ArrowLeft') step(-1);
+      else if (e.key.toLowerCase() === 'a' && viewMode === 'single') approveCurrent();
+      else if (e.key.toLowerCase() === 'r' && viewMode === 'single') queueRerollCurrent();
+      else if (e.key.toLowerCase() === 'g') { viewMode = viewMode === 'single' ? 'grid' : 'single'; render(); }
+    });
+
+    // Probe local review server
+    async function checkServer() {
+      if (location.protocol === 'file:') { serverLive = false; return render(); }
+      try {
+        const res = await fetch('/api/ping', { cache: 'no-store' }).then((r) => r.json());
+        if (res && res.ok) {
+          serverLive = true;
+          serverBusy = !!res.busy;
+          generatingId = res.current || null;
+          webpSizes = res.sizes || {};
+          // Refresh prompts and merge disk-persisted review_state.json safely with localStorage
+          const pr = await fetch('/api/prompts', { cache: 'no-store' }).then((r) => r.json());
+          if (pr && pr.ok && Array.isArray(pr.prompts)) {
+            pr.prompts.forEach((p) => { origPromptMap[p.id] = p.prompt; });
+          }
+          try {
+            const rs = await fetch('/api/review_state', { cache: 'no-store' }).then((r) => r.json());
+            if (rs && rs.ok && rs.state) {
+              // Merge disk approvals first, keeping any newer local approvals on top, then save merged state to disk!
+              Object.keys(rs.state.statuses || {}).forEach((k) => { if (!statuses[k]) statuses[k] = rs.state.statuses[k]; });
+              Object.keys(rs.state.prompts || {}).forEach((k) => { if (!editedPrompts[k]) editedPrompts[k] = rs.state.prompts[k]; });
+              Object.keys(rs.state.notes || {}).forEach((k) => { if (!notes[k]) notes[k] = rs.state.notes[k]; });
+              persist();
+            }
+          } catch (e) {}
+        }
+      } catch (e) { serverLive = false; }
+      render();
+      if (serverLive && pendingRerollIds().length && !queuePaused) pumpQueue();
+    }
+
+    render();
+    checkServer();
+  })();
+  </script>
+</body>
+</html>

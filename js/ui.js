@@ -62,6 +62,9 @@
     }
   }
 
+  const hasArt = (id) => !!(V.ART && V.ART[id]);
+  const artImg = (id) => `<img class="art-img" src="art/${id}.webp" alt="" loading="lazy">`;
+
   /* ============================================================ card markup */
   function cardHTML(d, o) {
     o = o || {};
@@ -77,9 +80,10 @@
     const extraCls = [isUnit ? 'unit-card' : isSite ? 'site-card' : 'order', 'f-' + d.faction];
     if (d.project) extraCls.push('project');
     if (o.cls) extraCls.push(o.cls);
+    const artInner = hasArt(d.id) ? artImg(d.id) : `<span>${d.art}</span>`;
     return `<div class="card ${extraCls.join(' ')}" ${o.attrs || ''}>
       <div class="c-cost ${cost < d.cost ? 'cheap' : ''}">${cost}</div>
-      <div class="c-art"><span>${d.art}</span></div>
+      <div class="c-art">${artInner}</div>
       <div class="c-name">${d.name}</div>
       <div class="c-type">${kind} · ${facName(d.faction)}</div>
       <div class="c-text"><div>${body}</div></div>${stats}${o.extra || ''}
@@ -117,9 +121,10 @@
 
     const dispAtk = E.effectiveAtk(g, u, null);
     const hpCls = u.hp < u.maxHp ? 'hurt' : u.maxHp > d.hp ? 'buffed' : '';
+    const uArt = hasArt(d.id);
     return `<div class="${cls.join(' ')}" data-uid="${u.uid}" data-card="${u.id}">
       <div class="u-name">${d.name}</div>
-      <div class="u-art">${d.art}</div>
+      <div class="u-art ${uArt ? 'has-art' : ''}">${uArt ? artImg(d.id) : d.art}</div>
       <div class="u-kw">${kws.join('')}</div>
       <div class="c-atk ${statCls(dispAtk, d.atk)}">${dispAtk}</div>
       <div class="c-hp ${hpCls}">${u.hp}</div>
@@ -136,8 +141,9 @@
     if (d.needsEmpty && staffed) cls.push('idle');
     if (!seen.has(s.uid)) cls.push('enter');
     if (isTarget({ k: 's', uid: s.uid })) cls.push('targetable', s.owner === HUMAN ? 'friendly' : 'hostile');
+    const sArt = hasArt(d.id);
     return `<div class="${cls.join(' ')}" data-site="${s.uid}" data-card="${s.id}">
-      <div class="s-art">${d.art}</div>
+      <div class="s-art ${sArt ? 'has-art' : ''}">${sArt ? artImg(d.id) : d.art}</div>
       <div class="s-body"><div class="s-name">${d.name}</div><div class="s-brief">${d.brief || ''}</div></div>
       <div class="c-hp c-int ${s.hp < s.maxHp ? 'hurt' : s.maxHp > d.hp ? 'buffed' : ''}" title="Integrity">${s.hp}</div>
     </div>`;
@@ -183,10 +189,13 @@
     const tcls = isTarget({ k: 'l', pid }) ? 'targetable ' + (pid === HUMAN ? 'friendly' : 'hostile') : '';
     const docTag = p.doctrine !== 'standard' ? ` · ${doc.icon} ${doc.name}` : '';
 
+    const lArtId = isBoss ? 'leader_boss' : 'leader_' + p.faction;
+    const portraitInner = hasArt(lArtId) ? artImg(lArtId) : `<span>${leaderArt}</span>`;
+
     $('#leader-' + pid).innerHTML = `
       <div class="leader ${facCls} ${g.active === pid && !g.over ? 'active' : ''}">
         <div class="portrait ${tcls}" data-leader="${pid}" data-insp="leader">
-          <span>${leaderArt}</span>
+          ${portraitInner}
           ${p.armor > 0 ? `<div class="armor" title="Armor">${p.armor}</div>` : ''}
           <div class="hp ${p.hp < p.maxHp ? 'hurt' : ''}" title="Colony integrity">${Math.max(0, p.hp)}</div>
         </div>
@@ -460,8 +469,10 @@
         </div>`;
     } else {
       const isBoss = pid === BOT && g.bossName;
+      const lArtId = isBoss ? 'leader_boss' : 'leader_' + p.faction;
+      const lHasArt = hasArt(lArtId);
       const prev = combatPreviewNote({ k: 'l', pid });
-      html = `<div class="big">${isBoss ? g.bossArt : f.art}</div>
+      html = `<div class="big ${lHasArt ? 'has-art' : ''}">${lHasArt ? artImg(lArtId) : (isBoss ? g.bossArt : f.art)}</div>
         <div class="nm">${isBoss ? g.bossName : f.leader}</div>
         <div class="sub">${f.name}<br>“${f.motto}”</div>
         <div>Colony integrity ${Math.max(0, p.hp)} / ${p.maxHp}${p.armor ? ` · Armor ${p.armor}` : ''}</div>
@@ -528,12 +539,13 @@
     setTimeout(() => d.remove(), 1300 + i * 90);
   }
 
-  function showQuoteToast(art, kicker, title, quote) {
+  function showQuoteToast(art, kicker, title, quote, artId) {
     const prev = $('.quote-toast', fx);
     if (prev) prev.remove();
     const d = document.createElement('div');
     d.className = 'quote-toast';
-    d.innerHTML = `<div class="qt-art">${art}</div><div>
+    const imgOk = artId && hasArt(artId);
+    d.innerHTML = `<div class="qt-art ${imgOk ? 'has-art' : ''}">${imgOk ? artImg(artId) : art}</div><div>
       <div class="qt-kicker">${kicker}</div>
       <div class="qt-title">${title}</div>
       <div class="qt-body">${quote}</div>
@@ -633,7 +645,7 @@
         const c = CARDS[e.id];
         SFX.project();
         logLine(`${who(e.pid)} completed Secret Project: <b>${c.name}</b>!`, 'gold');
-        showQuoteToast(c.art, `Secret Project Completed · ${who(e.pid)}`, c.name, c.flavor || c.brief);
+        showQuoteToast(c.art, `Secret Project Completed · ${who(e.pid)}`, c.name, c.flavor || c.brief, e.id);
       } else if (e.t === 'pod_claim') {
         SFX.pod();
         logLine(`${who(e.pid)} cracked a Supply Pod in ${laneName(e.lane)}: <b>${POD_TEXT[e.outcome]}</b>.`, 'gold');
@@ -1370,16 +1382,20 @@
 
   /* ============================================================ title screen */
   function renderTitle() {
-    $('#faction-list').innerHTML = Object.values(FACTIONS).map((f) => `
+    $('#faction-list').innerHTML = Object.values(FACTIONS).map((f) => {
+      const lid = 'leader_' + f.id;
+      const lArt = hasArt(lid);
+      return `
       <div class="faction f-${f.id} ${f.id === myFaction ? 'chosen' : ''}" data-faction="${f.id}">
-        <div class="f-glyph">${f.art}</div>
+        <div class="f-glyph ${lArt ? 'has-art' : ''}">${lArt ? artImg(lid) : f.art}</div>
         <div class="f-name">${f.name}</div>
         <div class="f-leader">${f.leader}</div>
         <div class="f-motto">“${f.motto}”</div>
         <div class="f-style">${f.style}</div>
         <div class="f-power"><span>${f.power.art} ${f.power.name} (${f.power.cost})</span>${f.power.text}</div>
         <button class="btn ghost small f-deck" data-deck="${f.id}">View deck</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     const f = FACTIONS[myFaction];
     const hasCustom = !!Decks.getCustom(myFaction);
