@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tau Ceti — Planetfall of the Perihelion</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/planet.css">
 </head>
 <body>
   <div id="stars"></div>
@@ -143,6 +144,30 @@
     </main>
   </section>
 
+  <!-- ============================== planet mode (prototype; see design/planet-mode.md) -->
+  <section id="screen-planet" class="screen hidden">
+    <div id="pl-map-wrap">
+      <svg id="pl-map" viewBox="-512 -512 1024 1024" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="pl-banner" class="hidden"></div>
+      <button id="pl-skip" class="btn small ghost hidden">Skip</button>
+    </div>
+    <aside id="pl-side">
+      <div id="pl-head"></div>
+      <div id="pl-sector"></div>
+      <div id="pl-standings"></div>
+      <div id="pl-log"></div>
+    </aside>
+    <div id="pl-handbar">
+      <div id="pl-hand"></div>
+      <div class="pl-controls">
+        <button id="pl-quit" class="btn ghost small">Quit game</button>
+        <button id="pl-auto" class="btn small hidden">Auto-play</button>
+        <button id="pl-commit" class="btn primary">Commit orders</button>
+      </div>
+    </div>
+    <div id="pl-overlay" class="hidden"></div>
+  </section>
+
   <div id="fx"></div>
   <div id="modal" class="modal hidden"><div id="modal-box" class="modal-box"></div></div>
 
@@ -154,5 +179,9 @@
   <script src="js/decks.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/planet_cards.js"></script>
+  <script src="js/planet.js"></script>
+  <script src="js/planet_ai.js"></script>
+  <script src="js/planet_ui.js"></script>
 </body>
 </html>
