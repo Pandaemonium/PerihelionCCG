@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Veyra — Ashes of the Perihelion</title>
+  <title>Tau Ceti — Ashes of the Perihelion</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,24 +12,50 @@
   <!-- ============================== title / faction select -->
   <section id="screen-title" class="screen">
     <header class="title-head">
-      <h1>VEYRA</h1>
+      <h1>TAU CETI</h1>
       <p class="tagline">Ashes of the Perihelion</p>
       <p class="intro">
-        The colony ship <i>Perihelion</i> broke apart above an unmapped world. Four bands of survivors
+        The colony ship <i>Perihelion</i> broke apart above an unmapped world. Seven bands of survivors
         crawled out of the wreckage, each certain that it alone knows what the new world should become.
-        Choose your people and lead them.
       </p>
     </header>
+
     <div id="faction-list" class="faction-list"></div>
-    <div class="title-controls">
-      <div class="opp-pick">
-        <span class="label">Opponent</span>
-        <div id="opp-chips" class="chips"></div>
+
+    <div class="setup-panel">
+      <div class="setup-row">
+        <div class="setup-group">
+          <span class="label">Deck</span>
+          <div id="deck-chips" class="chips"></div>
+          <button id="btn-builder" class="btn ghost small">Deckbuilder</button>
+        </div>
+        <div class="setup-group">
+          <span class="label">Doctrine</span>
+          <div id="doc-chips" class="chips"></div>
+        </div>
       </div>
-      <div class="title-buttons">
-        <button id="btn-help" class="btn ghost">How to play</button>
-        <button id="btn-start" class="btn primary">Begin Landfall</button>
+      <div class="setup-row">
+        <div class="setup-group">
+          <span class="label">Opponent</span>
+          <div id="opp-chips" class="chips"></div>
+        </div>
+        <div class="setup-group">
+          <span class="label">Biome</span>
+          <div id="biome-chips" class="chips"></div>
+        </div>
+        <div class="setup-group">
+          <span class="label">AI</span>
+          <div id="diff-chips" class="chips"></div>
+        </div>
       </div>
+      <div id="setup-desc" class="setup-desc"></div>
+    </div>
+
+    <div class="title-buttons">
+      <button id="btn-help" class="btn ghost">How to play</button>
+      <button id="btn-campaign" class="btn mode-btn">Planetary Conquest</button>
+      <button id="btn-draft" class="btn mode-btn">Expedition Draft</button>
+      <button id="btn-start" class="btn primary">Begin Landfall</button>
     </div>
   </section>
 
@@ -37,7 +63,7 @@
   <section id="screen-game" class="screen hidden">
     <aside id="side">
       <div id="inspector" class="inspector">
-        <div class="insp-empty">Hover a card or unit to inspect it.</div>
+        <div class="insp-empty">Hover a card, unit, location, or lane terrain to inspect it.</div>
       </div>
       <div class="log-wrap">
         <div class="side-title">Colony Log</div>
@@ -45,6 +71,7 @@
       </div>
       <div class="side-buttons">
         <button id="btn-help2" class="btn ghost small">Rules</button>
+        <button id="btn-mute" class="btn ghost small" title="Toggle sound">🔊</button>
         <button id="btn-quit" class="btn ghost small">Concede</button>
       </div>
     </aside>
@@ -54,12 +81,13 @@
         <div id="leader-1" class="leader-slot"></div>
         <div id="hand-1" class="opp-hand"></div>
       </div>
-      <div id="board-1" class="board enemy"></div>
-      <div class="mid-row">
-        <div id="hint" class="hint"></div>
-        <button id="end-turn" class="btn end-turn">End Turn</button>
+      <div id="field">
+        <div id="lanes"></div>
+        <div class="mid-row">
+          <div id="hint" class="hint"></div>
+          <button id="end-turn" class="btn end-turn">End Turn</button>
+        </div>
       </div>
-      <div id="board-0" class="board mine"></div>
       <div class="row bottom-row">
         <div id="leader-0" class="leader-slot"></div>
         <div id="hand-0" class="hand"></div>
@@ -70,9 +98,12 @@
   <div id="fx"></div>
   <div id="modal" class="modal hidden"><div id="modal-box" class="modal-box"></div></div>
 
+  <script src="js/world.js"></script>
   <script src="js/cards.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/ai.js"></script>
+  <script src="js/decks.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/ui.js"></script>
 </body>
 </html>
