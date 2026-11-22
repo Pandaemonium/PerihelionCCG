@@ -19,6 +19,10 @@
   E.RAZE_DAMAGE = 3;
   E.PROJECT_RAZE_DAMAGE = 5;
   E.ASCENT_RESEARCH = 22;
+  // Opening hands: the player who moves second is compensated with extra cards and Reserve Cells.
+  E.START_CARDS = 3;
+  E.SECOND_EXTRA_CARDS = 2;
+  E.SECOND_CELLS = 1;
   E.MILESTONES = [4, 8, 13];
   E.MILESTONE_TEXT = [
     'Breakthrough I — draw a card.',
@@ -105,7 +109,8 @@
       if (!E.siteActive(g, s)) return;
       const d = CARDS[s.id];
       if (!d[prop]) return;
-      if (needStaff && !E.stationed(g, s)) return;
+      // needStaff: true = always, 'card' = only if the location itself says it needs a unit stationed
+      if ((needStaff === 'card' ? d.needsStaff : needStaff) && !E.stationed(g, s)) return;
       total += d[prop];
     });
     return total;
@@ -191,6 +196,9 @@
     return null;
   };
 
+  /** Terrain id of a lane's centre strip, or null. */
+  E.terrainAt = (g, lane) => (g.lanes && g.lanes[lane] ? g.lanes[lane].terrain : null);
+
   E.allUnits = (g) => g.players[g.active].board.concat(g.players[1 - g.active].board).filter(alive);
 
   E.tech = function (g, pid, n) {
@@ -208,10 +216,26 @@
     return g.players[1 - u.owner].board.filter((x) => alive(x) && Math.abs(x.lane - u.lane) <= 1);
   };
 
+  /** Can unit u strike the enemy colony, going by position and keywords alone? Any enemy unit opposite or beside it screens the colony. */
   E.unscreened = function (g, u) {
     const front = E.frontEnemies(g, u);
     if (E.hasKw(g, u, 'aerial')) return !front.some((x) => E.hasKw(g, x, 'interceptor'));
     return front.length === 0;
+  };
+
+  /**
+   * Can unit u strike enemy location s, going by position and keywords alone (not whether it has acted)?
+   * A ground unit is stopped by an enemy Guard opposite or beside it, and by any enemy unit standing in the
+   * lanes from its own lane to the location's lane inclusive. Units further along do not protect the location.
+   * An Aerial unit is stopped only by an Interceptor opposite or beside it.
+   */
+  E.siteOpen = function (g, u, s) {
+    if (!alive(s) || Math.abs(s.lane - u.lane) > E.reach(g, u)) return false;
+    const front = E.frontEnemies(g, u);
+    if (E.hasKw(g, u, 'aerial')) return !front.some((x) => E.hasKw(g, x, 'interceptor'));
+    if (front.some((x) => E.hasKw(g, x, 'guard'))) return false;
+    const lo = Math.min(u.lane, s.lane), hi = Math.max(u.lane, s.lane);
+    return !g.players[1 - u.owner].board.some((x) => alive(x) && x.lane >= lo && x.lane <= hi);
   };
 
   E.randomEnemy = function (g, pid) {
@@ -221,25 +245,31 @@
     return E.pick(g, pool);
   };
 
+  /** A card is foreign to a player if it belongs to neither their faction, their Pact partner, nor the colonists. */
+  E.isForeign = function (g, pid, cardId) {
+    const p = g.players[pid];
+    const fac = CARDS[cardId].faction;
+    return fac !== 'neutral' && fac !== p.faction && fac !== p.pact;
+  };
+
   E.randomForeignCard = function (g, pid) {
-    const mine = g.players[pid].faction;
-    const pool = Object.keys(CARDS).filter((id) => {
-      const c = CARDS[id];
-      return !c.token && !c.project && c.faction !== 'neutral' && c.faction !== mine;
-    });
+    const pool = Object.keys(CARDS).filter((id) => !CARDS[id].token && !CARDS[id].project && E.isForeign(g, pid, id));
     return E.pick(g, pool);
   };
 
   /* ------------------------------------------------------------ setup */
-  function mkPlayer(id, faction, doctrine, hpOverride) {
+  function mkPlayer(id, faction, doctrine, hpOverride, pact) {
     const doc = doctrine || 'standard';
     const startHp = hpOverride != null ? hpOverride : (doc === 'green' ? 28 : E.START_HP);
     return {
-      id, faction, doctrine: doc, hp: startHp, maxHp: startHp,
+      id, faction, pact: pact && pact !== faction && FACTIONS[pact] ? pact : null,
+      doctrine: doc, hp: startHp, maxHp: startHp,
       armor: doc === 'police' ? 5 : 0,
       energy: 0, maxEnergy: 0,
       research: doc === 'knowledge' ? 2 : 0,
       powerUsed: false, fatigue: 0, cardsPlayedThisTurn: 0, diedThisTurn: 0,
+      razed: 0,     // enemy locations razed this game
+      blackBox: 0,  // Black Box cards played this game
       deck: [], hand: [], board: [], sites: [],
     };
   }
@@ -247,7 +277,8 @@
   /**
    * Create a new game.
    * Backwards compatible with E.newGame(f0, f1, seed, first) plus optional opts:
-   *   { biome, deck0, deck1, preset0, preset1, doctrine0, doctrine1, hp0, hp1, bossName, bossArt }
+   *   { biome, deck0, deck1, preset0, preset1, pact0, pact1, doctrine0, doctrine1, hp0, hp1, bossName, bossArt }
+   * pact0 / pact1 name each side's Pact partner faction, if its deck has one.
    */
   E.newGame = function (f0, f1, seed, first, opts) {
     opts = opts || {};
@@ -256,8 +287,8 @@
       seed: (seed | 0) || 1,
       biome: biomeId,
       players: [
-        mkPlayer(0, f0, opts.doctrine0, opts.hp0),
-        mkPlayer(1, f1, opts.doctrine1, opts.hp1),
+        mkPlayer(0, f0, opts.doctrine0, opts.hp0, opts.pact0),
+        mkPlayer(1, f1, opts.doctrine1, opts.hp1, opts.pact1),
       ],
       lanes: [],
       active: first ? 1 : 0, turn: 0, over: false, winner: null, winReason: null,
@@ -286,9 +317,9 @@
     });
 
     const a = g.active;
-    E.draw(g, a, 3);
-    E.draw(g, 1 - a, 4);
-    E.addToHand(g, 1 - a, 'cell');
+    E.draw(g, a, E.START_CARDS);
+    E.draw(g, 1 - a, E.START_CARDS + E.SECOND_EXTRA_CARDS);
+    for (let i = 0; i < E.SECOND_CELLS; i++) E.addToHand(g, 1 - a, 'cell');
     g.events = [];
     startTurn(g);
     return g;
@@ -443,6 +474,7 @@
     E.claimPod(g, u.owner, u);
     const s = E.siteBehind(g, u);
     if (s && CARDS[s.id].onMoveArrive) CARDS[s.id].onMoveArrive(g, { pid: u.owner, self: s, unit: u });
+    if (alive(u) && CARDS[u.id].onMove) CARDS[u.id].onMove(g, { pid: u.owner, self: u, from });
     return true;
   };
 
@@ -474,7 +506,7 @@
     let c = hc.cost;
     const d = CARDS[hc.id];
     if (d.type === 'order') {
-      c -= siteSum(g, pid, 'orderDiscount', true);
+      c -= siteSum(g, pid, 'orderDiscount', 'card');
     }
     if (g.players[pid].cardsPlayedThisTurn === 0) {
       c -= siteSum(g, pid, 'firstCardDiscount', true);
@@ -565,7 +597,10 @@
     E.claimPod(g, pid, u);
   };
 
-  /* ------------------------------------------------------------ triggers / cleanup */
+  /* ------------------------------------------------------------ triggers / cleanup
+   * Card triggers fired here: turnStart, turnEnd, onOrder, onEnemyOrder, onBuild, onAllyDeath, onMilestone,
+   * onPlay ({cardId, count, made}), onEnemyRaze ({site}). Fired directly on one card: deploy, lastStand,
+   * onAttack, onKill, onMove, onPromote, onArrive / onMoveArrive / onRaze (locations). */
   function fire(g, pid, name, extra) {
     const p = g.players[pid];
     p.board.slice().forEach((u) => {
@@ -609,6 +644,8 @@
         ev(g, { t: 'raze', ref: siteRef(s), id: s.id, pid: s.owner, dmg: totalRaze });
         E.damage(g, leaderRef(s.owner), totalRaze, null);
         if (CARDS[s.id].onRaze) CARDS[s.id].onRaze(g, { pid: s.owner, self: s });
+        g.players[1 - s.owner].razed = (g.players[1 - s.owner].razed || 0) + 1;
+        fire(g, 1 - s.owner, 'onEnemyRaze', { site: s });
       });
       dead.forEach((u) => {
         const d = CARDS[u.id];
@@ -766,11 +803,9 @@
     const guards = front.filter((x) => E.hasKw(g, x, 'guard'));
     if (guards.length) return guards.map(unitRef);
     const out = near.map(unitRef);
-    if (front.length > 0) return out;
-    if (u.summonedTurn === g.turn) return out;
-    const sr = E.reach(g, u);
-    foe.sites.forEach((s) => { if (alive(s) && Math.abs(s.lane - u.lane) <= sr) out.push(siteRef(s)); });
-    out.push(leaderRef(foe.id));
+    if (u.summonedTurn === g.turn) return out; // Blitz arrivals may only strike units
+    foe.sites.forEach((s) => { if (E.siteOpen(g, u, s)) out.push(siteRef(s)); });
+    if (front.length === 0) out.push(leaderRef(foe.id));
     return out;
   };
 
@@ -789,6 +824,7 @@
     if (g.over || g.active !== pid) return false;
     const p = g.players[pid];
     const pw = FACTIONS[p.faction].power;
+    if (p.noPower) return false; // test hook: lets the balance tool price a leader power
     if (p.powerUsed || p.energy < E.powerCost(g, pid)) return false;
     if (pw.canUse && !pw.canUse(g, pid)) return false;
     if (pw.target && !E.targets(g, pid, pw.target).length) return false;
@@ -828,11 +864,14 @@
     p.hand.splice(i, 1);
     ev(g, { t: 'play', pid, id: hc.id, target: tg, lane: lanes ? lane : null, overcharged });
 
+    let made = null;
     if (d.type === 'unit') {
       const u = E.summon(g, pid, hc.id, lane);
+      if (u) made = u.uid;
       if (u && d.deploy) d.deploy(g, { pid, self: u, target: tg, overcharged });
     } else if (d.type === 'site') {
-      E.build(g, pid, hc.id, lane);
+      const st = E.build(g, pid, hc.id, lane);
+      if (st) made = st.uid;
     } else {
       d.play(g, { pid, target: tg, overcharged });
       resolve(g);
@@ -842,6 +881,8 @@
         fire(g, 1 - pid, 'onEnemyOrder');
       }
     }
+    if (d.blackBox) p.blackBox = (p.blackBox || 0) + 1;
+    if (!g.over) fire(g, pid, 'onPlay', { cardId: hc.id, count: p.cardsPlayedThisTurn, made });
     resolve(g);
     return true;
   };
@@ -858,6 +899,7 @@
     }
     p.energy -= E.powerCost(g, pid);
     p.powerUsed = true;
+    p.powerUses = (p.powerUses || 0) + 1;
     ev(g, { t: 'power', pid, target: tg });
     pw.run(g, { pid, target: tg });
     resolve(g);
@@ -871,6 +913,11 @@
     if (d.onPromote) d.onPromote(g, { pid: u.owner, self: u });
     else E.buff(g, u, 1, 1);
     ev(g, { t: 'promote', ref: unitRef(u), id: u.id, pid: u.owner });
+  }
+
+  function creditKill(g, killer, victim) {
+    tryPromote(g, killer);
+    if (alive(killer) && CARDS[killer.id].onKill) CARDS[killer.id].onKill(g, { pid: killer.owner, self: killer, victim });
   }
 
   E.attack = function (g, pid, uid, target) {
@@ -898,8 +945,8 @@
       const dAtk = E.effectiveAtk(g, d, unitRef(a), false);
       E.damage(g, target, aAtk, a);
       if (!artillery) E.damage(g, unitRef(a), dAtk, d);
-      if (d.hp <= 0 || d.doomed) tryPromote(g, a);
-      if (a.hp <= 0 || a.doomed) tryPromote(g, d);
+      if (d.hp <= 0 || d.doomed) creditKill(g, a, d);
+      if (a.hp <= 0 || a.doomed) creditKill(g, d, a);
     }
     resolve(g);
     return true;
@@ -919,6 +966,7 @@
     E.claimPod(g, pid, u);
     const s = E.siteBehind(g, u);
     if (s && CARDS[s.id].onMoveArrive) CARDS[s.id].onMoveArrive(g, { pid, self: s, unit: u });
+    if (alive(u) && CARDS[u.id].onMove) CARDS[u.id].onMove(g, { pid, self: u, from });
     resolve(g);
     return true;
   };

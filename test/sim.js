@@ -6,7 +6,11 @@ require('../js/world.js');
 require('../js/cards.js');
 require('../js/engine.js');
 require('../js/ai.js');
-const { Engine: E, AI, FACTIONS, CARDS, TERRAIN } = globalThis.TauCeti;
+const { Engine: E, AI, FACTIONS, CARDS } = globalThis.TauCeti;
+const { checkState } = require('./invariants.js');
+// rule experiments: SECONDCELLS=n / SECONDCARDS=n set the Reserve Cells / extra cards the second player starts with
+if (process.env.SECONDCELLS) E.SECOND_CELLS = +process.env.SECONDCELLS;
+if (process.env.SECONDCARDS) E.SECOND_EXTRA_CARDS = +process.env.SECONDCARDS;
 
 const N = parseInt(process.argv[2] || '12', 10);
 const BIOME = process.argv[3] || 'tau_ceti';
@@ -38,32 +42,7 @@ ids.forEach((fid) => {
 });
 
 function check(g, where) {
-  g.players.forEach((p) => {
-    const bad = (m) => { problems++; if (problems < 30) console.error(`INVARIANT (${where}): ${m}`); };
-    if (p.hand.length > E.maxHand(g, p.id)) bad('hand overflow ' + p.hand.length);
-    if (p.energy < 0) bad('negative energy ' + p.energy);
-    const lanes = {}, plots = {};
-    p.board.forEach((u) => {
-      if (u.owner !== p.id) bad('unit owner mismatch ' + u.id);
-      if (!(u.lane >= 0 && u.lane < E.LANES)) bad('unit lane out of range ' + u.id + ' ' + u.lane);
-      if (lanes[u.lane]) bad('two units in lane ' + u.lane);
-      lanes[u.lane] = true;
-      if (!g.over && u.hp <= 0) bad('dead unit left on board ' + u.id);
-      if (Number.isNaN(u.atk) || Number.isNaN(u.hp)) bad('NaN stats ' + u.id);
-    });
-    p.sites.forEach((s) => {
-      if (s.owner !== p.id) bad('site owner mismatch ' + s.id);
-      if (!(s.lane >= 0 && s.lane < E.LANES)) bad('site lane out of range ' + s.id);
-      if (plots[s.lane]) bad('two locations in lane ' + s.lane);
-      plots[s.lane] = true;
-      if (CARDS[s.id].type !== 'site') bad('non-location in plot ' + s.id);
-      if (!g.over && s.hp <= 0) bad('razed location left on board ' + s.id);
-    });
-    p.hand.forEach((h) => { if (!CARDS[h.id]) bad('unknown card ' + h.id); });
-  });
-  g.lanes.forEach((l, i) => {
-    if (l.terrain && !TERRAIN[l.terrain]) { problems++; console.error(`INVARIANT (${where}): bad terrain ${l.terrain} at ${i}`); }
-  });
+  problems += checkState(g, where, (m) => { if (problems < 30) console.error(m); });
 }
 
 for (const a of ids) for (const b of ids) {

@@ -61,6 +61,54 @@
     </div>
   </section>
 
+  <!-- ============================== deckbuilder -->
+  <section id="screen-builder" class="screen hidden">
+    <header class="bd-top">
+      <button id="bd-back" class="btn ghost small">← Title screen</button>
+      <h2>Deckbuilder</h2>
+      <div class="bd-rules">30 cards · 2 copies each (1 of a Secret Project) · up to 10 cards from one Pact partner</div>
+    </header>
+    <div class="bd-main">
+      <aside class="bd-lib">
+        <div class="bd-lib-head">
+          <span class="label">Your decks</span>
+          <button id="bd-new" class="btn ghost small">+ New deck</button>
+        </div>
+        <div id="bd-lib-list" class="bd-lib-list"></div>
+        <div class="side-title">Card detail</div>
+        <div id="bd-inspector" class="inspector"></div>
+      </aside>
+
+      <section class="bd-pool">
+        <div id="bd-setup" class="bd-setup"></div>
+        <div class="bd-filters">
+          <div id="bd-filter-chips" class="bd-filter-chips"></div>
+          <input id="bd-search" class="bd-input" type="search" placeholder="Search cards…" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="bd-grid" class="bd-grid"></div>
+      </section>
+
+      <aside class="bd-deck">
+        <input id="bd-name" class="bd-input bd-name" type="text" maxlength="32" placeholder="Deck name" autocomplete="off" spellcheck="false">
+        <div id="bd-stats" class="bd-stats"></div>
+        <div id="bd-list" class="b-list"></div>
+        <div class="code-row">
+          <input id="bd-code" class="bd-input" type="text" placeholder="Paste a deck code…" autocomplete="off" spellcheck="false">
+          <button id="bd-export" class="btn ghost small">Export</button>
+          <button id="bd-import" class="btn ghost small">Import</button>
+        </div>
+        <div id="bd-msg" class="bd-msg"></div>
+        <div class="bd-actions">
+          <button id="bd-save" class="btn small">Save</button>
+          <button id="bd-copy" class="btn ghost small">Save as copy</button>
+          <button id="bd-clear" class="btn ghost small">Clear</button>
+          <button id="bd-delete" class="btn ghost small">Delete</button>
+        </div>
+        <button id="bd-play" class="btn primary">Save &amp; use this deck</button>
+      </aside>
+    </div>
+  </section>
+
   <!-- ============================== game table -->
   <section id="screen-game" class="screen hidden">
     <aside id="side">

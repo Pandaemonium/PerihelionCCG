@@ -211,7 +211,68 @@ const SCENES = {
   elite_commando: 'Battle-scarred veteran Redline special-ops commando in matte-black and slate stealth exo-armor with cyan HUD visor and shimmering personal shield in driving rain',
   command_nexus: 'Monumental hilltop military radar-and-command fortress carved into a granite mountain peak, towering phased-array antennas sweeping cyan tactical beams over the frontier',
   marshals_vanguard: 'Imposing heavy armored command walker striding at the crest of a misty mountain ridge flanked by elite troopers and flying a weathered cyan-and-steel banner',
+
+  // Expansion: Neutral Colonists & Black Boxes
+  colony_militia: 'Two determined volunteer colonists in mismatched hydroponics coveralls and borrowed chest armor gripping rugged carbines beside an illuminated steel colony airlock bulkhead at night',
+  geo_survey: 'Pair of exoplanet geologists in dusty environmental parkas crouching on a rocky ridge with a glowing seismic tripod scanner and core drill overlooking volcanic steam vents',
+  freight_crawler: 'Heavy slow six-tracked weathered industrial cargo crawler hauling stacked glowing cyan Reserve Cell containers along a dusty rutted colony road under twin amber headlamps',
+  reclamation_vats: 'Moody dimly lit industrial recycling chamber lined with heavy steel salvage reclamation tanks, conveyor chutes, glowing turquoise reclamation fluid gauges, and drifting steam',
+  blackbox_gunnery: 'Dramatic close-up of a scorched titanium starship black-box flight recorder cracked open on a console, projecting glowing crimson-amber holographic orbital gunnery targeting arcs',
+  blackbox_medical: 'Scorched armored starship cryo-medical data core resting on a field medic table, projecting serene turquoise holographic vital signs and rows of cryo-sleeper telemetry waveforms',
+  blackbox_flight: 'Weathered blackened starship navigation black-box module wired to a diagnostic terminal, casting an eerie pale blue holographic star-chart trajectory bending unexpectedly toward an alien planet',
+  landshaper: 'Three rugged planetary terraforming engineers in heavy dust-caked utility suits operating a tripod-mounted fusion earth-shaping beam melting basalt rock along a misty canyon rim',
+  field_theorist: 'Sharp-eyed frontier scientist in reinforced practical field coat with glowing wrist holo-projector standing boldly amid swirling alien dust while testing an experimental energy emitter',
+  wayfarer: 'Lone weathered nomad scout in dust-cloaked desert enviro-gear striding alongside a compact pack-skiff across sweeping red-grey alien dunes with a towering dust storm behind',
+  dreamcaster_pylon: 'Ancient-meets-colonial slender basalt-and-titanium psi-amplifier obelisk pulsing with shimmering violet-crimson psychic waves on a misty hilltop, warping dust motes around its spire',
+  logistics_hub: 'Bustling illuminated modular frontier cargo-and-dispatch depot at twilight with overhead gantry cranes, stacked shipping pods, glowing manifest boards, and rovers rolling out',
+  excavation_team: 'Colony drilling crew in headlamps and dust suits standing in awe at the bottom of a deep excavated trench where a massive smooth glowing teal Alien Monolith emerges from ancient bedrock',
+
+  // Expansion: Rootbound (purely organic photography — no tech/robot triggers)
+  spore_tender: 'Quiet Rootbound botanist in damp olive moss-woven cloak kneeling on a rocky misty ledge, gently tending tiny glowing emerald-and-violet alien sprouts rooting into cracked stone',
+  mulch_bed: 'Rich shadowed rainforest clearing of dark steaming alien compost, fallen giant ferns, and glowing emerald-violet bioluminescent mycelium veins nourishing lush towering saplings',
+  brood_whisperer: 'Serene hooded Rootbound empath woman crouching calmly in misty purple xenofungus with outstretched bare palm as a translucent glowing violet alien mind-worm rises curiously before her',
+  rootquake: 'Colossal gnarled ancient jungle tree roots erupting violently up through cracked ferrocrete bunker foundations, shattering concrete slabs amid swirling emerald moss and glowing spores',
+
+  // Expansion: Ironwake
+  killing_ground: 'Volcanic ravine approach lit by harsh amber searchlights and crisscrossing red targeting lasers from fortified bunker firing slits as explosive shell bursts erupt in dark ash',
+  bastion_gunner: 'Heavily armored Ironwake heavy-weapons trooper braced behind a thick riveted turret shield firing a smoking rotary autocannon, glowing amber muzzle flash and ejected brass casings',
+  line_captain: 'Steely-eyed female Ironwake veteran officer in scarred charcoal plate armor gesturing forward beside a wall of towering heavy shield troopers holding a smoky perimeter line',
+  works_foreman: 'Broad-shouldered industrial construction chief in weathered high-visibility welding harness and hard-visor standing on a steel catwalk overlooking a glowing skyline of turrets and foundries',
+
+  // Expansion: Lumen Synod
+  field_researcher: 'Focused female Synod scientist seated inside a glass-walled field outpost dome surrounded by glowing blue telemetry screens, sample vials, and a humming compact fusion desk lamp',
+  theorem_guard: 'Sleek disciplined Synod security sentinel in matte-navy articulated composite armor holding a crisp glowing geometric cyan hexagonal energy barrier inside a dark archive corridor',
+  reverse_engineer: 'Two Synod engineers in dark laboratory coats examining a partially disassembled enemy combat mech arm suspended under bright cold blue laser-scanning beams on a holographic blueprint table',
+  feedback_pylon: 'Slender obsidian-and-glass Synod microwave relay pylon crackling with focused electric blue side-lobe energy arcs discharging directly across a dark valley toward distant fortifications',
+
+  // Expansion: Free Tide
+  limpet_charge: 'Close-up of a gloved amphibious raider clamping a blinking waterproof magnetic demolition charge onto the wet rusted steel pilings of an enemy coastal outpost beneath dark splashing surf',
+  cell_runner: 'Agile grinning Free Tide courier woman in damp dark leather-and-neoprene flight vest clutching glowing cyan Reserve Cells while sprinting down a rain-slicked neon-magenta pier',
+  salvage_boss: 'Tough swaggering privateer salvage chief in salt-stained armored trench coat standing on a scrap barge deck directing floodlit cargo cranes looting a smoldering enemy bunker behind him',
+  tide_quartermaster: 'Weathered shrewd Free Tide supply officer leaning over open waterproof titanium cargo crates filled with glowing contraband gear inside a dimly lit ship hold',
+
+  // Expansion: Cinder Choir
+  fervor: 'Dramatic close-up of a resolute Cinder Choir zealot raising a blazing oil-and-plasma torch skyward amid billowing dark smoke and swirling crimson sparks, face fiercely lit by firelight',
+  heresy_hunter: 'Fierce hooded female Cinder Choir inquisitor in ash-grey and crimson flame-retardant armor striding out of a burning glass-and-steel laboratory holding a heavy thermal carbine',
+  ash_mourner: 'Solemn weathered Cinder Choir warrior woman standing in falling volcanic ash beside a line of makeshift steel grave markers, gripping a soot-blackened rifle with fierce crimson firelight behind her',
+  doomsayer: 'Gaunt commanding Cinder Choir prophet in tattered dark crimson-trimmed mantle standing atop a rocky crag pointing down toward burning enemy colony towers across a smoky canyon',
+
+  // Expansion: Auric Charter
+  venture_agent: 'Sharp impeccably dressed Auric field financier in tailored charcoal-and-gold armored coat checking a glowing golden holographic tablet beside newly rising steel building foundations at sunset',
+  underwriter: 'Composed Auric risk assessor in sleek obsidian-and-gold armored vest standing before panoramic armored dome windows overlooking gleaming reinforced colony domes bathed in warm amber light',
+  asset_seizure: 'Two slick black-and-gold armored Auric corporate repo troopers clamping a glowing golden containment lock onto a disabled enemy walker amid swirling dust and holographic seizure notices',
+  arbitrageur: 'Shrewd well-dressed Auric information broker seated inside a glass orbital lounge surrounded by glowing golden market curves and blue archival data streams reflected in his glasses',
+
+  // Expansion: Redline Cadre
+  combined_arms: 'Dramatic wide cinematic shot of disciplined slate-armored Redline infantry advancing across a misty rocky ridge in tight formation while twin tilt-rotor gunships roar low overhead with cyan strobes',
+  drill_instructor: 'Grizzled hard-bitten Redline sergeant in scarred matte-grey tactical gear barking orders on a foggy highland training plateau as armored recruits run live-fire drills at dawn',
+  ridge_battery: 'Compact rugged Redline mobile field artillery piece dug into a windswept rocky highland crest, elevation gears locked and barrel smoking after firing across a misty mountain valley',
+  headhunter: 'Keen-eyed female Redline sharpshooter in hooded matte-slate camo cloak crouching on a dark rocky flank checking her compact precision carbine with a subtle cyan optic lens glint',
 };
+
+const ORGANIC_ONLY = new Set(['spore_tender', 'mulch_bed', 'brood_whisperer', 'rootquake']);
+const STYLE_ORGANIC =
+  'Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting';
 
 const out = [];
 
@@ -231,6 +292,7 @@ Object.keys(CARDS).forEach((id) => {
   const c = CARDS[id];
   const palette = FACTION_PALETTE[c.faction] || FACTION_PALETTE.neutral;
   const scene = SCENES[id] || `${c.name} — sci-fi ${c.type} on an alien frontier planet`;
+  const style = ORGANIC_ONLY.has(id) ? STYLE_ORGANIC : STYLE_CARD;
   out.push({
     id,
     name: c.name,
@@ -238,7 +300,7 @@ Object.keys(CARDS).forEach((id) => {
     type: c.project ? 'project' : c.type,
     width: 1024,
     height: 768,
-    prompt: `${scene}. Atmosphere: ${palette}. ${STYLE_CARD}.`,
+    prompt: `${scene}. Atmosphere: ${palette}. ${style}.`,
   });
 });
 
