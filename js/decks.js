@@ -36,7 +36,7 @@
     } catch (e) { /* storage unavailable */ }
   }
 
-  const facLabel = (fid) => FACTIONS[fid].name.replace(/^The /, '');
+  const facLabel = (fid) => (FACTIONS[fid].short || FACTIONS[fid].name.replace(/^The /, ''));
   const copyLimit = (c) => (c.unique ? 1 : 2);
   Decks.copyLimit = (id) => copyLimit(CARDS[id]);
 

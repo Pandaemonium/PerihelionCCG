@@ -31,11 +31,11 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms * speed));
   const locked = () => busy || !g || g.over || g.active !== HUMAN;
-  const facName = (id) => (id === 'neutral' ? 'Colonist' : FACTIONS[id].name.replace(/^The /, ''));
+  const facName = (id) => (id === 'neutral' ? 'Colonist' : (FACTIONS[id].short || FACTIONS[id].name.replace(/^The /, '')));
   const laneName = (lane) => 'lane ' + (lane + 1);
 
   const POD_TEXT = {
-    cells: 'Energy Cache (+2 Reserve Cells)',
+    cells: 'Energy Cache (+2 Energy Cells)',
     research: 'Black-Box Core (+2 Research)',
     medkit: 'Med-Kit Pod (+4 HP / +3 Armor)',
     upgrade: 'Field Upgrade (+1/+1 & Shielded)',
@@ -204,7 +204,7 @@
     let ticks = ms.map((m, i) =>
       `<span class="r-tick ${p.research >= m ? 'on' : ''}" style="left:${(100 * m) / top}%">${['I', 'II', 'III'][i]}</span>`).join('');
     if (hasAscent) {
-      ticks += `<span class="r-tick ascent ${p.research >= E.ASCENT_RESEARCH ? 'on' : ''}" style="left:100%" title="Ascent Victory (${E.ASCENT_RESEARCH})">★</span>`;
+      ticks += `<span class="r-tick ascent ${p.research >= E.ASCENT_RESEARCH ? 'on' : ''}" style="left:100%" title="Transcendence Victory (${E.ASCENT_RESEARCH})">★</span>`;
     }
 
     const usable = pid === HUMAN && !locked() && E.canUsePower(g, pid);
@@ -368,22 +368,22 @@
     [/Overcharge \d+:/, 'Overcharge', 'If you have enough extra Energy left after paying the base cost, spends it to trigger this bonus.'],
     [/Jam/, 'Jam', 'Disables a unit or location until the end of its owner’s next turn.'],
     [/Secret Project/, 'Secret Project', `Unique legendary location (max 1 per deck). If razed, deals ${E.PROJECT_RAZE_DAMAGE} damage to its colony.`],
-    [/Ascent:/, 'Ascent', `Win the game immediately upon reaching ${E.ASCENT_RESEARCH} Research while The Voice of Tau Ceti stands.`],
+    [/Transcendence:/, 'Transcendence', `Win the game immediately upon reaching ${E.ASCENT_RESEARCH} Research while The Voice of Planet stands.`],
     [/stationed|staffed/, 'Stationed', 'A unit is stationed at a location while standing in the same lane.'],
-    [/Reserve Cell/, 'Reserve Cell', 'A free Order that gives 1 Energy this turn.'],
+    [/Energy Cell/, 'Energy Cell', 'A free Order that gives 1 Energy this turn.'],
     [/Supply Pod/, 'Supply Pod', 'First unit to deploy or move into the lane claims a random orbital reward.'],
     [/Armor/, 'Armor', 'Absorbs non-Psi damage to your colony before its integrity.'],
-    [/Xenofungus/, 'Xenofungus', 'Cycle End: Non-native units take 1 damage; Rootbound/Native units heal 1.'],
+    [/Xenofungus/, 'Xenofungus', 'Cycle End: Non-native units take 1 damage; Stepdaughter and Native units heal 1.'],
     [/High Ridge/, 'High Ridge', 'Units in this lane gain +1 Reach.'],
     [/Thermal Borehole/, 'Thermal Borehole', 'Cycle Start: +1 Energy if a unit is here; your Location here takes 1 damage.'],
     [/Sensor Array/, 'Sensor Array', 'Units in this lane gain Interceptor (blocks Aerial).'],
     [/neighbouring/, 'Neighbouring lanes', 'The lanes directly left and right.'],
     [/Black Box/, 'Black Box', 'A set of three Colonist Orders. Each one grows stronger for every other Black Box you have already played this game.'],
-    [/has terrain|no terrain|lane’s terrain/, 'Terrain', 'The feature in a lane’s centre strip: Xenofungus, High Ridge, Thermal Borehole, Alien Monolith, Sensor Array or Perihelion Hull. Both sides share it.'],
+    [/has terrain|no terrain|lane’s terrain/, 'Terrain', 'The feature in a lane’s centre strip: Xenofungus, High Ridge, Thermal Borehole, Alien Monolith, Sensor Array or Perihelion Wreckage. Both sides share it.'],
     [/Alien Monolith/, 'Alien Monolith', 'The first time each unit ends a cycle here, it gains +1/+1 and restores 2 health.'],
-    [/Breakthrough/, 'Breakthrough', 'A Research milestone. There are three; you reach them at 4, 8 and 13 Research (6, 10 and 15 under Power Doctrine).'],
+    [/Breakthrough/, 'Breakthrough', 'A Research milestone. There are three; you reach them at 4, 8 and 13 Research (6, 10 and 15 under Power).'],
     [/Mind Worm/, 'Mind Worm', 'A 2/2 unit with Psi.'],
-    [/Sprout/, 'Sprout', 'A 1/1 Rootbound unit.'],
+    [/Sprout/, 'Sprout', 'A 1/1 native Stepdaughter unit.'],
   ];
 
   function combatPreviewNote(ref) {
@@ -498,7 +498,7 @@
         <div class="sub">Every Order gives 1 Research, as does a staffed Landing Site each cycle.</div>
         <div class="insp-notes">${ms.map((m, i) =>
           `<div><b>${m} Research</b> — ${E.MILESTONE_TEXT[i]} ${p.research >= m ? '✔' : ''}</div>`).join('')}
-          <div><b>${E.ASCENT_RESEARCH} Research + Voice of Tau Ceti</b> — Instant Ascent Victory!</div>
+          <div><b>${E.ASCENT_RESEARCH} Research + The Voice of Planet</b> — Instant Transcendence Victory!</div>
         </div>`;
     } else {
       const isBoss = pid === BOT && g.bossName;
@@ -1026,7 +1026,7 @@
       <div class="cols">
         <div>
           <h3>Goal & Victory</h3>
-          <p>Reduce the enemy colony’s integrity from ${E.START_HP} to 0 — OR complete <b>The Voice of Tau Ceti</b> and reach <b>${E.ASCENT_RESEARCH} Research</b> for an instant <b>Ascent Victory</b>.</p>
+          <p>Reduce the enemy colony’s integrity from ${E.START_HP} to 0 — OR complete <b>The Voice of Planet</b> and reach <b>${E.ASCENT_RESEARCH} Research</b> for an instant <b>Transcendence Victory</b>.</p>
           <h3>The 7-Lane Planet</h3>
           <ul>
             <li>Each lane holds one <b>unit</b> in front, one <b>location</b> behind, and a shared <b>Planetary Terrain</b> tile in the center.</li>
@@ -1049,8 +1049,8 @@
           </div>
           <h3>Decks & Pacts</h3>
           <p>A deck is ${Decks.DECK_SIZE} cards: up to 2 copies of each card, 1 of a Secret Project. Your <b>faction</b> supplies the leader and leader power. You may sign a <b>Pact</b> with one other faction and include up to ${Decks.PACT_LIMIT} of its cards — but not its Secret Project. Build your own in the <b>Deckbuilder</b>.</p>
-          <h3>Research & Colony Doctrines</h3>
-          <p>Every Order and every staffed Landing Site grants Research. Milestones grant permanent Breakthroughs, and <b>Colony Doctrines</b> let you trade one planetary advantage against a sharp drawback—classic Alpha Centauri social engineering.</p>
+          <h3>Research & Social Engineering</h3>
+          <p>Every Order and every staffed Landing Site grants Research. Milestones grant permanent Breakthroughs, and <b>Social Engineering</b> lets you trade one planetary advantage against a sharp drawback.</p>
         </div>
       </div>
       <div class="modal-actions"><button class="btn primary" data-do="close">Got it</button></div>
@@ -1355,7 +1355,7 @@
       </div>
       <span class="label">Pact</span>
       <div class="bd-row"><div class="chips">${pactChips}</div><span class="bd-inline">${pactNote}</span></div>
-      <span class="label">Doctrine</span>
+      <span class="label">Social</span>
       <div class="bd-row"><div class="chips">${docChips}</div></div>
       <div class="bd-note"><span><b>${doc.icon} ${doc.name}:</b> ${doc.benefit}${doc.drawback !== 'None.' ? ` <i>(${doc.drawback})</i>` : ''}</span></div>`;
   }
@@ -1559,7 +1559,7 @@
     const f = FACTIONS[myFaction];
     openModal(`<div class="camp-wrap">
       <h2>🪐 Planetary Conquest</h2>
-      <p>Lead <b>${f.name}</b> across all seven regions of Tau Ceti. Each rival holds a fortified biome with a signature Doctrine and deck. (${prog.cleared.length} / ${CAMPAIGN.length} sectors conquered)</p>
+      <p>Lead <b>${f.name}</b> across all seven regions of Tau Ceti. Each rival holds a fortified biome with a signature Social Engineering policy and deck. (${prog.cleared.length} / ${CAMPAIGN.length} sectors conquered)</p>
       <div class="camp-grid">
         ${CAMPAIGN.map((m) => {
           const done = prog.cleared.includes(m.id);
@@ -1696,12 +1696,12 @@
 
     const f = FACTIONS[g.players[HUMAN].faction];
     const ascent = g.winReason === 'ascent';
-    const title = tie ? 'Mutual Ruin' : win ? (ascent ? 'Transcendence' : 'Victory') : (ascent ? 'Enemy Ascent' : 'Defeat');
+    const title = tie ? 'Mutual Ruin' : win ? (ascent ? 'Transcendence' : 'Victory') : (ascent ? 'Enemy Transcendence' : 'Defeat');
     let text = tie
-      ? 'Both colonies fall silent in the same hour. Tau Ceti keeps what is left.'
+      ? 'Both colonies fall silent in the same hour. Planet keeps what is left.'
       : win
-        ? (ascent ? 'The Voice of Tau Ceti harmonizes with your archives. Humanity transcends the dust.' : `${f.name} will decide what Tau Ceti becomes. The other survivors can only watch.`)
-        : (ascent ? 'The enemy achieved Transcendence through The Voice of Tau Ceti.' : `The enemy banner rises over your last habitat. ${f.leader} is led away in silence.`);
+        ? (ascent ? 'The Voice of Planet harmonizes with your Datalinks. Humanity transcends the dust.' : `${f.name} will decide what Planet becomes. The other survivors can only watch.`)
+        : (ascent ? 'The enemy achieved Transcendence through The Voice of Planet.' : `The enemy banner rises over your last habitat. ${f.leader} is led away in silence.`);
 
     let actions = `<button class="btn ghost" data-do="title">Title screen</button>
       <button class="btn primary" data-do="rematch">Play again</button>`;
@@ -1881,8 +1881,8 @@
     $('#screen-title').classList.add('hidden');
     $('#screen-game').classList.remove('hidden');
     logLine(`${FACTIONS[p0Fac].name} versus ${o.bossName || FACTIONS[opp].name} on ${BIOMES[biome].name}.`, 'sys');
-    if (g.active === BOT) logLine('The enemy moves first. You start with two extra cards and a Reserve Cell.', 'sys');
-    else logLine('You move first. The enemy starts with two extra cards and a Reserve Cell.', 'sys');
+    if (g.active === BOT) logLine('The enemy moves first. You start with two extra cards and an Energy Cell.', 'sys');
+    else logLine('You move first. The enemy starts with two extra cards and an Energy Cell.', 'sys');
 
     if (o.auto) fastForward(o.auto);
     busy = true;

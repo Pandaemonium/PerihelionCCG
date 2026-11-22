@@ -265,7 +265,7 @@
         id,
         kind: isLeader ? 'leader' : (card && card.project ? 'project' : (card ? card.type : 'card')),
         name: isLeader
-          ? (id === 'leader_boss' ? 'The Chiron Echo' : (FACTIONS[fac] ? FACTIONS[fac].leader : id))
+          ? (id === 'leader_boss' ? 'The Planetmind' : (FACTIONS[fac] ? FACTIONS[fac].leader : id))
           : (card ? card.name : id),
         faction: fac,
         card,
@@ -319,7 +319,7 @@
 
     const facLabel = (fid) => fid === 'neutral' ? 'Colonist'
       : fid === 'boss' ? 'Campaign Boss'
-      : (FACTIONS[fid] ? FACTIONS[fid].name.replace(/^The /, '') : fid);
+      : (FACTIONS[fid] ? (FACTIONS[fid].short || FACTIONS[fid].name.replace(/^The /, '')) : fid);
 
     function currentPrompt(id) {
       return editedPrompts[id] != null ? editedPrompts[id] : (origPromptMap[id] || '');
@@ -362,7 +362,7 @@
       if (it.kind === 'leader') {
         const f = it.leaderFaction;
         const fc = f ? 'f-' + f.id : 'f-boss';
-        const title = f ? f.leader : 'The Chiron Echo';
+        const title = f ? f.leader : 'The Planetmind';
         const sub = f ? f.name : 'Planetary Conquest Final Boss';
         const motto = f ? `“${f.motto}”` : '“The world beneath the spores has learned to speak with human voices.”';
         const lArt = hasImg ? `<img class="art-img" src="${it.id}.webp${bust}" alt="">` : `<div style="font-size:7rem;display:grid;place-items:center;height:100%">${f ? f.art : '🧠'}</div>`;

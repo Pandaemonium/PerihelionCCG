@@ -111,7 +111,7 @@
   },
   {
     "id": "cell",
-    "name": "Reserve Cell",
+    "name": "Energy Cell",
     "faction": "neutral",
     "type": "order",
     "width": 1024,
@@ -147,7 +147,7 @@
   },
   {
     "id": "rover_scout",
-    "name": "Rover Scout",
+    "name": "Recon Rover",
     "faction": "neutral",
     "type": "unit",
     "width": 1024,
@@ -156,7 +156,7 @@
   },
   {
     "id": "aaa_sentry",
-    "name": "AAA Sentry",
+    "name": "AAA Garrison",
     "faction": "neutral",
     "type": "unit",
     "width": 1024,
@@ -183,7 +183,7 @@
   },
   {
     "id": "supply_drop",
-    "name": "Orbital Drop",
+    "name": "Supply Pod Drop",
     "faction": "neutral",
     "type": "order",
     "width": 1024,
@@ -192,7 +192,7 @@
   },
   {
     "id": "bunker",
-    "name": "Bunker",
+    "name": "Perimeter Defense",
     "faction": "neutral",
     "type": "site",
     "width": 1024,
@@ -219,7 +219,7 @@
   },
   {
     "id": "native_mind_worm",
-    "name": "Brood Worm",
+    "name": "Mind Worm Boil",
     "faction": "neutral",
     "type": "unit",
     "width": 1024,
@@ -237,7 +237,7 @@
   },
   {
     "id": "hab_dome",
-    "name": "Hab Dome",
+    "name": "Hab Complex",
     "faction": "neutral",
     "type": "site",
     "width": 1024,
@@ -255,7 +255,7 @@
   },
   {
     "id": "storm_skiff",
-    "name": "Storm Skiff",
+    "name": "Patrol Chopper",
     "faction": "neutral",
     "type": "unit",
     "width": 1024,
@@ -273,7 +273,7 @@
   },
   {
     "id": "planetary_datalinks",
-    "name": "Planetary Datalinks",
+    "name": "The Planetary Datalinks",
     "faction": "neutral",
     "type": "project",
     "width": 1024,
@@ -282,7 +282,7 @@
   },
   {
     "id": "aegis_algorithm",
-    "name": "The Aegis Algorithm",
+    "name": "The Hunter-Seeker Algorithm",
     "faction": "neutral",
     "type": "project",
     "width": 1024,
@@ -291,7 +291,7 @@
   },
   {
     "id": "manifold_former",
-    "name": "The Manifold Former",
+    "name": "The Weather Paradigm",
     "faction": "neutral",
     "type": "project",
     "width": 1024,
@@ -300,7 +300,7 @@
   },
   {
     "id": "chrysalis_vats",
-    "name": "The Chrysalis Vats",
+    "name": "The Cloning Vats",
     "faction": "neutral",
     "type": "project",
     "width": 1024,
@@ -309,7 +309,7 @@
   },
   {
     "id": "orbital_tether",
-    "name": "The Orbital Tether",
+    "name": "The Space Elevator",
     "faction": "neutral",
     "type": "project",
     "width": 1024,
@@ -318,7 +318,7 @@
   },
   {
     "id": "voice_of_tau_ceti",
-    "name": "The Voice of Tau Ceti",
+    "name": "The Voice of Planet",
     "faction": "neutral",
     "type": "project",
     "width": 1024,
@@ -399,7 +399,7 @@
   },
   {
     "id": "heartwood_bower",
-    "name": "Heartwood Bower",
+    "name": "Hybrid Forest",
     "faction": "rootbound",
     "type": "site",
     "width": 1024,
@@ -462,7 +462,7 @@
   },
   {
     "id": "locust_swarm",
-    "name": "Locusts of Tau Ceti",
+    "name": "Locusts of Planet",
     "faction": "rootbound",
     "type": "unit",
     "width": 1024,
@@ -471,7 +471,7 @@
   },
   {
     "id": "living_canopy",
-    "name": "The Living Canopy",
+    "name": "The Xenoempathy Dome",
     "faction": "rootbound",
     "type": "project",
     "width": 1024,
@@ -552,7 +552,7 @@
   },
   {
     "id": "reactor_core",
-    "name": "Reactor Core",
+    "name": "Fusion Reactor",
     "faction": "ironwake",
     "type": "site",
     "width": 1024,
@@ -633,7 +633,7 @@
   },
   {
     "id": "bulwark_citadel",
-    "name": "The Bulwark Citadel",
+    "name": "The Citizens' Defense Force",
     "faction": "ironwake",
     "type": "project",
     "width": 1024,
@@ -651,7 +651,7 @@
   },
   {
     "id": "acolyte",
-    "name": "Acolyte of the Core",
+    "name": "Research Fellow",
     "faction": "synod",
     "type": "unit",
     "width": 1024,
@@ -669,7 +669,7 @@
   },
   {
     "id": "archive_scribe",
-    "name": "Archive Scribe",
+    "name": "Datalinks Analyst",
     "faction": "synod",
     "type": "unit",
     "width": 1024,
@@ -678,7 +678,7 @@
   },
   {
     "id": "archive_vault",
-    "name": "Archive Vault",
+    "name": "Network Node",
     "faction": "synod",
     "type": "site",
     "width": 1024,
@@ -687,7 +687,7 @@
   },
   {
     "id": "probe_tech",
-    "name": "Synod Interceptor",
+    "name": "Cyber Probe",
     "faction": "synod",
     "type": "unit",
     "width": 1024,
@@ -759,7 +759,7 @@
   },
   {
     "id": "thinkers_node",
-    "name": "Thinker's Node",
+    "name": "Quantum Lab",
     "faction": "synod",
     "type": "site",
     "width": 1024,
@@ -795,7 +795,7 @@
   },
   {
     "id": "virtual_archive",
-    "name": "The Virtual Archive",
+    "name": "The Virtual World",
     "faction": "synod",
     "type": "project",
     "width": 1024,
@@ -804,7 +804,7 @@
   },
   {
     "id": "voice",
-    "name": "Voice of the Perihelion",
+    "name": "Perihelion Mainframe",
     "faction": "synod",
     "type": "unit",
     "width": 1024,
@@ -894,7 +894,7 @@
   },
   {
     "id": "skiff_hangar",
-    "name": "Skiff Hangar",
+    "name": "Aerospace Hangar",
     "faction": "tide",
     "type": "site",
     "width": 1024,
@@ -921,7 +921,7 @@
   },
   {
     "id": "corsair_interceptor",
-    "name": "Skyhawk Corsair",
+    "name": "Needlejet Corsair",
     "faction": "tide",
     "type": "unit",
     "width": 1024,
@@ -948,7 +948,7 @@
   },
   {
     "id": "gunship",
-    "name": "Tidecaller Gunship",
+    "name": "Tidewater Gunship",
     "faction": "tide",
     "type": "unit",
     "width": 1024,
@@ -957,7 +957,7 @@
   },
   {
     "id": "sovereign_reef",
-    "name": "The Sovereign Reef",
+    "name": "The Maritime Control Center",
     "faction": "tide",
     "type": "project",
     "width": 1024,
@@ -1164,7 +1164,7 @@
   },
   {
     "id": "solar_array",
-    "name": "Solar Array",
+    "name": "Solar Collector",
     "faction": "auric",
     "type": "site",
     "width": 1024,
@@ -1218,7 +1218,7 @@
   },
   {
     "id": "exchange_spire",
-    "name": "Exchange Spire",
+    "name": "Energy Bank",
     "faction": "auric",
     "type": "site",
     "width": 1024,
@@ -1236,7 +1236,7 @@
   },
   {
     "id": "thermal_lease",
-    "name": "Thermal Lease",
+    "name": "Borehole Lease",
     "faction": "auric",
     "type": "order",
     "width": 1024,
@@ -1281,7 +1281,7 @@
   },
   {
     "id": "meridian_exchange",
-    "name": "The Meridian Exchange",
+    "name": "The Merchant Exchange",
     "faction": "auric",
     "type": "project",
     "width": 1024,
@@ -1326,7 +1326,7 @@
   },
   {
     "id": "flak_battery",
-    "name": "Flak Battery",
+    "name": "AAA Rover",
     "faction": "redline",
     "type": "unit",
     "width": 1024,
@@ -1371,7 +1371,7 @@
   },
   {
     "id": "command_post",
-    "name": "Command Post",
+    "name": "Command Center",
     "faction": "redline",
     "type": "site",
     "width": 1024,
@@ -1389,7 +1389,7 @@
   },
   {
     "id": "valkyrie_drop",
-    "name": "Valkyrie Drop-Pod",
+    "name": "Drop Pod Squad",
     "faction": "redline",
     "type": "unit",
     "width": 1024,
@@ -1452,7 +1452,7 @@
   },
   {
     "id": "marshals_vanguard",
-    "name": "Marshal's Vanguard",
+    "name": "Colonel's Vanguard",
     "faction": "redline",
     "type": "unit",
     "width": 1024,
@@ -1479,7 +1479,7 @@
   },
   {
     "id": "freight_crawler",
-    "name": "Freight Crawler",
+    "name": "Supply Crawler",
     "faction": "neutral",
     "type": "unit",
     "width": 1024,
@@ -1488,7 +1488,7 @@
   },
   {
     "id": "reclamation_vats",
-    "name": "Reclamation Vats",
+    "name": "Recycling Tanks",
     "faction": "neutral",
     "type": "site",
     "width": 1024,
@@ -1524,7 +1524,7 @@
   },
   {
     "id": "landshaper",
-    "name": "Landshaper Crew",
+    "name": "Superformer Crew",
     "faction": "neutral",
     "type": "unit",
     "width": 1024,
@@ -1551,7 +1551,7 @@
   },
   {
     "id": "dreamcaster_pylon",
-    "name": "Dreamcaster Pylon",
+    "name": "Dream Twister",
     "faction": "neutral",
     "type": "site",
     "width": 1024,
@@ -1596,7 +1596,7 @@
   },
   {
     "id": "brood_whisperer",
-    "name": "Brood Whisperer",
+    "name": "Empath Whisperer",
     "faction": "rootbound",
     "type": "unit",
     "width": 1024,
@@ -1713,7 +1713,7 @@
   },
   {
     "id": "tide_quartermaster",
-    "name": "Tide Quartermaster",
+    "name": "Tidewater Quartermaster",
     "faction": "tide",
     "type": "unit",
     "width": 1024,
