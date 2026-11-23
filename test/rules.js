@@ -137,5 +137,47 @@ ok(E.SECOND_EXTRA_CARDS === 2 && E.SECOND_CELLS === 1, 'second-player compensati
   ok(E.attack(g, 0, a.uid, { k: 's', uid: s.uid }) === true && s.hp === CARDS.bunker.hp - 1, 'attacking an open location works', s.hp);
 }
 
+/* ---------------------------------------------------------------- Artillery: no damage back, and the game says so */
+{
+  const g = E.newGame('cinder', 'rootbound', 1, 0, { biome: 'classic' });
+  g.silent = false;
+  const ic = unit(g, 0, 'iconoclast', 2), sl = unit(g, 1, 'spore_launcher', 4);
+  ok(!targets(g, ic).includes('U5'), 'setup: the Spore Launcher two lanes away is out of the Iconoclast\'s reach', targets(g, ic));
+  E.endTurn(g, 0);
+  g.events.length = 0;
+  ok(E.attack(g, 1, sl.uid, { k: 'u', uid: ic.uid }), 'Artillery can shell a unit two lanes away');
+  ok(ic.hp === CARDS.iconoclast.hp - CARDS.spore_launcher.atk && sl.hp === CARDS.spore_launcher.hp, 'the target is hurt and deals nothing back', [ic.hp, sl.hp]);
+  ok(g.events.some((e) => e.t === 'noreturn' && e.ref.uid === ic.uid && e.from.uid === sl.uid), 'a "no return damage" event is raised for the UI, anchored on the defender');
+  // when the same unit attacks instead, it deals its damage normally
+  const g2 = E.newGame('cinder', 'rootbound', 1, 0, { biome: 'classic' });
+  g2.silent = false;
+  const ic2 = unit(g2, 0, 'iconoclast', 2), sl2 = unit(g2, 1, 'spore_launcher', 3);
+  g2.events.length = 0;
+  ok(E.attack(g2, 0, ic2.uid, { k: 'u', uid: sl2.uid }) && sl2.hp <= 0, 'Iconoclast attacking a Spore Launcher destroys it', sl2.hp);
+  ok(ic2.hp === CARDS.iconoclast.hp - CARDS.spore_launcher.atk && !g2.events.some((e) => e.t === 'noreturn'), 'and takes the Launcher\'s damage in return', ic2.hp);
+}
+
+/* ---------------------------------------------------------------- Shield: swallows one whole hit from an Order, and the game says so */
+{
+  const g = E.newGame('synod', 'rootbound', 1, 0, { biome: 'classic', doctrine0: 'knowledge' });
+  g.silent = false;
+  const p = g.players[0];
+  // a Mind Worm Boil that cracked a Supply Pod "upgrade": +1/+1 and Shield, which leaves it on 4 health
+  const w = unit(g, 1, 'native_mind_worm', 3);
+  E.buff(g, w, 1, 1); w.kw.shield = true;
+  p.energy = 10; p.research = 3;
+  p.hand.length = 0;
+  p.hand.push({ uid: 9001, id: 'reverse_engineer', cost: 4 }, { uid: 9002, id: 'reverse_engineer', cost: 4 });
+  g.events.length = 0;
+  ok(E.playCard(g, 0, 9001, { k: 'u', uid: w.uid }, null), 'Reverse Engineer can target a Shielded unit');
+  ok(w.hp === 4 && w.kw.shield === false, 'the Shield absorbs all 4 damage and is used up', [w.hp, w.kw.shield]);
+  ok(g.events.some((e) => e.t === 'block' && e.ref.uid === w.uid && e.id === 'native_mind_worm' && e.pid === 1), 'the "block" event names the unit and its owner, for the log');
+  ok(!g.events.some((e) => e.t === 'dmg') && !p.hand.some((h) => h.id === 'native_mind_worm'), 'no damage, so no copy');
+  ok(p.research === 4, 'the Order still counts for Research (the Breakthrough is unrelated to the lost damage)', p.research);
+  g.events.length = 0;
+  ok(E.playCard(g, 0, 9002, { k: 'u', uid: w.uid }, null) && !E.find(g, w.uid), 'a second Reverse Engineer destroys the now-unshielded 4-health unit');
+  ok(p.hand.some((h) => h.id === 'native_mind_worm'), 'and adds a copy of it to hand');
+}
+
 console.log(failed ? `${failed} FAILED, ${passed} passed` : `all ${passed} checks passed`);
 process.exit(failed ? 1 : 0);

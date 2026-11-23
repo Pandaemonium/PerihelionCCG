@@ -373,7 +373,7 @@
       const f = E.find(g, ref.uid);
       if (!f || !alive(f.unit)) return 0;
       const u = f.unit;
-      if (!psi && u.kw.shield) { u.kw.shield = false; ev(g, { t: 'block', ref }); return 0; }
+      if (!psi && u.kw.shield) { u.kw.shield = false; ev(g, { t: 'block', ref, id: u.id, pid: f.pid }); return 0; } // pid = the shielded unit's owner
       u.hp -= n;
       ev(g, { t: 'dmg', ref, n, psi });
     }
@@ -945,6 +945,7 @@
       const dAtk = E.effectiveAtk(g, d, unitRef(a), false);
       E.damage(g, target, aAtk, a);
       if (!artillery) E.damage(g, unitRef(a), dAtk, d);
+      else ev(g, { t: 'noreturn', ref: target, from: unitRef(a), pid }); // Artillery strikes from range: the defender (ref) cannot hit back
       if (d.hp <= 0 || d.doomed) creditKill(g, a, d);
       if (a.hp <= 0 || a.doomed) creditKill(g, d, a);
     }

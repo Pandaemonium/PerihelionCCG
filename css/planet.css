@@ -9,8 +9,10 @@
 #pl-banner {
   position: absolute; left: 50%; top: 1.5%; transform: translateX(-50%); z-index: 3; max-width: 96%;
   padding: 0.8rem 1.8rem; border-radius: 1rem; text-align: center; font-size: 1.6rem; font-weight: 700;
-  background: rgba(2, 14, 8, 0.9); border: 1px solid rgba(125, 255, 189, 0.5); color: #eafff2;
-  font-family: "Consolas", "Lucida Console", monospace; box-shadow: 0 0 2rem rgba(0, 0, 0, 0.7);
+  background: rgba(2, 16, 10, 0.92); backdrop-filter: blur(8px);
+  border: 1px solid rgba(125, 255, 189, 0.55); color: #eafff2;
+  font-family: var(--font-mono, "Consolas", monospace);
+  box-shadow: inset 0 1px 0 rgba(160, 255, 210, 0.2), 0 0 2.4rem rgba(0, 0, 0, 0.75);
 }
 #pl-skip { position: absolute; right: 1%; bottom: 1%; z-index: 3; }
 
@@ -48,10 +50,16 @@
 /* side panel */
 #pl-side {
   min-width: 0; display: flex; flex-direction: column; gap: 1rem; min-height: 0;
-  font-family: "Consolas", "Lucida Console", monospace; color: #c8f5dc;
+  font-family: var(--font-mono, "Consolas", monospace); color: #c8f5dc;
 }
-#pl-side > div { background: rgba(6, 26, 16, 0.78); border: 1px solid rgba(60, 255, 150, 0.22); border-radius: 1rem; padding: 1rem 1.2rem; }
-#pl-side h3 { margin: 0 0 0.5rem; font-size: 1.7rem; color: #eafff2; }
+#pl-side > div {
+  background: linear-gradient(180deg, rgba(8, 32, 20, 0.86), rgba(4, 18, 11, 0.92));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(60, 255, 150, 0.28);
+  border-radius: 1rem; padding: 1rem 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(140, 255, 196, 0.12), 0 0.6rem 2rem rgba(0, 0, 0, 0.45);
+}
+#pl-side h3 { margin: 0 0 0.5rem; font-family: var(--font-display, sans-serif); font-size: 1.9rem; letter-spacing: 0.05em; color: #eafff2; }
 #pl-side p { margin: 0.4rem 0; line-height: 1.4; font-size: 1.35rem; }
 .pl-sub { color: #6fa98a; font-size: 1.2rem; }
 .pl-warn { color: #ffb347 !important; }
@@ -93,22 +101,33 @@
 
 /* cards */
 .pl-card {
-  position: relative; width: 14.5rem; flex: none; border: 2px solid var(--fc); border-radius: 0.9rem; overflow: hidden;
-  background: linear-gradient(180deg, #0f2219, #07120c); color: #dff7e8; font-family: "Segoe UI", system-ui, sans-serif;
-  box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.6); transition: transform 0.12s, box-shadow 0.12s;
+  position: relative; width: 14.5rem; flex: none;
+  border: 2px solid color-mix(in srgb, var(--fc) 86%, #fff 14%);
+  border-radius: 0.85rem; overflow: hidden;
+  background:
+    radial-gradient(ellipse 100% 40% at 50% 0%, color-mix(in srgb, var(--fc) 22%, transparent), transparent 65%),
+    linear-gradient(180deg, #11281d, #07120c);
+  color: #dff7e8; font-family: var(--font-body, "Segoe UI", sans-serif);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 0.5rem 1.4rem rgba(0, 0, 0, 0.65);
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
 }
 .pl-card.inhand { cursor: pointer; height: 20rem; }
-.pl-card.inhand:hover { transform: translateY(-0.6rem); box-shadow: 0 0.8rem 2rem rgba(60, 255, 150, 0.25); }
-.pl-card.picked { outline: 3px solid #ffd166; transform: translateY(-0.8rem); }
+.pl-card.inhand:hover { transform: translateY(-0.7rem); box-shadow: 0 0.9rem 2.2rem rgba(60, 255, 150, 0.32); }
+.pl-card.picked { outline: 3px solid #ffd166; transform: translateY(-0.85rem); }
 .pl-card.queued { opacity: 0.55; outline: 2px dashed #ffd166; }
 .pl-card.scrapped { opacity: 0.3; filter: grayscale(1); }
 .pl-card.dear { opacity: 0.6; }
 .pl-card.zoom { width: 13.5rem; }
 .pl-card.zoom.mine { cursor: pointer; }
 .pl-card.zoom.mine:hover { box-shadow: 0 0 1.4rem rgba(60, 255, 150, 0.35); }
-.pl-ctop { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; background: rgba(0, 0, 0, 0.45); }
-.pl-cost { flex: none; width: 2.2rem; height: 2.2rem; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 1.3rem; background: var(--energy, #4fd1ff); color: #04121a; }
-.pl-cname { font-weight: 700; font-size: 1.25rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-ctop { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.5rem; background: rgba(0, 0, 0, 0.52); }
+.pl-cost {
+  flex: none; width: 2.25rem; height: 2.25rem; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-display, sans-serif); font-weight: 700; font-size: 1.45rem;
+  background: radial-gradient(circle at 35% 30%, #c0f6ff, var(--energy, #4fd1ff) 55%, #1271a0);
+  color: #031722; box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.45);
+}
+.pl-cname { font-family: var(--font-display, sans-serif); font-weight: 700; font-size: 1.38rem; letter-spacing: 0.02em; line-height: 1.06; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-cart { height: 7rem; display: grid; place-items: center; background: #050d09; overflow: hidden; }
 .pl-cart img { width: 100%; height: 100%; object-fit: cover; }
 .pl-cicon2 { font-size: 4rem; }
@@ -119,13 +138,15 @@
 .t-event { --fc2: #c45ad8; }
 
 /* overlays */
-#pl-overlay { position: fixed; inset: 0; z-index: 150; background: rgba(1, 6, 4, 0.82); display: grid; place-items: center; backdrop-filter: blur(3px); }
+#pl-overlay { position: fixed; inset: 0; z-index: 150; background: rgba(1, 6, 4, 0.84); display: grid; place-items: center; backdrop-filter: blur(8px); }
 .pl-panel {
-  max-width: 110rem; max-height: 92vh; overflow-y: auto; padding: 2.6rem 3.4rem; border-radius: 1.6rem;
-  background: #04140c; border: 1px solid rgba(60, 255, 150, 0.35); box-shadow: 0 0 6rem rgba(60, 255, 150, 0.12);
-  color: #c8f5dc; font-family: "Consolas", "Lucida Console", monospace;
+  max-width: 110rem; max-height: 92vh; overflow-y: auto; padding: 2.6rem 3.4rem; border-radius: 1.5rem;
+  background: linear-gradient(175deg, rgba(6, 26, 16, 0.97), rgba(3, 14, 9, 0.98));
+  border: 1px solid rgba(60, 255, 150, 0.42);
+  box-shadow: inset 0 1px 0 rgba(160, 255, 210, 0.16), 0 2rem 6rem rgba(0, 0, 0, 0.85), 0 0 5rem rgba(60, 255, 150, 0.12);
+  color: #c8f5dc; font-family: var(--font-mono, "Consolas", monospace);
 }
-.pl-panel h2 { margin: 0 0 1rem; font-weight: 300; letter-spacing: 0.35rem; text-transform: uppercase; color: #7dffbd; font-size: 3.2rem; }
+.pl-panel h2 { margin: 0 0 1rem; font-family: var(--font-display, sans-serif); font-weight: 600; letter-spacing: 0.28rem; text-transform: uppercase; color: #7dffbd; font-size: 3.4rem; }
 .pl-panel h3 { color: #ffd166; text-transform: uppercase; letter-spacing: 0.15em; font-size: 1.4rem; }
 .pl-panel p { line-height: 1.5; font-size: 1.5rem; }
 .pl-proto { font-size: 1.3rem; letter-spacing: 0.1em; color: #ffd166; border: 1px solid #ffd166; border-radius: 0.6rem; padding: 0.2rem 0.6rem; vertical-align: middle; }

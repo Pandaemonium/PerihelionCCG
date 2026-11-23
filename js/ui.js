@@ -98,6 +98,7 @@
     const isUnit = d.type === 'unit';
     const isSite = d.type === 'site';
     const kind = d.project ? 'Project' : isSite ? 'Location' : isUnit ? 'Unit' : 'Order';
+    const kindIcon = d.project ? '★' : isSite ? '🏛' : isUnit ? '⚔' : '⚡';
     const body = d.text || (d.flavor ? `<i>${d.flavor}</i>` : '');
     const hp = o.hp == null ? d.hp : o.hp;
     const stats = isUnit
@@ -111,7 +112,7 @@
       <div class="c-cost ${cost < d.cost ? 'cheap' : ''}">${cost}</div>
       <div class="c-art">${artInner}</div>
       <div class="c-name">${d.name}</div>
-      <div class="c-type">${kind} · ${facName(d.faction)}</div>
+      <div class="c-type"><span class="c-kind">${kindIcon} ${kind}</span><span class="c-fac">${facName(d.faction)}</span></div>
       <div class="c-text"><div>${body}</div></div>${stats}${o.extra || ''}
     </div>`;
   }
@@ -151,7 +152,7 @@
     return `<div class="${cls.join(' ')}" data-uid="${u.uid}" data-card="${u.id}">
       <div class="u-name">${d.name}</div>
       <div class="u-art ${uArt ? 'has-art' : ''}">${uArt ? artImg(d.id) : d.art}</div>
-      <div class="u-kw">${kws.join('')}</div>
+      <div class="u-kw">${kws.join('')}</div>${u.kw.shield ? '<div class="u-shield" title="Shielded — ignores the next non-Psi damage">◈</div>' : ''}
       <div class="c-atk ${statCls(dispAtk, d.atk)}">${dispAtk}</div>
       <div class="c-hp ${hpCls}">${u.hp}</div>
     </div>`;
@@ -270,8 +271,9 @@
       const gapCls = 'lane-gap' + (terr ? ' has-terrain' : '');
       const gapInner = (terr ? `<span class="terrain-pill">${terr.icon} ${terr.brief}</span>` : (!linfo.pod ? `<span>${lane + 1}</span>` : ''))
         + (linfo.pod ? '<span class="pod-badge">📦 POD</span>' : '');
+      if (terr) lcls.push('has-terrain');
 
-      html += `<div class="${lcls.join(' ')}" data-lane="${lane}">
+      html += `<div class="${lcls.join(' ')}" ${gapStyle} data-lane="${lane}" data-terrain="${linfo.terrain || ''}">
         <div class="cell site-cell enemy" data-row="es">${es ? siteHTML(es) : '<div class="plot"></div>'}</div>
         <div class="cell unit-cell enemy" data-row="eu">${eu ? unitHTML(eu) : '<div class="slot"></div>'}</div>
         <div class="${gapCls}" ${gapStyle} data-insp="lane" data-lane="${lane}">${gapInner}</div>
@@ -403,14 +405,14 @@
       const takeTxt = dAtk === 0
         ? (E.hasKw(g, a, 'artillery') ? '0 (Artillery)' : '0')
         : (!dPsi && a.kw.shield ? '0 (Shield popped)' : `${dAtk}${dPsi ? ' Psi' : ''}${dAtk >= a.hp ? ' — YOUR UNIT DIES' : ''}`);
-      return `<div style="border-left:2px solid #ff6b6b;background:rgba(255,107,107,0.12)"><b>⚔️ Combat Preview</b><br>Deals: <b>${dealTxt}</b> · Takes: <b>${takeTxt}</b></div>`;
+      return `<div class="insp-preview"><b>⚔️ Combat Preview</b><br>Deals: <b>${dealTxt}</b> · Takes: <b>${takeTxt}</b></div>`;
     }
     if (ref.k === 's') {
       const sf = E.findSite(g, ref.uid);
       const hp = sf ? sf.site.hp : 0;
-      return `<div style="border-left:2px solid #ff6b6b;background:rgba(255,107,107,0.12)"><b>⚔️ Raid Preview</b><br>Deals <b>${aAtk}</b> to location${aAtk >= hp ? ' — RAZES!' : ''}.</div>`;
+      return `<div class="insp-preview"><b>⚔️ Raid Preview</b><br>Deals <b>${aAtk}</b> to location${aAtk >= hp ? ' — RAZES!' : ''}.</div>`;
     }
-    return `<div style="border-left:2px solid #ff6b6b;background:rgba(255,107,107,0.12)"><b>⚔️ Strike Preview</b><br>Deals <b>${aAtk}${aPsi ? ' Psi' : ''}</b> to enemy colony.</div>`;
+    return `<div class="insp-preview"><b>⚔️ Strike Preview</b><br>Deals <b>${aAtk}${aPsi ? ' Psi' : ''}</b> to enemy colony.</div>`;
   }
 
   function inspectCard(id, o, into) {
@@ -575,7 +577,8 @@
       : e.t === 'armor' ? '🛡+' + e.n
       : e.t === 'jam' ? '⊘ JAM'
       : e.t === 'promote' ? '★ VETERAN'
-      : 'BLOCKED';
+      : e.t === 'noreturn' ? '◎ OUT OF RANGE'
+      : '◈ SHIELD ABSORBED';
     d.style.left = rect.left + rect.width / 2 + ((i % 3) - 1) * rect.width * 0.22 * Math.min(1, i) + 'px';
     d.style.top = rect.top + rect.height / 2 + 'px';
     d.style.animationDelay = i * 90 * speed + 'ms';
@@ -656,12 +659,13 @@
     const slides = [];
     evs.forEach((e) => {
       const foe = e.pid === BOT ? 'foe' : '';
-      if (e.t === 'dmg' || e.t === 'heal' || e.t === 'block' || e.t === 'armor' || e.t === 'jam' || e.t === 'promote') {
+      if (e.t === 'dmg' || e.t === 'heal' || e.t === 'block' || e.t === 'armor' || e.t === 'jam' || e.t === 'promote' || e.t === 'noreturn') {
         const el = elFor(e.ref);
         pend.push({ e, rect: el ? el.getBoundingClientRect() : null });
         if (e.t === 'dmg') (e.psi ? SFX.psi() : SFX.dmg());
         else if (e.t === 'heal') SFX.heal();
-        else if (e.t === 'block') SFX.block();
+        // a Shield swallows the whole hit and then it is gone, so without this line the hit just looks like it did nothing
+        else if (e.t === 'block') { SFX.block(); logLine(`${whose(e.pid)} ${logCard(e.id)}’s <b>Shield</b> absorbs the hit — no damage. The Shield is now gone.`, foe); }
         else if (e.t === 'promote') { SFX.milestone(); logLine(`${whose(e.pid)} ${logCard(e.id, true)} promoted to Veteran!`, 'gold'); }
       } else if (e.t === 'death') {
         const el = elFor(e.ref);
@@ -733,7 +737,9 @@
     if (a.type === 'attack') {
       const f = E.find(g, a.uid);
       SFX.attack();
-      logLine(`${whose(pid)} ${logCard(f.unit.id)} attacks ${refName(a.target)}.`, foe);
+      // Artillery takes no damage back from the unit it shells; say so, or the exchange looks like a bug
+      const ranged = a.target.k === 'u' && E.hasKw(g, f.unit, 'artillery');
+      logLine(`${whose(pid)} ${logCard(f.unit.id)} ${ranged ? 'shells' : 'attacks'} ${refName(a.target)}${ranged ? ' from range — <b>Artillery</b> takes no damage back' : ''}.`, foe);
       await lunge(elFor({ k: 'u', uid: a.uid }), elFor(a.target));
       E.attack(g, pid, a.uid, a.target);
     } else if (a.type === 'move') {

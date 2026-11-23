@@ -378,6 +378,7 @@
       const isUnit = d.type === 'unit';
       const isSite = d.type === 'site';
       const kind = d.project ? 'Project' : isSite ? 'Location' : isUnit ? 'Unit' : 'Order';
+      const kindIcon = d.project ? '★' : isSite ? '🏛' : isUnit ? '⚔' : '⚡';
       const body = d.text || (d.flavor ? `<i>${d.flavor}</i>` : '');
       const stats = isUnit
         ? `<div class="c-atk">${d.atk}</div><div class="c-hp">${d.hp}</div>`
@@ -389,7 +390,7 @@
         <div class="c-cost">${d.cost}</div>
         <div class="c-art">${artInner}</div>
         <div class="c-name">${d.name}</div>
-        <div class="c-type">${kind} · ${facLabel(d.faction)}</div>
+        <div class="c-type"><span class="c-kind">${kindIcon} ${kind}</span><span class="c-fac">${facLabel(d.faction)}</span></div>
         <div class="c-text"><div>${body}</div></div>${stats}
       </div>`;
     }
