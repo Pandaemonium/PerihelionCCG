@@ -10,15 +10,19 @@ Scripts load as plain globals, in the order listed in `index.html`. Each file ad
 
 | File | Role |
 |---|---|
-| `js/world.js` | Lane terrain, biomes, doctrines, campaign map (`TERRAIN`, `BIOMES`, `DOCTRINES`, `CAMPAIGN`) |
+| `js/world.js` | Lane terrain, biomes, doctrines, campaign map (`TERRAIN`, `BIOMES`, `DOCTRINES`, `CAMPAIGN`). A doctrine's numbers are data (`rules`), which the engine applies; its text has to be kept in step by hand. |
 | `js/art.js` | **Generated** list of which card ids have art. Don't edit by hand; `tools/pack_art.py` rewrites it. |
-| `js/cards.js` | Every card, the 7 factions with their leaders and preset decks, and keywords. Card effects are functions `(g, ctx)` that call the engine. The header comment documents the `ctx` shapes and target refs. |
+| `js/cards.js` | Every card, the 7 factions with their leaders and preset decks (three each; the third is a Pact deck that names its partner faction with `pact`), and keywords. Card effects are functions `(g, ctx)` that call the engine. The header comment documents the `ctx` shapes and target refs. |
+| `js/design.js` | The Design Workshop: the parts table (chassis, weapon, armor, ability), their prices and tech gates, and the code that turns a choice of parts into a unit card. A designed card's id spells out its parts (`dz-rover-w3-a4-guard`), so the id alone rebuilds the card and game state stays plain JSON. Designs are registered in `CARDS` as non-enumerable properties, so they never show up in the card pool. |
 | `js/engine.js` | The rules. Board constants are at the top (7 lanes, 30 HP, 10 max energy, 22 research for an Ascent win, milestones at 4/8/13). |
-| `js/ai.js` | The opponent: a greedy look-ahead with weights in `AI.TUNE` and three difficulty levels. |
+| `js/ai.js` | The opponent. At full strength it plans a whole turn at a time: a beam search over lines of play, each tried on a copy of the game. Weights and skill switches are in `AI.TUNE`. A preset deck can carry a game plan (`plan` in `cards.js`: keystone cards, its own weights, hold rules) that the AI pilots it by. Three difficulty levels in `AI.LEVELS`; the tests and balance tools play at the strongest. |
 | `js/decks.js` | The deckbuilder pool, validation, share codes, Expedition Draft, and saving to localStorage. |
 | `js/ui.js`, `js/audio.js` | Screen rendering and input; sound effects. |
 | `test/sim.js` | Headless AI-vs-AI games. Checks for crashes, stuck games, broken invariants and 30-card presets, and prints balance figures. |
-| `test/tune.js` | An A/B test of AI weights against the baseline across every faction pairing. |
+| `test/meta.js` | The meta report: every preset deck against every other, run on all cores. Prints each deck's win rate, the full matchup table, how often decks find their keystones, and which single cards swing games. `--ab` tests an AI change across every preset, `--focus` plays one deck against the rest, `--doctrines` prices the doctrines, and `PATCH=file.js` applies a trial change without editing the game. This is the check for the targets in the content approach. |
+| `test/ai.js` | Unit tests for the AI: planning, Energy Cells, game plans and hold rules, the levels, and that the full AI beats the one-action AI. |
+| `test/tune.js` | An older A/B test of AI weights. It only plays each faction's first preset; prefer `test/meta.js --ab`. |
+| `test/design.js` | Unit tests for the Design Workshop: every possible design is well formed, gating by Research and faction, pricing, and AI games with Workshops in both decks. |
 | `tools/`, `art/` | The card-art pipeline (see below). The game loads `art/<id>.webp` and falls back to the card's emoji. |
 
 ## Rules that must not be broken
@@ -29,16 +33,24 @@ Scripts load as plain globals, in the order listed in `index.html`. Each file ad
 - **Every preset deck has exactly 30 cards.** `test/sim.js` checks this.
 - Adding a card needs its `def(...)` in `cards.js`. Art is optional: without art the card shows its `art` emoji.
 
+## Content and balance
+
+Read [design/content-approach.md](design/content-approach.md) before adding cards or decks, or changing card numbers. It sets the goal (many different decks that are equally viable, no hard counters), the targets (each preset wins 45–55% overall, no matchup worse than 35/65), the line-up of 21 presets, the tools for finding key cards, and the order of work. Nerfs and buffs are used freely: change what is out of range, then list every change with its before, after and reason in [design/balance-changes.md](design/balance-changes.md). That file also ends with what is still out of range.
+
 ## Testing
 
 Run these after any change to the rules, cards or AI (needs Node):
 
 ```
 node test/sim.js [gamesPerMatchup] [biome]      # e.g. node test/sim.js 12 tau_ceti
-node test/tune.js key=value[,key=value] [games] # e.g. node test/tune.js foeSite=2 20
+node test/meta.js [gamesPerPairing] [seed]      # balance: e.g. node test/meta.js 200 1
+node test/meta.js 100 1 --ab key=value          # AI change: e.g. --ab unitRisk=0.5
+node test/meta.js 200 1 --focus cinder.crusade  # one deck against the rest, under a minute
+node test/meta.js 40 1 --doctrines all          # after changing a doctrine
+node test/ai.js                                 # after any change to the AI
 ```
 
-`tune.js` also takes the environment variables `RAZE` and `SITEHP` for rule experiments. There's no browser test suite: check UI changes by playing in the browser.
+`meta.js` needs about 200 games a pairing before a single matchup's figure means much (±7 points); with 21 presets that run takes about ten minutes. The AI is not deterministic, so two runs with the same seed differ slightly. The full AI takes about 0.1 seconds a game on one core, so the single-threaded tools are slow at their default sizes (`test/pact.js` takes over ten minutes). Prefix a command with `AI_LEVEL=commander` to run it with the quick one-action AI when it only has to hunt for crashes; use the full AI for balance figures. `tune.js` also takes the environment variables `RAZE` and `SITEHP` for rule experiments. There's no browser test suite: check UI changes by playing in the browser.
 
 ## Art pipeline
 

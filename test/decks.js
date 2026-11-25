@@ -9,6 +9,7 @@ globalThis.localStorage = {
 };
 require('../js/world.js');
 require('../js/cards.js');
+require('../js/design.js');
 require('../js/engine.js');
 require('../js/ai.js');
 require('../js/decks.js');
@@ -38,11 +39,13 @@ function makeDeck(faction, pact, pactN) {
   return { name: 'Test', faction, pact: pact || null, doctrine: 'standard', cards };
 }
 
-/* ---- every shipped preset is a legal single-faction deck */
+/* ---- every shipped preset is a legal deck: single-faction, or within the Pact rules with the partner it names */
 fids.forEach((fid) => Object.keys(FACTIONS[fid].presets).forEach((pk) => {
-  const v = Decks.validate({ faction: fid, pact: null, cards: buildDeck(fid, pk) });
+  const pact = FACTIONS[fid].presets[pk].pact || null;
+  const v = Decks.validate({ faction: fid, pact, cards: buildDeck(fid, pk) });
   ok(v.ok, `preset ${fid}.${pk} is legal`, v.errors);
-  ok(Decks.validate(fid, buildDeck(fid, pk)).ok, `preset ${fid}.${pk} is legal via the (faction, list) form`);
+  if (!pact) ok(Decks.validate(fid, buildDeck(fid, pk)).ok, `preset ${fid}.${pk} is legal via the (faction, list) form`);
+  else ok(v.pact > 0 && v.pact <= Decks.PACT_LIMIT, `Pact preset ${fid}.${pk} uses its partner's cards`, v.pact);
 }));
 
 /* ---- pact rules */

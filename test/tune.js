@@ -5,6 +5,7 @@
  */
 require('../js/world.js');
 require('../js/cards.js');
+require('../js/design.js');
 require('../js/engine.js');
 require('../js/ai.js');
 const { Engine: E, AI, FACTIONS } = globalThis.TauCeti;

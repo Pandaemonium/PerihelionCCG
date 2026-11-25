@@ -16,11 +16,12 @@
  */
 require('../js/world.js');
 require('../js/cards.js');
+require('../js/design.js');
 require('../js/engine.js');
 require('../js/ai.js');
 require('../js/decks.js');
 const fs = require('fs');
-const { Engine: E, AI, FACTIONS, CARDS, Decks, NEUTRAL_CARDS } = globalThis.TauCeti;
+const { Engine: E, AI, FACTIONS, CARDS, Decks, NEUTRAL_CARDS, Design } = globalThis.TauCeti;
 const { checkState } = require('./invariants.js');
 
 const args = process.argv.slice(2);
@@ -33,6 +34,9 @@ const BIOME = process.env.BIOME || 'tau_ceti';
 // SECONDCELLS=n / SECONDCARDS=n (Reserve Cells / extra cards the second player starts with)
 if (process.env.SECONDCELLS) E.SECOND_CELLS = +process.env.SECONDCELLS;
 if (process.env.SECONDCARDS) E.SECOND_EXTRA_CARDS = +process.env.SECONDCARDS;
+// DZFREE=n (free points every Workshop design gets), DZCOST=n (Energy cost of the Design Workshop itself)
+if (process.env.DZFREE) { Design.FREE_POINTS = +process.env.DZFREE; Design.reset(); AI.resetDesigns(); }
+if (process.env.DZCOST) CARDS.design_workshop.cost = +process.env.DZCOST;
 if (process.env.RAZE) { E.RAZE_DAMAGE = +process.env.RAZE; E.PROJECT_RAZE_DAMAGE = +process.env.RAZE + 2; }
 Object.values(CARDS).forEach((c) => {
   if (c.type !== 'site' || c.token) return;
