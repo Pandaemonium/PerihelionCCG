@@ -3,6 +3,7 @@
  */
 require('../js/world.js');
 require('../js/cards.js');
+require('../js/design.js');
 require('../js/engine.js');
 require('../js/ai.js');
 const { Engine: E, CARDS } = globalThis.TauCeti;
@@ -14,9 +15,9 @@ function ok(cond, what, detail) {
   console.error('FAIL: ' + what + (detail !== undefined ? '  -> ' + JSON.stringify(detail) : ''));
 }
 
-/** A fresh game on flat ground: player 0 to move, empty hands, 10 Energy each, Landing Sites in lane 3. */
+/** A fresh game on flat ground: player 0 to move, empty hands, 10 Energy and 30 Integrity each, Landing Sites in lane 3. */
 function game(f0, f1, opts) {
-  const g = E.newGame(f0 || 'rootbound', f1 || 'ironwake', 1, 0, Object.assign({ biome: 'classic' }, opts));
+  const g = E.newGame(f0 || 'rootbound', f1 || 'ironwake', 1, 0, Object.assign({ biome: 'classic', hp0: 30, hp1: 30 }, opts));
   g.players.forEach((p) => { p.hand = []; p.energy = 10; p.maxEnergy = 10; });
   return g;
 }
@@ -44,6 +45,8 @@ const uref = (u) => ({ k: 'u', uid: u.uid });
 const sref = (s) => ({ k: 's', uid: s.uid });
 const hand = (g, pid) => g.players[pid].hand.map((h) => h.id);
 const stats = (u) => u.atk + '/' + u.hp;
+/** A card's printed stats plus a bonus, as "atk/hp", so a check survives a balance change to the base stats. */
+const plus = (id, a, h) => (CARDS[id].atk + a) + '/' + (CARDS[id].hp + h);
 /** End the current player's turn and the opponent's, returning to the same player. */
 function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pid); }
 
@@ -223,14 +226,14 @@ function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pi
   const g = game('ironwake', 'rootbound');
   const guard = unit(g, 0, 'perimeter_sentry', 0), plain = unit(g, 0, 'survey_drone', 1);
   const cap = play(g, 0, 'line_captain', { lane: 2 });
-  ok(stats(guard) === '1/6' && stats(plain) === '1/2' && stats(cap) === '3/4', 'Line Captain: +0/+2 to other Guard units only', [stats(guard), stats(plain)]);
+  ok(stats(guard) === plus('perimeter_sentry', 1, 2) && stats(plain) === plus('survey_drone', 0, 0) && stats(cap) === plus('line_captain', 0, 0), 'Line Captain: +1/+2 to other Guard units only', [stats(guard), stats(plain)]);
 }
 {
   const g = game('ironwake', 'rootbound');
   site(g, 0, 'bunker', 0);
-  ok(stats(play(g, 0, 'works_foreman', { lane: 1 })) === '5/5', 'Works Foreman: +1/+1 per location (two)');
+  ok(stats(play(g, 0, 'works_foreman', { lane: 1 })) === plus('works_foreman', 2, 2), 'Works Foreman: +1/+1 per location (two)');
   site(g, 0, 'bunker', 1); site(g, 0, 'bunker', 2);
-  ok(stats(play(g, 0, 'works_foreman', { lane: 4 })) === '6/6', 'Works Foreman: capped at +3/+3');
+  ok(stats(play(g, 0, 'works_foreman', { lane: 4 })) === plus('works_foreman', 3, 3), 'Works Foreman: capped at +3/+3');
 }
 
 /* ---------------------------------------------------------------- Lumen Synod */
@@ -281,14 +284,14 @@ function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pi
   E.playCard(g, 0, give(g, 0, 'cell'), null, null);
   E.playCard(g, 0, give(g, 0, 'cell'), null, null);
   play(g, 0, 'survey_drone', { lane: 1 });
-  ok(stats(r) === '4/3', 'Cell Runner: +1/+0 per Reserve Cell played, not for other cards', stats(r));
+  ok(stats(r) === plus('cell_runner', 2, 2), 'Cell Runner: +1/+1 per Energy Cell played, not for other cards', stats(r));
 }
 {
   const g = game('tide', 'rootbound');
   const boss = unit(g, 0, 'salvage_boss', 0);
   const s = site(g, 1, 'archive_vault', 1);
   play(g, 0, 'limpet_charge', { target: sref(s) });
-  ok(stats(boss) === '4/5' && hand(g, 0).length === 1 && g.players[0].razed === 1, 'Salvage Boss: draws and grows when an enemy location is razed', [stats(boss), hand(g, 0)]);
+  ok(stats(boss) === plus('salvage_boss', 1, 1) && hand(g, 0).length === 1 && g.players[0].razed === 1, 'Salvage Boss: draws and grows when an enemy location is razed', [stats(boss), hand(g, 0)]);
 }
 {
   const g = game('tide', 'rootbound');
@@ -318,9 +321,9 @@ function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pi
 }
 {
   const g = game('cinder', 'synod');
-  ok(stats(play(g, 0, 'heresy_hunter', { lane: 0 })) === '2/2', 'Heresy Hunter: plain at equal Research');
+  ok(stats(play(g, 0, 'heresy_hunter', { lane: 0 })) === plus('heresy_hunter', 0, 0), 'Heresy Hunter: plain at equal Research');
   g.players[1].research = 3;
-  ok(stats(play(g, 0, 'heresy_hunter', { lane: 1 })) === '4/3', 'Heresy Hunter: +2/+1 when behind on Research');
+  ok(stats(play(g, 0, 'heresy_hunter', { lane: 1 })) === plus('heresy_hunter', 2, 1), 'Heresy Hunter: +2/+1 when behind on Research');
 }
 {
   const g = game('cinder', 'rootbound');
@@ -328,7 +331,7 @@ function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pi
   const p1 = unit(g, 0, 'pilgrim', 1);
   E.destroy(g, uref(p1));
   E.playCard(g, 0, give(g, 0, 'cell'), null, null);
-  ok(stats(m) === '3/4', 'Ash Mourner: grows when another friendly unit dies', stats(m));
+  ok(stats(m) === plus('ash_mourner', 1, 1), 'Ash Mourner: grows when another friendly unit dies', stats(m));
 }
 {
   const g = game('cinder', 'rootbound');
@@ -399,8 +402,8 @@ function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pi
 {
   const g = game('redline', 'rootbound');
   g.lanes[1].terrain = 'wreck';
-  ok(stats(play(g, 0, 'ridge_battery', { lane: 1 })) === '2/4', 'Ridge Battery: +1/+1 in terrain');
-  ok(stats(play(g, 0, 'ridge_battery', { lane: 5 })) === '1/3', 'Ridge Battery: plain on open ground');
+  ok(stats(play(g, 0, 'ridge_battery', { lane: 1 })) === plus('ridge_battery', 1, 1), 'Ridge Battery: +1/+1 in terrain');
+  ok(stats(play(g, 0, 'ridge_battery', { lane: 5 })) === plus('ridge_battery', 0, 0), 'Ridge Battery: plain on open ground');
 }
 {
   const g = game('redline', 'rootbound');
@@ -419,6 +422,153 @@ function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pi
   g2.players[0].hand = [];
   E.attack(g2, 1, attacker.uid, uref(d));
   ok(hand(g2, 0).length === 1, 'Headhunter: also draws when it kills an attacker', hand(g2, 0));
+}
+
+/* ---------------------------------------------------------------- Pacts expansion */
+{
+  const g = game();
+  g.players[0].deck = ['survey_drone', 'bunker', 'data_spike'];
+  play(g, 0, 'site_planner', { lane: 0 });
+  ok(hand(g, 0).join() === 'bunker' && g.players[0].deck.length === 2, 'Site Planner: draws a location from the deck', hand(g, 0));
+  g.players[0].hand = [];
+  play(g, 0, 'site_planner', { lane: 1 });
+  ok(hand(g, 0).length === 0 && g.players[0].deck.length === 2, 'Site Planner: draws nothing when the deck has no location', hand(g, 0));
+}
+{
+  const g = game();
+  g.players[0].deck = ['survey_drone', 'dreadnought', 'data_spike', 'siege_walker'];
+  play(g, 0, 'heavy_requisition');
+  const got = hand(g, 0);
+  ok(got.length === 1 && CARDS[got[0]].type === 'unit' && CARDS[got[0]].cost >= 5 && g.players[0].deck.length === 3, 'Heavy Requisition: draws a unit costing 5 or more', got);
+}
+{
+  const g = game('synod', 'ironwake');
+  g.players[0].deck = ['data_spike', 'deep_query', 'survey_drone'];
+  play(g, 0, 'datalinks_search');
+  ok(hand(g, 0).join() === 'deep_query', 'Datalinks Search: draws an Order costing 3 or more', hand(g, 0));
+  // a full hand burns the card instead of holding ten
+  const g2 = game('synod', 'ironwake');
+  g2.players[0].deck = ['deep_query'];
+  for (let i = 0; i < E.maxHand(g2, 0); i++) give(g2, 0, 'cell');
+  give(g2, 0, 'datalinks_search');
+  g2.players[0].hand.shift(); // make room for the search itself, so the hand is full again once it is played
+  E.playCard(g2, 0, g2.players[0].hand[g2.players[0].hand.length - 1].uid, null, null);
+  ok(g2.players[0].hand.length <= E.maxHand(g2, 0), 'a tutor never overfills the hand', g2.players[0].hand.length);
+}
+{
+  const g = game();
+  const u = unit(g, 0, 'perimeter_sentry', 2);
+  unit(g, 1, 'perimeter_sentry', 2);
+  ok(!E.attackTargets(g, u).some((t) => t.k === 'l'), 'setup: an enemy Guard screens the colony');
+  play(g, 0, 'grav_harness', { target: uref(u) });
+  ok(E.hasKw(g, u, 'aerial') && stats(u) === plus('perimeter_sentry', 1, 0) && E.attackTargets(g, u).some((t) => t.k === 'l'),
+    'Grav Harness: Aerial and +1/+0, so the unit flies over the Guard', stats(u));
+}
+{
+  const g = game();
+  g.lanes[1].terrain = 'ridge';
+  unit(g, 0, 'sapwell_tender', 1);
+  unit(g, 0, 'sapwell_tender', 0);
+  cycle(g);
+  ok(g.players[0].energy === g.players[0].maxEnergy + 1, 'Sapwell Tender: +1 Energy, only from the one standing in terrain', [g.players[0].energy, g.players[0].maxEnergy]);
+}
+{
+  const g = game();
+  const a = unit(g, 0, 'sprout', 0), b = unit(g, 0, 'perimeter_sentry', 1), foe = unit(g, 1, 'sprout', 0);
+  play(g, 0, 'verdant_surge');
+  ok(stats(a) === plus('sprout', 1, 1) && stats(b) === plus('perimeter_sentry', 1, 1) && stats(foe) === plus('sprout', 0, 0), 'Verdant Surge: +1/+1 to every friendly unit', [stats(a), stats(b), stats(foe)]);
+}
+{
+  const g = game('ironwake', 'rootbound');
+  const foe = unit(g, 1, 'worldroot_titan', 2), foe2 = unit(g, 1, 'worldroot_titan', 4);
+  g.players[0].armor = 4;
+  play(g, 0, 'bulkhead_slam', { target: uref(foe) });
+  ok(foe.hp === CARDS.worldroot_titan.hp - 4 && g.players[0].armor === 4, 'Bulkhead Slam: damage equal to Armor, and the Armor stays', foe.hp);
+  g.players[0].armor = 20;
+  play(g, 0, 'bulkhead_slam', { target: uref(foe2) });
+  ok(foe2.hp === CARDS.worldroot_titan.hp - 6, 'Bulkhead Slam: capped at 6', foe2.hp);
+  g.players[0].energy = 10;
+  g.players[0].armor = 7;
+  ok(stats(play(g, 0, 'ironclad_behemoth', { lane: 0 })) === plus('ironclad_behemoth', 2, 2), 'Ironclad Behemoth: +1/+1 per 3 Armor');
+  g.players[0].armor = 30;
+  ok(stats(play(g, 0, 'ironclad_behemoth', { lane: 1 })) === plus('ironclad_behemoth', 3, 3), 'Ironclad Behemoth: capped at +3/+3');
+}
+{
+  const g = game('synod', 'ironwake');
+  const face = { k: 'l', pid: 1 };
+  let hp = g.players[1].hp;
+  play(g, 0, 'critical_mass');
+  ok(hp - g.players[1].hp === 1, 'Critical Mass: 1 damage as the first card of the turn', hp - g.players[1].hp);
+  E.playCard(g, 0, give(g, 0, 'cell'), null, null);
+  play(g, 0, 'survey_drone', { lane: 0 });
+  hp = g.players[1].hp;
+  play(g, 0, 'critical_mass');
+  ok(hp - g.players[1].hp === 7, 'Critical Mass: +2 for each other card played this turn, Energy Cells included', hp - g.players[1].hp);
+  cycle(g);
+  hp = g.players[1].hp;
+  play(g, 0, 'critical_mass');
+  ok(hp - g.players[1].hp === 1, 'Critical Mass: the count starts again each turn', hp - g.players[1].hp);
+}
+{
+  const g = game('tide', 'ironwake');
+  const a = unit(g, 0, 'skyjack', 0), b = unit(g, 0, 'leech_diver', 1);
+  const lead = play(g, 0, 'squadron_leader', { lane: 2 });
+  ok(stats(a) === plus('skyjack', 1, 0) && stats(b) === plus('leech_diver', 0, 0) && stats(lead) === plus('squadron_leader', 0, 0),
+    'Squadron Leader: +1/+0 to other Aerial units only', [stats(a), stats(b), stats(lead)]);
+  g.players[0].hand = [];
+  play(g, 0, 'smugglers_run');
+  ok(hand(g, 0).join() === 'cell,cell', 'Smuggler\'s Run: two Energy Cells', hand(g, 0));
+}
+{
+  const g = game('cinder', 'ironwake');
+  unit(g, 0, 'pyre_keeper', 0);
+  const victim = unit(g, 0, 'sprout', 1);
+  g.players[0].deck = ['survey_drone', 'survey_drone', 'survey_drone'];
+  const hp = g.players[1].hp;
+  play(g, 0, 'rite_of_ash', { target: uref(victim) });
+  ok(!g.players[0].board.includes(victim) && hand(g, 0).length === 2, 'Rite of Ash: destroys the friendly unit and draws 2', hand(g, 0));
+  ok(hp - g.players[1].hp === 1, 'Pyre Keeper: 1 damage to the enemy colony when another friendly unit dies', hp - g.players[1].hp);
+}
+{
+  const g = game('auric', 'ironwake');
+  const adj = unit(g, 0, 'claims_adjuster', 0);
+  E.gainArmor(g, 0, 2); E.gainArmor(g, 0, 2);
+  ok(stats(adj) === plus('claims_adjuster', 1, 1), 'Claims Adjuster: +1/+1 the first time Armor is gained in a turn', stats(adj));
+  cycle(g);
+  E.gainArmor(g, 0, 1);
+  ok(stats(adj) === plus('claims_adjuster', 2, 2), 'Claims Adjuster: again on a later turn', stats(adj));
+}
+{
+  const g = game('auric', 'ironwake');
+  for (let i = 0; i < 5; i++) give(g, 0, 'survey_drone');
+  ok(stats(play(g, 0, 'holdings_magnate', { lane: 0 })) === plus('holdings_magnate', 2, 2), 'Holdings Magnate: +1/+1 per 2 other cards in hand');
+  const uid = give(g, 0, 'consortium_titan');
+  const hc = g.players[0].hand.find((h) => h.uid === uid);
+  ok(E.cost(g, 0, hc) === CARDS.consortium_titan.cost - 5, 'Consortium Titan: costs 1 less for each other card in hand', E.cost(g, 0, hc));
+  g.players[0].hand = [hc];
+  ok(E.cost(g, 0, hc) === CARDS.consortium_titan.cost, 'Consortium Titan: full price alone in hand', E.cost(g, 0, hc));
+}
+{
+  const g = game('redline', 'rootbound');
+  site(g, 0, 'war_college', 0);
+  const t = unit(g, 0, 'shock_trooper', 1), prey = unit(g, 1, 'sprout', 1);
+  g.players[0].deck = ['survey_drone'];
+  E.attack(g, 0, t.uid, uref(prey));
+  ok(t.promoted && hand(g, 0).length === 1 && t.atk === CARDS.shock_trooper.atk + 2, 'War College: a promoted unit gains a further +1/+1 and its owner draws', [stats(t), hand(g, 0)]);
+}
+{
+  const g = game('redline', 'rootbound');
+  unit(g, 0, 'perimeter_sentry', 0); // Guard
+  unit(g, 0, 'rover_scout', 1);      // Mobile
+  unit(g, 0, 'aaa_sentry', 2);       // Interceptor
+  unit(g, 0, 'aaa_sentry', 5);       // a second Interceptor adds nothing
+  ok(stats(play(g, 0, 'task_force_commander', { lane: 4 })) === plus('task_force_commander', 3, 3), 'Task Force Commander: +1/+1 per different keyword among other units');
+}
+{
+  const g = E.newGame('synod', 'ironwake', 1, 0, { preset0: 'cascade', preset1: 'fortress' });
+  ok(g.players[0].pact === 'tide' && g.players[1].pact === null, 'a Pact preset brings its partner faction into the game', [g.players[0].pact, g.players[1].pact]);
+  const g2 = E.newGame('synod', 'ironwake', 1, 0, { deck0: Array(30).fill('survey_drone') });
+  ok(g2.players[0].pact === null, 'a custom deck does not inherit a preset\'s Pact');
 }
 
 /* ---------------------------------------------------------------- every card is well formed */

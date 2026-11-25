@@ -108,41 +108,56 @@
     },
   };
 
-  /* ------------------------------------------------------------ Social Engineering policies */
+  /* ------------------------------------------------------------ Social Engineering policies
+   * `rules` holds the numbers the engine applies, so the text beside them has to be kept in step by hand:
+   *   hp           change to the colony's starting Integrity
+   *   cells        Energy Cells added to the opening hand
+   *   cards        change to the number of cards in the opening hand
+   *   research     Research the player starts with
+   *   orderVuln    extra damage enemy Orders deal to the player's units, locations and colony
+   *   zeal         Zeal every unit of the player has
+   *   milestones   added to each Research Breakthrough threshold
+   *   fungusSafe   Xenofungus does not damage the player's units
+   *   fungusLanes  lanes (0-based) that start as Xenofungus, replacing the map's terrain there
+   *   guardAtk     Attack a Guard unit gains when it arrives
+   *   hand         change to the maximum hand size
+   * The six are priced to be worth about the same: `node test/meta.js 40 1 --doctrines all` shows what each adds
+   * to every preset over a deck with no doctrine at all. Re-run it after changing any of these numbers.
+   */
   const DOCTRINES = {
     standard: {
-      id: 'standard', name: 'Frontier', icon: '⚖️',
-      benefit: 'Balanced colony parameters.',
+      id: 'standard', name: 'Frontier', icon: '⚖️', rules: { hp: 5 },
+      benefit: 'Your colony starts at 35 Integrity instead of 30.',
       drawback: 'None.',
       quote: 'We wrote the charter in orbit, before anyone had smelled the dust.',
     },
     market: {
-      id: 'market', name: 'Free Market', icon: '💹',
-      benefit: 'Start with 2 Energy Cells in hand.',
-      drawback: 'All your Locations enter with -1 Integrity (min 1).',
+      id: 'market', name: 'Free Market', icon: '💹', rules: { cells: 1, cards: -1 },
+      benefit: 'Start with an Energy Cell in hand.',
+      drawback: 'Your opening hand is one card smaller.',
       quote: 'Efficiency is merely greed that remembers to balance its ledgers.',
     },
     knowledge: {
-      id: 'knowledge', name: 'Knowledge', icon: '🔬',
-      benefit: 'Start at 2 Research (faster Breakthroughs and Tech).',
+      id: 'knowledge', name: 'Knowledge', icon: '🔬', rules: { research: 3, orderVuln: 1 },
+      benefit: 'Start at 3 Research (faster Breakthroughs and Tech).',
       drawback: 'Enemy Orders deal +1 damage to your units, locations, and colony.',
       quote: 'Every open archive is a target. We leave the doors unlocked anyway.',
     },
     power: {
-      id: 'power', name: 'Power', icon: '⚔️',
+      id: 'power', name: 'Power', icon: '⚔️', rules: { zeal: 1, milestones: 2, cards: -1 },
       benefit: 'All your units gain Zeal 1 (+1 Attack on your turn).',
-      drawback: 'Research Milestones require +2 Research (6 / 10 / 15).',
+      drawback: 'Your opening hand is one card smaller, and Research Breakthroughs need +2 Research (6 / 10 / 15).',
       quote: 'Philosophy belongs to whoever is still standing at dawn.',
     },
     green: {
-      id: 'green', name: 'Green', icon: '🌱',
-      benefit: 'Your units heal 1 in Xenofungus instead of taking damage; lanes 2 & 6 gain Fungus if clear.',
+      id: 'green', name: 'Green', icon: '🌱', rules: { hp: -2, fungusSafe: true, fungusLanes: [1, 5] },
+      benefit: 'Lanes 2 & 6 start as Xenofungus, and Xenofungus does not harm your units.',
       drawback: 'Your colony starts at 28 Integrity instead of 30.',
       quote: 'Listen to the soil before you pour concrete over it.',
     },
     police: {
-      id: 'police', name: 'Police State', icon: '🛡️',
-      benefit: 'Start with 5 Armor; your Guard units gain +0/+1 on arrival.',
+      id: 'police', name: 'Police State', icon: '🛡️', rules: { guardAtk: 1, hand: -1 },
+      benefit: 'Your Guard units gain +1/+0 on arrival.',
       drawback: 'Your maximum hand size is 8 instead of 9.',
       quote: 'Order is expensive. Chaos is fatal.',
     },

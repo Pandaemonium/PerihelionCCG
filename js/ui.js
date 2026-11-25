@@ -4,7 +4,7 @@
   const V = window.TauCeti;
   const E = V.Engine, AI = V.AI, CARDS = V.CARDS, FACTIONS = V.FACTIONS, KW = V.KEYWORDS;
   const TERRAIN = V.TERRAIN, BIOMES = V.BIOMES, DOCTRINES = V.DOCTRINES, CAMPAIGN = V.CAMPAIGN;
-  const Decks = V.Decks, SFX = V.SFX;
+  const Decks = V.Decks, SFX = V.SFX, Design = V.Design;
   const HUMAN = 0, BOT = 1;
   const $ = (s, r) => (r || document).querySelector(s);
   const fx = $('#fx');
@@ -64,7 +64,7 @@
     }
     const key = f.presets[pick] ? pick : Object.keys(f.presets)[0];
     const p = f.presets[key];
-    return { pick: key, saved: false, name: p.name, faction: fid, pact: null, doctrine: p.doctrine || 'standard', cards: V.buildDeck(fid, key), desc: p.desc };
+    return { pick: key, saved: false, name: p.name, faction: fid, pact: p.pact || null, doctrine: p.doctrine || 'standard', cards: V.buildDeck(fid, key), desc: p.desc };
   }
   const activeDeck = () => deckFor(myFaction, myPreset);
 
@@ -657,6 +657,7 @@
     const evs = g.events.splice(0);
     const pend = [];
     const slides = [];
+    let designed = null;
     evs.forEach((e) => {
       const foe = e.pid === BOT ? 'foe' : '';
       if (e.t === 'dmg' || e.t === 'heal' || e.t === 'block' || e.t === 'armor' || e.t === 'jam' || e.t === 'promote' || e.t === 'noreturn') {
@@ -706,7 +707,13 @@
         logLine(`${e.pid === HUMAN ? 'Your' : "The enemy's"} deck is empty — the colony takes ${e.n} damage.`, 'sys');
       } else if (e.t === 'burn') {
         logLine(`${e.pid === HUMAN ? 'Your' : "The enemy's"} hand is full — ${e.pid === HUMAN ? logCard(e.id) : 'a card'} is lost.`, 'sys');
+      } else if (e.t === 'design') {
+        const c = CARDS[e.id];
+        const kws = Object.keys(KW).filter((k) => c.kw[k]).map((k) => KW[k].name + (typeof c.kw[k] === 'number' ? ' ' + c.kw[k] : ''));
+        logLine(`${who(e.pid)} ${e.pid === HUMAN ? 'design' : 'designs'} ${logCard(e.id, true)}: ${c.atk}/${c.hp}${kws.length ? ', ' + kws.join(', ') : ''}, costs ${c.cost} Energy.`, foe);
+        designed = e.id;
       } else if (e.t === 'gain' && e.pid === HUMAN) {
+        if (e.id === designed) { designed = null; return; } // already announced by the design line
         logLine(`You receive ${logCard(e.id, true)}.`);
       } else if (e.t === 'steal') {
         logLine(`${who(e.pid)} seized control of a unit.`, foe);
@@ -753,8 +760,13 @@
       const where = a.lane != null ? ' in ' + laneName(a.lane) : '';
       logLine(`${who(pid)} ${verb[pid === HUMAN ? 0 : 1]} ${logCard(hc.id, true)}${where}${a.target ? (where ? ', targeting ' : ' on ') + refName(a.target) : ''}.`, foe);
       if (d.type === 'site') SFX.build(); else SFX.play();
-      if (pid === BOT) await flash(cardHTML(d, { cost: E.cost(g, pid, hc) }), a.target || (a.lane != null ? { k: 'c', lane: a.lane } : null), 'Enemy plays');
-      E.playCard(g, pid, a.hand, a.target, a.lane);
+      if (pid === BOT) {
+        // for a Workshop, show the unit it designed rather than the Order itself
+        const made = d.design ? Design.ensure(Design.idOf(a.choice)) : null;
+        if (made) await flash(cardHTML(made), null, 'Enemy designs a unit');
+        else await flash(cardHTML(d, { cost: E.cost(g, pid, hc) }), a.target || (a.lane != null ? { k: 'c', lane: a.lane } : null), 'Enemy plays');
+      }
+      E.playCard(g, pid, a.hand, a.target, a.lane, a.choice);
     } else if (a.type === 'power') {
       const f = FACTIONS[g.players[pid].faction];
       SFX.play();
@@ -840,6 +852,7 @@
       if (d.type === 'site') return warn('Every plot already holds one of your locations.');
       return warn(`${d.name} has no valid target right now.`);
     }
+    if (d.design) return openDesigner(uid);
     SFX.click();
     if (d.type === 'unit') sel = { kind: 'card', hand: uid, slot: { row: 'mu', lanes: E.emptyLanes(g, HUMAN) } };
     else if (d.type === 'site') sel = { kind: 'card', hand: uid, slot: { row: 'ms', lanes: E.emptyPlots(g, HUMAN) } };
@@ -971,16 +984,123 @@
 
   /* ============================================================ modals */
   let modalClosable = true;
+  let designer = null;   // the Design Workshop picker's state while it is open: { hand, chassis, weapon, armor, abilities }
+  let lastDesign = null; // the last unit designed this session, offered again as the starting point
   function openModal(html, closable) {
     modalClosable = closable !== false;
     $('#modal-box').innerHTML = html;
     $('#modal').classList.remove('hidden');
     $('#modal-box').scrollTop = 0;
   }
-  function closeModal() { $('#modal').classList.add('hidden'); }
+  function closeModal() { designer = null; $('#modal').classList.add('hidden'); }
+
+  /* ============================================================ Design Workshop picker */
+  function openDesigner(uid) {
+    const base = { chassis: 'inf', weapon: 'w2', armor: 'a3', abilities: [] };
+    const start = lastDesign && !Design.why(g, HUMAN, lastDesign) ? lastDesign : base;
+    sel = null;
+    hintMsg = null;
+    SFX.click();
+    render();
+    designer = { hand: uid, chassis: start.chassis, weapon: start.weapon, armor: start.armor, abilities: start.abilities.slice() };
+    renderDesigner(true);
+  }
+
+  const designerChoice = () => ({ chassis: designer.chassis, weapon: designer.weapon, armor: designer.armor, abilities: designer.abilities.slice() });
+
+  function renderDesigner(fresh) {
+    const p = g.players[HUMAN];
+    const hc = p.hand.find((h) => h.uid === designer.hand);
+    if (!hc) return closeModal();
+    const keepScroll = fresh ? null : $('#modal-box').scrollTop;
+    const choice = designerChoice();
+    const b = Design.breakdown(choice);
+    const def = Design.build(choice);
+    const why = Design.why(g, HUMAN, choice);
+    const slots = Design.abilitySlots(g, HUMAN);
+    const left = p.energy - E.cost(g, HUMAN, hc);
+    const fmt = (n) => (n > 0 ? '+' + n : n < 0 ? '−' + (-n) : '0');
+
+    const column = (slot) => {
+      const picked = slot === 'ability' ? designer.abilities : [designer[slot]];
+      const rows = Design.PARTS[slot].map((part) => {
+        const lock = Design.locked(g, HUMAN, part);
+        if (lock && !/^Tech/.test(lock)) return ''; // another faction's signature part: not on offer in this deck
+        const on = picked.includes(part.id);
+        const tip = part.kw ? KW[part.kw].text : '';
+        return `<button class="dz-part ${on ? 'on' : ''} ${lock ? 'locked' : ''} ${part.faction ? 'sig f-' + part.faction : ''}" data-dzpart="${slot}:${part.id}" ${lock ? 'disabled' : ''} title="${esc(tip)}">
+          <span class="dz-pn">${part.name}</span>
+          <span class="dz-pb">${Design.partBrief(part)}</span>
+          <span class="dz-pp">${lock ? '🔒 ' + lock : fmt(Design.partPts(part, b.atk))}</span>
+        </button>`;
+      }).join('');
+      const note = slot !== 'ability' ? '' : slots === 2 ? 'up to two' : `one — a second at Tech ${Design.SECOND_SLOT_TECH}`;
+      return `<div class="dz-col"><h3>${Design.SLOT_NAMES[slot]}${note ? ` <small>${note}</small>` : ''}</h3>${rows}</div>`;
+    };
+
+    const next = Design.TIERS.find((t) => t > 0 && !E.tech(g, HUMAN, t));
+    const tierNote = next ? `More parts unlock at Tech ${next}.` : 'Every part is unlocked.';
+    const sum = b.lines.map((l) => `${Design.SLOT_NAMES[l.slot]} ${fmt(l.pts)}`).join(' · ');
+    const verdict = why ? `<div class="dz-note bad">${why}</div>`
+      : def.cost <= left ? `<div class="dz-note good">You will have ${left} Energy left after the Workshop — enough to deploy it this turn.</div>`
+        : `<div class="dz-note">You will have ${left} Energy left after the Workshop, so this unit waits for a later turn.</div>`;
+    const kwNotes = Object.keys(KW).filter((k) => def.kw[k]).map((k) => `<span>${KW[k].icon} ${KW[k].name}</span><span>${KW[k].text}</span>`).join('');
+
+    openModal(`<div class="dz f-${g.players[HUMAN].faction}">
+      <h2>🛠️ Design Workshop</h2>
+      <p class="dz-sub">Pick one part from each column. You have <b>${p.research} Research</b>. ${tierNote} Every 2 points cost 1 Energy.</p>
+      <div class="dz-body">
+        <div class="dz-cols">${Design.SLOTS.map(column).join('')}</div>
+        <div class="dz-side">
+          ${cardHTML(def, { cls: 'dz-card' })}
+          <div class="dz-sum">${sum}<br><b>${b.points} points → ${def.cost} Energy</b></div>
+          ${verdict}
+          ${kwNotes ? `<div class="kw-list dz-kw">${kwNotes}</div>` : ''}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-dz="cancel">Cancel</button>
+        <button class="btn primary" data-dz="build" ${why ? 'disabled' : ''}>Build ${esc(def.name)}</button>
+      </div>
+    </div>`);
+    // re-rendering after a pick must not jump back to the top on a short screen
+    if (!fresh && keepScroll != null) $('#modal-box').scrollTop = keepScroll;
+  }
+
+  function designerPick(slot, id) {
+    const part = Design.part(slot, id);
+    if (!part || Design.locked(g, HUMAN, part)) return;
+    SFX.click();
+    if (slot !== 'ability') designer[slot] = id;
+    else if (designer.abilities.includes(id)) designer.abilities = designer.abilities.filter((x) => x !== id);
+    else {
+      designer.abilities.push(id);
+      const slots = Design.abilitySlots(g, HUMAN);
+      while (designer.abilities.length > slots) designer.abilities.shift(); // the newest pick replaces the oldest
+    }
+    renderDesigner();
+  }
+
+  function designerBuild() {
+    const choice = Design.normalize(designerChoice());
+    if (!choice || Design.why(g, HUMAN, choice) || locked()) return;
+    const hand = designer.hand;
+    lastDesign = choice;
+    closeModal();
+    humanAct({ type: 'play', hand, target: null, lane: null, choice });
+  }
 
   $('#modal').addEventListener('click', (e) => {
     if (e.target.id === 'modal' && modalClosable) return closeModal();
+
+    // Design Workshop picker
+    if (designer) {
+      const part = e.target.closest('[data-dzpart]');
+      if (part) { const [slot, id] = part.dataset.dzpart.split(':'); return designerPick(slot, id); }
+      const dz = e.target.closest('[data-dz]');
+      if (dz) return dz.dataset.dz === 'build' ? designerBuild() : closeModal();
+      return;
+    }
 
     // Campaign launch
     const campGo = e.target.closest('[data-camp]');
@@ -1055,6 +1175,8 @@
           </div>
           <h3>Decks & Pacts</h3>
           <p>A deck is ${Decks.DECK_SIZE} cards: up to 2 copies of each card, 1 of a Secret Project. Your <b>faction</b> supplies the leader and leader power. You may sign a <b>Pact</b> with one other faction and include up to ${Decks.PACT_LIMIT} of its cards — but not its Secret Project. Build your own in the <b>Deckbuilder</b>.</p>
+          <h3>Design Workshop</h3>
+          <p>The <b>Design Workshop</b> Order builds a unit card to your own plan: a chassis, a weapon, armor and an ability. Parts unlock with Research at Tech 4, 8 and ${Design.SECOND_SLOT_TECH}, your faction (and Pact partner) each add a signature part, and the unit’s Energy cost is the sum of its parts.</p>
           <h3>Research & Social Engineering</h3>
           <p>Every Order and every staffed Landing Site grants Research. Milestones grant permanent Breakthroughs, and <b>Social Engineering</b> lets you trade one planetary advantage against a sharp drawback.</p>
         </div>
@@ -1222,7 +1344,7 @@
     const p = f.presets[key];
     if (!p) return;
     const apply = () => {
-      builder.pact = null;
+      builder.pact = p.pact || null;
       builder.doctrine = p.doctrine || 'standard';
       builder.counts = Decks.countsFromList(V.buildDeck(f.id, key));
       if (builder.src === 'pact') builder.src = 'all';
@@ -1766,7 +1888,7 @@
     const f = FACTIONS[myFaction];
     const curDeck = activeDeck();
     if (curDeck.pick !== myPreset) pickDeck(curDeck.pick); // the saved deck was deleted or is no longer playable
-    const deckOpts = Object.keys(f.presets).map((pk) => ({ id: pk, name: f.presets[pk].name, tip: f.presets[pk].desc }))
+    const deckOpts = Object.keys(f.presets).map((pk) => ({ id: pk, name: esc(f.presets[pk].name) + (f.presets[pk].pact ? ' +' + FACTIONS[f.presets[pk].pact].art : ''), tip: f.presets[pk].desc }))
       .concat(Decks.playableFor(myFaction).map((d) => ({
         id: 'deck:' + d.id,
         name: '★ ' + esc(d.name) + (d.pact ? ' +' + FACTIONS[d.pact].art : ''),
@@ -1785,9 +1907,13 @@
     $('#biome-chips').innerHTML = Object.values(BIOMES).map((b) =>
       `<span class="chip f-neutral ${b.id === myBiome ? 'on' : ''}" data-biome="${b.id}">${b.icon} ${b.name}</span>`).join('');
 
-    const diffs = [['colonist', 'Colonist'], ['commander', 'Commander'], ['transcend', 'Transcend']];
-    $('#diff-chips').innerHTML = diffs.map(([id, name]) =>
-      `<span class="chip f-neutral ${id === myDiff ? 'on' : ''}" data-diff="${id}">${name}</span>`).join('');
+    const diffs = [
+      ['colonist', 'Colonist', 'Takes one action at a time, and makes mistakes.'],
+      ['commander', 'Commander', 'Takes the best single action it can see, one at a time.'],
+      ['transcend', 'Transcend', 'Plans its whole turn before it moves. Much the strongest.'],
+    ];
+    $('#diff-chips').innerHTML = diffs.map(([id, name, tip]) =>
+      `<span class="chip f-neutral ${id === myDiff ? 'on' : ''}" data-diff="${id}" title="${tip}">${name}</span>`).join('');
 
     const doc = DOCTRINES[myDoctrine] || DOCTRINES.standard;
     const biome = BIOMES[myBiome] || BIOMES.tau_ceti;

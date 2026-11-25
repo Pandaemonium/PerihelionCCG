@@ -9,6 +9,7 @@
   const CARDS = V.CARDS;
   const FACTIONS = V.FACTIONS;
   const BIOMES = V.BIOMES || {};
+  const DOCTRINES = V.DOCTRINES || {};
 
   const E = {};
   E.LANES = 7;
@@ -73,8 +74,11 @@
   E.alive = alive;
   E.siteActive = (g, s) => !!(s && alive(s) && !(s.jammed > 0));
 
-  E.milestones = (g, pid) => (g.players[pid].doctrine === 'power' ? [6, 10, 15] : E.MILESTONES);
-  E.maxHand = (g, pid) => (g.players[pid].doctrine === 'police' ? 8 : E.MAX_HAND);
+  /** The numbers a doctrine applies (see DOCTRINES in world.js); an empty object for Frontier. */
+  const docRules = (id) => (DOCTRINES[id] && DOCTRINES[id].rules) || {};
+  E.doctrine = (g, pid) => docRules(g.players[pid].doctrine);
+  E.milestones = (g, pid) => { const d = E.doctrine(g, pid).milestones || 0; return d ? E.MILESTONES.map((m) => m + d) : E.MILESTONES; };
+  E.maxHand = (g, pid) => E.MAX_HAND + (E.doctrine(g, pid).hand || 0);
 
   E.find = function (g, uid) {
     for (const p of g.players) {
@@ -125,7 +129,7 @@
     const grant = s && CARDS[s.id].grant;
     if (grant && grant[k]) v += typeof grant[k] === 'number' ? grant[k] : 1;
     if (k === 'zeal') {
-      if (g.players[u.owner].doctrine === 'power') v += 1;
+      v += E.doctrine(g, u.owner).zeal || 0;
       v += siteSum(g, u.owner, 'zealAura');
     }
     if (k === 'flank') {
@@ -173,9 +177,9 @@
         if (f) tLane = f.site.lane;
         const cd = CARDS[u.id];
         if (attacking && cd.siteBonusTech && E.tech(g, u.owner, cd.siteBonusTech)) a += 2;
+        if (attacking && cd.siteBonus) a += cd.siteBonus;
       }
       if (attacking && tLane != null && tLane !== u.lane) a += E.kwVal(g, u, 'flank');
-      if (attacking && target.k === 's' && CARDS[u.id].doubleSiteDmg) a *= 2;
     }
     return Math.max(0, a);
   };
@@ -248,7 +252,7 @@
   /** A card is foreign to a player if it belongs to neither their faction, their Pact partner, nor the colonists. */
   E.isForeign = function (g, pid, cardId) {
     const p = g.players[pid];
-    const fac = CARDS[cardId].faction;
+    const fac = known(cardId).faction;
     return fac !== 'neutral' && fac !== p.faction && fac !== p.pact;
   };
 
@@ -260,13 +264,14 @@
   /* ------------------------------------------------------------ setup */
   function mkPlayer(id, faction, doctrine, hpOverride, pact) {
     const doc = doctrine || 'standard';
-    const startHp = hpOverride != null ? hpOverride : (doc === 'green' ? 28 : E.START_HP);
+    const rules = docRules(doc);
+    const startHp = hpOverride != null ? hpOverride : E.START_HP + (rules.hp || 0);
     return {
       id, faction, pact: pact && pact !== faction && FACTIONS[pact] ? pact : null,
       doctrine: doc, hp: startHp, maxHp: startHp,
-      armor: doc === 'police' ? 5 : 0,
+      armor: 0,
       energy: 0, maxEnergy: 0,
-      research: doc === 'knowledge' ? 2 : 0,
+      research: rules.research || 0,
       powerUsed: false, fatigue: 0, cardsPlayedThisTurn: 0, diedThisTurn: 0,
       razed: 0,     // enemy locations razed this game
       blackBox: 0,  // Black Box cards played this game
@@ -274,11 +279,20 @@
     };
   }
 
+  /** A preset deck brings its Pact partner with it, unless the caller names one or supplies its own card list. */
+  function presetPact(f, customDeck, preset, pact) {
+    if (pact !== undefined || customDeck) return pact || null;
+    const presets = (FACTIONS[f] && FACTIONS[f].presets) || {};
+    const pre = presets[preset] || presets[Object.keys(presets)[0]];
+    return (pre && pre.pact) || null;
+  }
+
   /**
    * Create a new game.
    * Backwards compatible with E.newGame(f0, f1, seed, first) plus optional opts:
-   *   { biome, deck0, deck1, preset0, preset1, pact0, pact1, doctrine0, doctrine1, hp0, hp1, bossName, bossArt }
-   * pact0 / pact1 name each side's Pact partner faction, if its deck has one.
+   *   { biome, deck0, deck1, preset0, preset1, pact0, pact1, doctrine0, doctrine1, plan0, plan1, hp0, hp1, bossName, bossArt }
+   * pact0 / pact1 name each side's Pact partner faction, if its deck has one. A preset that has a Pact supplies it.
+   * plan0 / plan1 give a custom deck a game plan for the AI to pilot it by (see the presets in cards.js).
    */
   E.newGame = function (f0, f1, seed, first, opts) {
     opts = opts || {};
@@ -287,8 +301,8 @@
       seed: (seed | 0) || 1,
       biome: biomeId,
       players: [
-        mkPlayer(0, f0, opts.doctrine0, opts.hp0, opts.pact0),
-        mkPlayer(1, f1, opts.doctrine1, opts.hp1, opts.pact1),
+        mkPlayer(0, f0, opts.doctrine0, opts.hp0, presetPact(f0, opts.deck0, opts.preset0, opts.pact0)),
+        mkPlayer(1, f1, opts.doctrine1, opts.hp1, presetPact(f1, opts.deck1, opts.preset1, opts.pact1)),
       ],
       lanes: [],
       active: first ? 1 : 0, turn: 0, over: false, winner: null, winReason: null,
@@ -299,34 +313,51 @@
     const biome = BIOMES[biomeId] || BIOMES.classic;
     g.lanes = biome ? biome.generate((n) => E.rand(g, n)) : Array.from({ length: E.LANES }, () => ({ terrain: null, pod: false }));
 
-    // Green Pact seeds Xenofungus on lanes 1 & 5 if clear
-    if (g.players[0].doctrine === 'green' || g.players[1].doctrine === 'green') {
-      [1, 5].forEach((ln) => { if (!g.lanes[ln].terrain) g.lanes[ln].terrain = 'fungus'; });
-    }
+    // a doctrine may turn lanes into Xenofungus, replacing whatever terrain the map put there
+    g.players.forEach((p) => {
+      (docRules(p.doctrine).fungusLanes || []).forEach((ln) => { g.lanes[ln].terrain = 'fungus'; });
+    });
 
     g.players.forEach((p, idx) => {
       const customDeck = idx === 0 ? opts.deck0 : opts.deck1;
       const preset = idx === 0 ? opts.preset0 : opts.preset1;
       const list = customDeck ? customDeck.slice() : V.buildDeck(p.faction, preset);
+      // The AI looks up a preset's game plan by its key; a custom deck may bring a plan of its own (plain data).
+      const presets = FACTIONS[p.faction].presets || {};
+      p.preset = customDeck ? null : (presets[preset] ? preset : Object.keys(presets)[0] || null);
+      const plan = idx === 0 ? opts.plan0 : opts.plan1;
+      if (plan) p.plan = plan;
       p.deck = shuffle(g, list);
       E.build(g, p.id, 'landing', E.CENTER, true);
-      if (p.doctrine === 'market') {
-        E.addToHand(g, p.id, 'cell');
-        E.addToHand(g, p.id, 'cell');
-      }
+      for (let i = 0; i < (docRules(p.doctrine).cells || 0); i++) E.addToHand(g, p.id, 'cell');
     });
 
     const a = g.active;
-    E.draw(g, a, E.START_CARDS);
-    E.draw(g, 1 - a, E.START_CARDS + E.SECOND_EXTRA_CARDS);
+    const extra = (pid) => docRules(g.players[pid].doctrine).cards || 0;
+    E.draw(g, a, E.START_CARDS + extra(a));
+    E.draw(g, 1 - a, E.START_CARDS + E.SECOND_EXTRA_CARDS + extra(1 - a));
     for (let i = 0; i < E.SECOND_CELLS; i++) E.addToHand(g, 1 - a, 'cell');
     g.events = [];
     startTurn(g);
     return g;
   };
 
+  // The state is plain JSON, so a field-by-field copy is the same as a JSON round trip and several times faster.
+  function copy(x) {
+    if (x === null || typeof x !== 'object') return x;
+    if (Array.isArray(x)) {
+      const a = new Array(x.length);
+      for (let i = 0; i < x.length; i++) a[i] = copy(x[i]);
+      return a;
+    }
+    const o = {};
+    for (const k in x) o[k] = copy(x[k]);
+    return o;
+  }
+
   E.clone = function (g) {
-    const c = JSON.parse(JSON.stringify(g));
+    const c = {};
+    for (const k in g) if (k !== 'events') c[k] = copy(g[k]);
     c.events = [];
     c.silent = true;
     c.seed = (Math.random() * 0x7fffffff) | 0;
@@ -346,9 +377,7 @@
       if (ref.k === 'l') targetOwner = ref.pid;
       else if (ref.k === 's') { const f = E.findSite(g, ref.uid); if (f) targetOwner = f.pid; }
       else { const f = E.find(g, ref.uid); if (f) targetOwner = f.pid; }
-      if (targetOwner != null && targetOwner !== opts.pid && g.players[targetOwner].doctrine === 'knowledge') {
-        n += 1;
-      }
+      if (targetOwner != null && targetOwner !== opts.pid) n += E.doctrine(g, targetOwner).orderVuln || 0;
     }
 
     if (ref.k === 'l') {
@@ -418,8 +447,10 @@
   };
 
   E.gainArmor = function (g, pid, n) {
+    if (n <= 0) return;
     g.players[pid].armor += n;
     ev(g, { t: 'armor', ref: leaderRef(pid), n });
+    fire(g, pid, 'onArmor', { n });
   };
 
   E.gainEnergy = function (g, pid, n) { g.players[pid].energy += n; };
@@ -511,10 +542,45 @@
     if (g.players[pid].cardsPlayedThisTurn === 0) {
       c -= siteSum(g, pid, 'firstCardDiscount', true);
     }
+    // handDiscount: the card costs this much less for each other card in its owner's hand
+    if (d.handDiscount) c -= d.handDiscount * Math.max(0, g.players[pid].hand.length - 1);
     return Math.max(0, c);
   };
 
+  /** Workshop designs are not in the card table until someone builds one; their id alone is enough to rebuild them. */
+  function known(id) { return CARDS[id] || (V.Design ? V.Design.ensure(id) : null); }
+
+  /**
+   * Build a unit card from a choice of parts { chassis, weapon, armor, abilities } and add it to pid's hand.
+   * Returns the hand card, or null if the design is not legal for that player or the hand is full.
+   */
+  E.designUnit = function (g, pid, choice) {
+    const D = V.Design;
+    if (D.why(g, pid, choice)) return null;
+    const id = D.idOf(choice);
+    D.ensure(id);
+    ev(g, { t: 'design', pid, id });
+    return E.addToHand(g, pid, id);
+  };
+
+  /**
+   * Draw one card from the deck that passes `test(cardDef)`, chosen at random among those that do.
+   * Returns the card id, or null if the deck holds none (or the hand is full, in which case the card is burned).
+   */
+  E.tutor = function (g, pid, test) {
+    const p = g.players[pid];
+    const at = [];
+    p.deck.forEach((id, i) => { if (test(CARDS[id])) at.push(i); });
+    if (!at.length) return null;
+    const id = p.deck.splice(E.pick(g, at), 1)[0];
+    if (p.hand.length >= E.maxHand(g, pid)) { ev(g, { t: 'burn', pid, id }); return null; }
+    p.hand.push({ uid: g.nextUid++, id, cost: CARDS[id].cost });
+    ev(g, { t: 'draw', pid });
+    return id;
+  };
+
   E.addToHand = function (g, pid, id, costMod) {
+    known(id);
     const p = g.players[pid];
     if (p.hand.length >= E.maxHand(g, pid)) { ev(g, { t: 'burn', pid, id }); return null; }
     const hc = { uid: g.nextUid++, id, cost: Math.max(0, CARDS[id].cost + (costMod || 0)) };
@@ -545,7 +611,7 @@
     const want = lane == null ? E.CENTER : lane;
     const ln = !E.unitAt(g, pid, want) ? want : E.nearestEmpty(g, pid, want);
     if (ln == null) return null;
-    const d = CARDS[id];
+    const d = known(id);
     const u = {
       uid: g.nextUid++, id, owner: pid, lane: ln, atk: d.atk, hp: d.hp, maxHp: d.hp,
       kw: Object.assign({}, d.kw || {}), immobile: !!d.immobile,
@@ -554,7 +620,8 @@
     };
     p.board.push(u);
     ev(g, { t: 'summon', pid, uid: u.uid, id, lane: ln });
-    if (p.doctrine === 'police' && E.hasKw(g, u, 'guard')) E.buff(g, u, 0, 1);
+    const guardAtk = E.doctrine(g, pid).guardAtk || 0;
+    if (guardAtk && E.hasKw(g, u, 'guard')) E.buff(g, u, guardAtk, 0);
     const airBuff = siteSum(g, pid, 'aerialBuff');
     if (airBuff > 0 && E.hasKw(g, u, 'aerial')) E.buff(g, u, airBuff, airBuff);
     const s = E.siteBehind(g, u);
@@ -569,7 +636,6 @@
     let hp = d.hp;
     if (!isInitial) {
       hp += siteSum(g, pid, 'siteBuildHp');
-      if (g.players[pid].doctrine === 'market') hp = Math.max(1, hp - 1);
     }
     const s = { uid: g.nextUid++, id, owner: pid, lane, hp, maxHp: hp, jammed: 0 };
     g.players[pid].sites.push(s);
@@ -598,7 +664,7 @@
   };
 
   /* ------------------------------------------------------------ triggers / cleanup
-   * Card triggers fired here: turnStart, turnEnd, onOrder, onEnemyOrder, onBuild, onAllyDeath, onMilestone,
+   * Card triggers fired here: turnStart, turnEnd, onOrder, onEnemyOrder, onBuild, onAllyDeath, onAllyPromote, onArmor, onMilestone,
    * onPlay ({cardId, count, made}), onEnemyRaze ({site}). Fired directly on one card: deploy, lastStand,
    * onAttack, onKill, onMove, onPromote, onArrive / onMoveArrive / onRaze (locations). */
   function fire(g, pid, name, extra) {
@@ -779,7 +845,8 @@
   };
 
   E.canAttack = function (g, u) {
-    return !g.over && g.active === u.owner && !(u.jammed > 0) && E.effectiveAtk(g, u, null) > 0 && u.ready && !u.attacked && alive(u);
+    // an immobile unit (a Barricade) never attacks, whatever Attack it has been given; it still strikes back when hit
+    return !g.over && g.active === u.owner && !u.immobile && !(u.jammed > 0) && E.effectiveAtk(g, u, null) > 0 && u.ready && !u.attacked && alive(u);
   };
 
   E.attackTargets = function (g, u) {
@@ -832,13 +899,15 @@
   };
 
   /* ------------------------------------------------------------ player actions */
-  E.playCard = function (g, pid, handUid, target, lane) {
+  /** `choice` is only for a `design` Order: the parts picked, { chassis, weapon, armor, abilities }. */
+  E.playCard = function (g, pid, handUid, target, lane, choice) {
     const p = g.players[pid];
     const i = p.hand.findIndex((h) => h.uid === handUid);
     if (i < 0) return false;
     const hc = p.hand[i];
     const d = CARDS[hc.id];
     if (!E.canPlay(g, pid, hc)) return false;
+    if (d.design && V.Design.why(g, pid, choice)) return false;
     const lanes = E.deployLanes(g, pid, d);
     if (lanes && !lanes.includes(lane)) return false;
 
@@ -873,7 +942,7 @@
       const st = E.build(g, pid, hc.id, lane);
       if (st) made = st.uid;
     } else {
-      d.play(g, { pid, target: tg, overcharged });
+      d.play(g, { pid, target: tg, overcharged, choice });
       resolve(g);
       if (!g.over && !d.noResearch) {
         E.gainResearch(g, pid, 1);
@@ -913,6 +982,7 @@
     if (d.onPromote) d.onPromote(g, { pid: u.owner, self: u });
     else E.buff(g, u, 1, 1);
     ev(g, { t: 'promote', ref: unitRef(u), id: u.id, pid: u.owner });
+    fire(g, u.owner, 'onAllyPromote', { promoted: u });
   }
 
   function creditKill(g, killer, victim) {
@@ -982,9 +1052,9 @@
       if (!alive(u)) return;
       const terrain = g.lanes[u.lane] ? g.lanes[u.lane].terrain : null;
       if (terrain === 'fungus') {
-        const immune = CARDS[u.id].native || CARDS[u.id].faction === 'rootbound' || p.doctrine === 'green';
+        const immune = CARDS[u.id].native || CARDS[u.id].faction === 'rootbound';
         if (immune) E.heal(g, unitRef(u), 1);
-        else E.damage(g, unitRef(u), 1, null);
+        else if (!E.doctrine(g, pid).fungusSafe) E.damage(g, unitRef(u), 1, null);
       } else if (terrain === 'monolith' && !u.monolithUsed) {
         u.monolithUsed = true;
         E.buff(g, u, 1, 1);

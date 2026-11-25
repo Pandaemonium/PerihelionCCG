@@ -12,6 +12,7 @@
  */
 require('../js/world.js');
 require('../js/cards.js');
+require('../js/design.js');
 require('../js/engine.js');
 require('../js/ai.js');
 require('../js/decks.js');
