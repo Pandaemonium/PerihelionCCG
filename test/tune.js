@@ -23,7 +23,8 @@ const ids = Object.keys(FACTIONS);
 let wins = 0, games = 0, seed = 1;
 for (const a of ids) for (const b of ids) for (let n = 0; n < N; n++) {
   for (const side of [0, 1]) {
-    const g = E.newGame(a, b, 31 + seed++ * 104729, n % 2);
+    const g = E.newGame(a, b, 31 + seed++ * 104729, n % 2, { mulligan: true });
+    AI.mulligan(g, [side === 0 ? variant : AI.TUNE, side === 1 ? variant : AI.TUNE]);
     while (!g.over && g.turn < 160) {
       const pid = g.active;
       const T = pid === side ? variant : AI.TUNE;

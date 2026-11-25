@@ -59,8 +59,9 @@ function randomDeck(faction, pact) {
 /** Play one AI-vs-AI game between two decks. Returns 0 / 1 for the winner, -1 for a draw, null if it never finished. */
 function play(d0, d1, seed, first) {
   const g = E.newGame(d0.faction, d1.faction, seed, first, {
-    biome: BIOME, deck0: d0.cards, deck1: d1.cards, pact0: d0.pact, pact1: d1.pact, doctrine0: d0.doctrine, doctrine1: d1.doctrine,
+    biome: BIOME, deck0: d0.cards, deck1: d1.cards, pact0: d0.pact, pact1: d1.pact, doctrine0: d0.doctrine, doctrine1: d1.doctrine, mulligan: true,
   });
+  AI.mulligan(g);
   let steps = 0;
   while (!g.over && g.turn < 160) {
     const pid = g.active;

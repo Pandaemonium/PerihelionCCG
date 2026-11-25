@@ -1577,6 +1577,15 @@
     "prompt": "Colony drilling crew in headlamps and dust suits standing in awe at the bottom of a deep excavated trench where a massive smooth glowing teal Alien Monolith emerges from ancient bedrock. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
   },
   {
+    "id": "design_workshop",
+    "name": "Design Workshop",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Busy alien colony engineering hangar bay with rugged technicians bolting an electromagnetic rail-lance turret onto a six-wheeled survey rover chassis beside glowing cyan holographic schematics and orange welding sparks. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
     "id": "spore_tender",
     "name": "Spore Tender",
     "faction": "rootbound",
@@ -1827,5 +1836,572 @@
     "width": 1024,
     "height": 768,
     "prompt": "Keen-eyed female Redline sharpshooter in hooded matte-slate camo cloak crouching on a dark rocky flank checking her compact precision carbine with a subtle cyan optic lens glint. Atmosphere: windswept high rocky exoplanet ridge at dawn, tactical steel-cyan HUD reflections, crisp mountain mist, disciplined military bivouac. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "site_planner",
+    "name": "Site Planner",
+    "faction": "neutral",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Confident female colony civil architect in practical weathered slate field jacket and hard hat holding a glowing topographic holo-tablet while gesturing across a windswept rocky crater with survey beacons and a rising dome. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "heavy_requisition",
+    "name": "Heavy Requisition",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Massive armored heavy combat walker chassis rolling out of an illuminated steel foundry hangar bay onto a foggy dawn tarmac while a logistics officer checks a luminous manifest pad. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "grav_harness",
+    "name": "Grav Harness",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Colony trooper strapping on a compact twin-vectored anti-gravity flight harness backpack with glowing pale-cyan hover-thruster plumes lifting heavy boots off a dusty rocky landing pad. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "sapwell_tender",
+    "name": "Sapwell Tender",
+    "faction": "rootbound",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Serene hooded female forest botanist in damp olive-moss woven cloak kneeling beside a steaming rocky geothermal vent where luminous emerald-violet sap wells up through ancient mossy roots, collecting glowing resin in a glass vial. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting."
+  },
+  {
+    "id": "verdant_surge",
+    "name": "Verdant Surge",
+    "faction": "rootbound",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Sweeping wide nature documentary shot of a misty alien mountain valley erupting in lush towering emerald ferns, giant glowing broadleaf canopies, and warm golden sunbeams piercing a passing tropical rainstorm. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting."
+  },
+  {
+    "id": "bulkhead_slam",
+    "name": "Bulkhead Slam",
+    "faction": "ironwake",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Colossal nine-tonne riveted starship steel blast bulkhead door slamming violently forward on heavy hydraulic rams, sending a shockwave of sparks, ash, and shattered debris across a dark volcanic industrial yard. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "ironclad_behemoth",
+    "name": "Ironclad Behemoth",
+    "faction": "ironwake",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Gargantuan heavily layered tracked siege walker welded with overlapping thick slabs of scarred dark-steel starship armor plating, glowing amber furnace vents, and massive hydraulic battering arms squeezing past a steel foundry gate. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "critical_mass",
+    "name": "Critical Mass",
+    "faction": "synod",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Blinding cerulean-and-violet spherical psychic-quantum energy shockwave detonating outward from an overloaded crystal resonance core inside a dark obsidian observatory dome, warping light and shattering glass rings. Atmosphere: sleek brutalist obsidian-and-glass research archive, cold cerulean holographic telemetry light, crisp volumetric blue beams, dark starry dome. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "datalinks_search",
+    "name": "Datalinks Search",
+    "faction": "synod",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Focused University scholar standing amid towering curved walls of luminous cerulean floating holographic flight-log archives and orbital telemetry streams inside a darkened obsidian data chamber. Atmosphere: sleek brutalist obsidian-and-glass research archive, cold cerulean holographic telemetry light, crisp volumetric blue beams, dark starry dome. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "squadron_leader",
+    "name": "Squadron Leader",
+    "faction": "tide",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Daring privateer ace pilot in salt-worn dark leather-and-composite flight jacket and tinted visor standing on a rain-slicked carrier deck as sleek swept-wing needlejet raiders bank overhead through stormy magenta-cyan clouds. Atmosphere: storm-swept alien archipelago coastline, wet rusted salvage docks, bioluminescent magenta sea spray, dramatic cyan-pink storm clouds. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "smugglers_run",
+    "name": "Smuggler’s Run",
+    "faction": "tide",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Two heavy waterproof titanium crates glowing faintly cyan being winched over the dark gunwale of a sleek stealth hover-skiff into foaming misty dark-teal surf at low tide under storm twilight. Atmosphere: storm-swept alien archipelago coastline, wet rusted salvage docks, bioluminescent magenta sea spray, dramatic cyan-pink storm clouds. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "rite_of_ash",
+    "name": "Rite of Ash",
+    "faction": "cinder",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Solemn circle of hooded Cinder Believers kneeling in swirling volcanic ash around a blazing tall crimson ritual pyre rising beneath charred fallen starship ribs at dusk. Atmosphere: scorched volcanic rift canyon, burning oil braziers and crimson ember glow against dark basalt ruins, dramatic stark shadows. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "pyre_keeper",
+    "name": "Pyre Keeper",
+    "faction": "cinder",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Austere bearded Believer zealot priest in soot-darkened crimson-trimmed heavy mantle tending a roaring iron brazier tower as glowing embers stream across a dark stormy battlefield. Atmosphere: scorched volcanic rift canyon, burning oil braziers and crimson ember glow against dark basalt ruins, dramatic stark shadows. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "claims_adjuster",
+    "name": "Claims Adjuster",
+    "faction": "auric",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Composed sharp-eyed corporate inspector in tailored obsidian-and-gold armored trench coat examining a thick reinforced titanium colony dome plate with a glowing golden holographic caliper scanner. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "holdings_magnate",
+    "name": "Holdings Magnate",
+    "faction": "auric",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Commanding impeccably dressed female corporate executive in sleek charcoal-and-gold armored coat seated at a panoramic glass penthouse table surrounded by glowing golden holographic asset portfolios and gleaming orbital spires. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "consortium_titan",
+    "name": "Consortium Titan",
+    "faction": "auric",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Colossal gleaming obsidian-and-brushed-gold multi-turreted corporate super-heavy dreadnought mech striding across an alien trade plaza beneath sunlit glass exchange towers. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "war_college",
+    "name": "War College",
+    "faction": "redline",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Imposing brutalist concrete-and-steel Federation military academy compound perched on a high misty mountain plateau with holographic tactical war-tables glowing cyan behind armored panoramic windows. Atmosphere: windswept high rocky exoplanet ridge at dawn, tactical steel-cyan HUD reflections, crisp mountain mist, disciplined military bivouac. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "task_force_commander",
+    "name": "Task Force Commander",
+    "faction": "redline",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Seasoned female Federation field commander in crisp matte-slate tactical composite armor and headset standing on a rocky highland overlook directing advancing armor, infantry, and overhead VTOL gunships. Atmosphere: windswept high rocky exoplanet ridge at dawn, tactical steel-cyan HUD reflections, crisp mountain mist, disciplined military bivouac. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "evac_shuttle",
+    "name": "Evac Shuttle",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Rugged twin-engine armored VTOL evacuation dropship hovering low amid swirling red-grey dust with rear ramp lowered and bright amber boarding floodlights as two armored troopers sprint aboard. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "graft_champion",
+    "name": "Graftling Champion",
+    "faction": "rootbound",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Powerful scarred female forest warrior in layered dark-bark and living emerald vine armor, bioluminescent moss and knotted ironwood tendrils fused organically along her shoulders and forearm, standing alert in misty rainforest. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting."
+  },
+  {
+    "id": "ironbark_graft",
+    "name": "Ironbark Graft",
+    "faction": "rootbound",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Macro botanical close-up of thick dark gnarled ancient ironwood bark and luminous emerald tendrils seamlessly growing and hardening like living layered armor over a scarred wooden shield in heavy rainforest rain. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting."
+  },
+  {
+    "id": "thunderback",
+    "name": "Thunderback",
+    "faction": "rootbound",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Wildlife documentary 35mm cinema still of a colossal charging six-ton alien horned forest beast with massive ridged dark-olive bony crest, mossy thick hide, and heavy hooves smashing straight through a splintered perimeter fence in jungle mist. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting."
+  },
+  {
+    "id": "stampede_pheromone",
+    "name": "Stampede Pheromone",
+    "faction": "rootbound",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Dramatic low-angle wildlife documentary shot of a thundering herd of giant horned mossy alien forest beasts charging headlong through billowing luminous golden-violet pollen mist and splintering barriers. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting."
+  },
+  {
+    "id": "recovery_crawler",
+    "name": "Recovery Crawler",
+    "faction": "ironwake",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Heavy multi-tracked armored salvage recovery crawler with massive hydraulic winch boom dragging a battered combat walker hull back across a smoky volcanic basalt battlefield under amber floodlights. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "reassembly_bay",
+    "name": "Reassembly Bay",
+    "faction": "ironwake",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Vast dim industrial Hive repair gantry bay illuminated by showers of orange welding sparks, overhead cranes lowering freshly forged riveted armor plates onto a partially reconstructed combat walker frame. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "wreck_marshal",
+    "name": "Wreck Marshal",
+    "faction": "ironwake",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Grizzled broad-shouldered Hive veteran commander wearing heavy patchwork scavenged armor plates bolted from dozens of fallen combat hulls, standing defiantly atop a smoking tank wreck in warm amber foundry glow. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "systems_engineer",
+    "name": "Systems Engineer",
+    "faction": "synod",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Sharp-eyed female University prototype engineer in sleek dark navy lab coat holding a glowing holographic blueprint stylus beside a half-built experimental modular rover frame inside a clean glass workshop. Atmosphere: sleek brutalist obsidian-and-glass research archive, cold cerulean holographic telemetry light, crisp volumetric blue beams, dark starry dome. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "skunkworks",
+    "name": "Skunkworks",
+    "faction": "synod",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Secretive cluttered high-tech underground University prototype lab bathed in cool blue holographic light, housing three experimental modular combat chassis rigs suspended on articulated gantry arms. Atmosphere: sleek brutalist obsidian-and-glass research archive, cold cerulean holographic telemetry light, crisp volumetric blue beams, dark starry dome. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "proving_ground",
+    "name": "Proving Ground",
+    "faction": "synod",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Wide windswept dark basalt weapons testing range under starry twilight skies, illuminated by crisp cyan laser telemetry grids as an experimental prototype combat rig fires a bright blue test beam downrange. Atmosphere: sleek brutalist obsidian-and-glass research archive, cold cerulean holographic telemetry light, crisp volumetric blue beams, dark starry dome. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "reef_skirmisher",
+    "name": "Reef Skirmisher",
+    "faction": "tide",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Agile amphibious pirate commando in wet matte-black pressurized dive-weave stealth gear bursting upward out of dark foaming alien surf wielding a gleaming composite vibro-blade in storm mist. Atmosphere: storm-swept alien archipelago coastline, wet rusted salvage docks, bioluminescent magenta sea spray, dramatic cyan-pink storm clouds. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "undertow",
+    "name": "Undertow",
+    "faction": "tide",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Massive surging bioluminescent magenta-and-teal alien tidal wave crashing violently over a rocky coastal outpost and sweeping an armored combat unit back out into the dark foaming sea. Atmosphere: storm-swept alien archipelago coastline, wet rusted salvage docks, bioluminescent magenta sea spray, dramatic cyan-pink storm clouds. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "hidden_cove",
+    "name": "Hidden Cove",
+    "faction": "tide",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Secret sheltered sea-cave pirate harbour carved inside towering black volcanic sea-cliffs, lit by warm lanterns and glowing blue fuel cells stacked along wet steel piers beside sleek docked hover-skiffs. Atmosphere: storm-swept alien archipelago coastline, wet rusted salvage docks, bioluminescent magenta sea spray, dramatic cyan-pink storm clouds. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "ember_flagellant",
+    "name": "Ember Flagellant",
+    "faction": "cinder",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Fierce bare-armed Believer zealot warrior with glowing ritual burn scars and charred ash-cloth wraps striding fearlessly through roaring crimson flames raising a heavy iron brazier flail. Atmosphere: scorched volcanic rift canyon, burning oil braziers and crimson ember glow against dark basalt ruins, dramatic stark shadows. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "trial_by_fire",
+    "name": "Trial by Fire",
+    "faction": "cinder",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Blinding wall of roaring crimson-gold flame sweeping across a dark basalt battlefield while resolute armored Believer soldiers march calmly forward through the firestorm untouched. Atmosphere: scorched volcanic rift canyon, burning oil braziers and crimson ember glow against dark basalt ruins, dramatic stark shadows. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "cinder_scourge",
+    "name": "Cinder Scourge",
+    "faction": "cinder",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Unyielding female Believer zealot warrior in scorched blackened plate armor with glowing red-hot chains wrapped around her gauntlets, sparks and fire exploding outward around her on a volcanic ridge. Atmosphere: scorched volcanic rift canyon, burning oil braziers and crimson ember glow against dark basalt ruins, dramatic stark shadows. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "scarred_penitent",
+    "name": "Scarred Penitent",
+    "faction": "cinder",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Towering battle-scarred Believer veteran in cracked soot-blackened armor plates and tattered crimson hood standing unbowed amid volcanic smoke, wielding a blazing plasma-tipped war-halberd. Atmosphere: scorched volcanic rift canyon, burning oil braziers and crimson ember glow against dark basalt ruins, dramatic stark shadows. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "trade_embargo",
+    "name": "Trade Embargo",
+    "faction": "auric",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Fortified golden-glass orbital customs blockade checkpoint with towering illuminated holographic barrier gates halting a long convoy of heavy cargo crawlers on a dusty alien highway at dusk. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "hostile_audit",
+    "name": "Hostile Audit",
+    "faction": "auric",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Intense focused golden-cyan corporate EMP disruption beam descending onto an enemy armored combat mech, freezing its systems inside a bright geometric holographic quarantine cage. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "repo_agent",
+    "name": "Repo Agent",
+    "faction": "auric",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Slick black-and-gold armored corporate recovery operative unhooking a glowing cyan energy cell pack from a disabled jammed enemy combat unit amid swirling frontier dust. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "liquidator",
+    "name": "Liquidator",
+    "faction": "auric",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Cold menacing corporate specialist in matte-obsidian and brushed-gold tactical armor leveling a heavy high-energy disassembly plasma cutter at a paralyzed enemy combat walker in dramatic sunset glare. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "airdrop_beacon",
+    "name": "Airdrop Beacon",
+    "faction": "redline",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Rugged titanium orbital drop-zone transponder tripod planted on a windy rocky ridge venting thick luminous amber-orange signal smoke straight up into stormy skies as a supply pod streaks down from orbit. Atmosphere: windswept high rocky exoplanet ridge at dawn, tactical steel-cyan HUD reflections, crisp mountain mist, disciplined military bivouac. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "logistics_officer",
+    "name": "Logistics Officer",
+    "faction": "redline",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Sharp disciplined Federation quartermaster officer in weathered matte-slate tactical vest checking a luminous manifest tablet beside an open newly landed orbital supply pod on a windy highland trail. Atmosphere: windswept high rocky exoplanet ridge at dawn, tactical steel-cyan HUD reflections, crisp mountain mist, disciplined military bivouac. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "supply_convoy",
+    "name": "Supply Convoy",
+    "faction": "redline",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Column of three rugged six-wheeled matte-slate armored military supply trucks rumbling in dust across a high alien mountain pass while twin orbital supply pods descend on parachutes beside them. Atmosphere: windswept high rocky exoplanet ridge at dawn, tactical steel-cyan HUD reflections, crisp mountain mist, disciplined military bivouac. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "telemetry_drone",
+    "name": "Telemetry Drone",
+    "faction": "neutral",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Compact weathered NASA-punk colony reconnaissance quad-rotor drone hovering low over rocky alien valleys at twilight, deploying a folded parabolic radar dish projecting soft cyan telemetry scan rings ahead. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "seismic_ping",
+    "name": "Seismic Ping",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Close-up of a heavy titanium ground-thumper seismic charge staked into dark cracked alien basalt, releasing concentric glowing amber-blue subsurface sonar shockwave rings across dusty terrain. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "containment_purge",
+    "name": "Containment Purge",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Hazmat-armored colony quarantine squad inside a smoky perimeter deploying glowing cyan-amber plasma sterilization containment barriers sealing off shattered smoking wreckage in mist. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "suppressive_scatter",
+    "name": "Suppressive Scatter",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Wide cinematic battle shot of a twin-barrel colony flak-scatter launcher sweeping dense overlapping bursts of glowing amber-white airburst flechettes across three rocky frontier lanes, shattering shimmering blue shields. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "tectonic_shaper",
+    "name": "Tectonic Shaper",
+    "faction": "neutral",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Massive heavy tracked planetary terraforming rig with twin glowing orange plasma-cutter plows and seismic hydraulic rams shifting glowing basalt strata and purple fungus across a fractured valley. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "field_refit",
+    "name": "Field Refit",
+    "faction": "neutral",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Rugged frontier combat mechanics working under bright halogen portable floodlights beside an open armored utility truck at dusk, rapidly welding an upgraded coilgun turret onto a dusty infantry walker frame amid flying sparks. Atmosphere: dusty alien frontier outpost built from salvaged colony ship modules, moody twilight horizon, practical NASA-punk realism. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "prescient_empath",
+    "name": "Prescient Empath",
+    "faction": "rootbound",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Serene hooded Stepdaughter empath woman standing barefoot in luminous misty violet-and-emerald alien rainforest, eyes gently closed as bioluminescent fungal spores swirl around her outstretched palms in quiet prophetic focus. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting."
+  },
+  {
+    "id": "condenser_array",
+    "name": "Condenser Array",
+    "faction": "rootbound",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Towering elegant living-steel atmospheric moisture condenser tower wrapped in climbing emerald vines and glowing violet moss, harvesting swirling mountain mist into cascading luminous water channels over a mossy forest outpost. Atmosphere: lush rain-drenched emerald exoplanet jungle, misty teal canopy, faintly glowing violet xenofungus spores, organic biotech lighting. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "bio_scrubber",
+    "name": "Bio-Scrubber Rig",
+    "faction": "ironwake",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Heavy tracked industrial Iron Hive decontamination rig mounted with twin high-pressure superheated steam-and-plasma flame lances clearing dense glowing purple xenofungus from basalt rock under harsh amber floodlights. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "grav_pull_winch",
+    "name": "Grav-Pull Winch",
+    "faction": "ironwake",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Armored industrial Iron Hive grav-winch tractor braced on hydraulic anchor spades firing a glowing amber electromagnetic tow beam dragging a staggering enemy walker sideways across volcanic gravel. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "salvage_blueprint",
+    "name": "Salvage Blueprint",
+    "faction": "ironwake",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Weathered armored Iron Hive recovery technician kneeling beside a smoking wrecked combat walker hull in volcanic ash, capturing glowing cyan-amber holographic structural blueprints onto a rugged field tablet. Atmosphere: dark volcanic basalt industrial yard, weathered riveted starship steel, warm amber forge floodlights, swirling ash and diesel steam. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "datalinks_index",
+    "name": "Datalinks Index",
+    "faction": "synod",
+    "type": "site",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Sleek University of Tau Ceti subterranean glass-and-obsidian holographic library chamber lined with towering crystalline index columns projecting crisp floating blue orbital star-charts and predictive probability graphs. Atmosphere: sleek brutalist obsidian-and-glass research archive, cold cerulean holographic telemetry light, crisp volumetric blue beams, dark starry dome. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "squall_chart",
+    "name": "Squall Chart",
+    "faction": "tide",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Dramatic shot on a rain-lashed Tidewater privateer navigation bridge at night, weathered navigator plotting glowing magenta-and-cyan barometric storm-front vectors across a wet glass chart table as lightning flashes outside. Atmosphere: storm-swept alien archipelago coastline, wet rusted salvage docks, bioluminescent magenta sea spray, dramatic cyan-pink storm clouds. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "omen_seer",
+    "name": "Omen Seer",
+    "faction": "cinder",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Austere hooded Cinder Believers prophetess standing on a charred volcanic crag at dusk, gazing intently into rising crimson embers and swirling black smoke trails as distant burning artillery streaks cross the sky. Atmosphere: scorched volcanic rift canyon, burning oil braziers and crimson ember glow against dark basalt ruins, dramatic stark shadows. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "market_forecast",
+    "name": "Market Forecast",
+    "faction": "auric",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Sharp Vance Industries financial strategist inside a sleek sunlit obsidian-and-gold orbital observatory studying sweeping golden holographic probability curves and energy-commodity projections overlooking arid solar plains. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "breach_protocol",
+    "name": "Breach Protocol",
+    "faction": "auric",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Dramatic action still of three rapid precision golden-blue plasma pulse bolts striking in rapid sequence against a heavy enemy mech energy shield, shattering the translucent barrier into bright sparks on dark rock. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "salvage_impound",
+    "name": "Salvage Impound",
+    "faction": "auric",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Imposing Vance Industries armored corporate enforcement walker clamping glowing violet-gold stasis-impound cuffs onto a disabled enemy mech inside a floodlit titanium containment yard. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "thermal_venting",
+    "name": "Thermal Venting",
+    "faction": "auric",
+    "type": "order",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Spectacular wide shot of a Vance Industries gleaming gold-and-steel geothermal borehole station opening massive pressure relief valves, blasting towering illuminated columns of incandescent steam and golden energy across rocky vents. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "mercenary_contractor",
+    "name": "Mercenary Contractor",
+    "faction": "auric",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Sharp-eyed elite Vance Industries field arms-dealer in obsidian-and-brushed-gold armored trench coat standing beside an open titanium weapons crate displaying modular rail-lances and glowing blueprint slates on a landing pad. Atmosphere: gleaming glass-and-gold orbital exchange spire, warm golden solar reflections, clean brushed titanium, high-tech energy conduits. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
+  },
+  {
+    "id": "frontier_surveyor",
+    "name": "Frontier Surveyor",
+    "faction": "redline",
+    "type": "unit",
+    "width": 1024,
+    "height": 768,
+    "prompt": "Battle-hardened Redline Federation scout sergeant in dusty matte-slate tactical armor perched on an outcrop overlooking diverse alien ridges, purple fungus valleys, and a distant glowing teal monolith, holding a cyan rangefinder. Atmosphere: windswept high rocky exoplanet ridge at dawn, tactical steel-cyan HUD reflections, crisp mountain mist, disciplined military bivouac. Photorealistic 35mm anamorphic sci-fi film still, Denis Villeneuve and Neill Blomkamp hard-sci-fi production design, realistic practical textures, volumetric atmosphere, natural lens optics and subtle film grain, Sid Meier Alpha Centauri exoplanet frontier aesthetic, no text, no borders, no UI, no painting brushstrokes."
   }
 ]

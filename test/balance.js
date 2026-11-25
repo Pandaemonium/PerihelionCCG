@@ -72,8 +72,9 @@ function randomDeck(faction, pact) {
 
 function play(d0, d1, seed, first, setup) {
   const g = E.newGame(d0.faction, d1.faction, seed, first, {
-    biome: BIOME, deck0: d0.cards, deck1: d1.cards, pact0: d0.pact, pact1: d1.pact, doctrine0: d0.doctrine, doctrine1: d1.doctrine,
+    biome: BIOME, deck0: d0.cards, deck1: d1.cards, pact0: d0.pact, pact1: d1.pact, doctrine0: d0.doctrine, doctrine1: d1.doctrine, mulligan: true,
   });
+  AI.mulligan(g);
   if (setup) setup(g);
   let steps = 0;
   while (!g.over && g.turn < 160) {

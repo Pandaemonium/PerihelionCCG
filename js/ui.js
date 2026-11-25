@@ -3,7 +3,7 @@
   'use strict';
   const V = window.TauCeti;
   const E = V.Engine, AI = V.AI, CARDS = V.CARDS, FACTIONS = V.FACTIONS, KW = V.KEYWORDS;
-  const TERRAIN = V.TERRAIN, BIOMES = V.BIOMES, DOCTRINES = V.DOCTRINES, CAMPAIGN = V.CAMPAIGN;
+  const TERRAIN = V.TERRAIN, BIOMES = V.BIOMES, DOCTRINES = V.DOCTRINES, DECREES = V.DECREES, CAMPAIGN = V.CAMPAIGN;
   const Decks = V.Decks, SFX = V.SFX, Design = V.Design;
   const HUMAN = 0, BOT = 1;
   const $ = (s, r) => (r || document).querySelector(s);
@@ -22,6 +22,7 @@
   if (!prefs.picks || typeof prefs.picks !== 'object') prefs.picks = {};
   let oppChoice = 'random';
   let myBiome = 'tau_ceti';
+  let myDecree = 'none';
   let myDiff = 'commander';
   let activeMode = { kind: 'skirmish' }; // { kind: 'skirmish' | 'campaign' | 'draft', mission?, draft? }
   let speed = 1;
@@ -30,7 +31,7 @@
   let builder = null;
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms * speed));
-  const locked = () => busy || !g || g.over || g.active !== HUMAN;
+  const locked = () => busy || !g || g.over || !!g.mulligan || !!g.forecast || g.active !== HUMAN;
   const facName = (id) => (id === 'neutral' ? 'Colonist' : (FACTIONS[id].short || FACTIONS[id].name.replace(/^The /, '')));
   const laneName = (lane) => 'lane ' + (lane + 1);
 
@@ -294,6 +295,8 @@
       if (!locked() && E.canPlay(g, HUMAN, hc)) {
         cls.push('playable');
         if (d.overcharge && p.energy >= cost + d.overcharge) cls.push('overcharged');
+      } else if (!locked() && E.canArchive(g, HUMAN, hc)) {
+        cls.push('archivable');
       }
       if (sel && sel.kind === 'card' && sel.hand === hc.uid) cls.push('selected');
       return cardHTML(d, { cost, cls: cls.join(' '), attrs: `data-hand="${hc.uid}" data-card="${hc.id}"` });
@@ -325,6 +328,7 @@
     const name = sel.kind === 'power'
       ? FACTIONS[g.players[HUMAN].faction].power.name
       : CARDS[g.players[HUMAN].hand.find((h) => h.uid === sel.hand).id].name;
+    if (sel.archiveOnly) return `${name} cannot be played now — click Archive (1) to shuffle it back and draw a replacement.`;
     if (sel.slot) return sel.slot.row === 'ms' ? `Choose a plot to build ${name} on.` : `Choose a lane for ${name}.`;
     if (sel.cols) return `Choose a lane for ${name}.`;
     if (sel.confirm) return `Click the card again to play ${name}.`;
@@ -335,10 +339,17 @@
     const h = $('#hint');
     h.textContent = hintMsg ? hintMsg.text : defaultHint();
     h.classList.toggle('warn', !!(hintMsg && hintMsg.warn));
+    const p = g.players[HUMAN];
+    const archBtn = $('#archive-btn');
+    const selHc = sel && sel.kind === 'card' ? p.hand.find((x) => x.uid === sel.hand) : null;
+    const canArch = !locked() && !!selHc && E.canArchive(g, HUMAN, selHc);
+    if (archBtn) {
+      archBtn.classList.toggle('hidden', !canArch);
+      if (canArch) archBtn.textContent = `↻ Archive ${CARDS[selHc.id].name} (${E.ARCHIVE_COST})`;
+    }
     const btn = $('#end-turn');
     btn.disabled = locked();
     btn.textContent = g.active === HUMAN ? 'End Turn' : 'Enemy Turn';
-    const p = g.players[HUMAN];
     const idle = !locked() && !p.hand.some((hc) => E.canPlay(g, HUMAN, hc))
       && !p.board.some((u) => E.attackTargets(g, u).length) && !E.canUsePower(g, HUMAN);
     btn.classList.toggle('nudge', idle);
@@ -368,8 +379,12 @@
     [/Cycle Start:/, 'Cycle Start', 'Happens at the start of each of your turns.'],
     [/Tech \d+:/, 'Tech', 'Active while your Research is at least that number.'],
     [/Overcharge \d+:/, 'Overcharge', 'If you have enough extra Energy left after paying the base cost, spends it to trigger this bonus.'],
+    [/Forecast \d+/, 'Forecast', 'Look at the top N cards of your deck. Put 1 on top (or draw it) and place the rest on the bottom.'],
+    [/Archive \d+/, 'Archive', 'Spend 1 Energy to draw a replacement card and shuffle this card back into your deck. All Secret Projects can also be Archived.'],
+    [/Purge/, 'Purge', 'Removes a unit without triggering Last Stand or death effects, and keeps it out of the fallen pile.'],
+    [/Choose one:/, 'Choose one', 'Modal Order — pick which mode to execute when you play this card.'],
     [/Jam/, 'Jam', 'Disables a unit or location until the end of its owner’s next turn.'],
-    [/Secret Project/, 'Secret Project', `Unique legendary location (max 1 per deck). If razed, deals ${E.PROJECT_RAZE_DAMAGE} damage to its colony.`],
+    [/Secret Project/, 'Secret Project', `Unique legendary location (max 1 per deck). Can be Archived for 1 Energy. If razed, deals ${E.PROJECT_RAZE_DAMAGE} damage to its colony.`],
     [/Transcendence:/, 'Transcendence', `Win the game immediately upon reaching ${E.ASCENT_RESEARCH} Research while The Voice of Planet stands.`],
     [/stationed|staffed/, 'Stationed', 'A unit is stationed at a location while standing in the same lane.'],
     [/Energy Cell/, 'Energy Cell', 'A free Order that gives 1 Energy this turn.'],
@@ -386,6 +401,9 @@
     [/Breakthrough/, 'Breakthrough', 'A Research milestone. There are three; you reach them at 4, 8 and 13 Research (6, 10 and 15 under Power).'],
     [/Mind Worm/, 'Mind Worm', 'A 2/2 unit with Psi.'],
     [/Sprout/, 'Sprout', 'A 1/1 native Stepdaughter unit.'],
+    [/to your hand\. It costs|Return this unit to your hand|returns to your hand|owner’s hand/, 'Return to hand', 'The unit leaves play and becomes a fresh card in hand: its buffs, damage and Jam are gone. It is not destroyed, so no Last Stand.'],
+    [/destroyed this game/, 'The fallen', 'Your units destroyed so far, tokens aside. A unit that is brought back comes off the list until it is destroyed again.'],
+    [/survives damage/, 'Survives damage', 'Takes damage from any source, your own cards included, and is still alive afterwards.'],
   ];
 
   function combatPreviewNote(ref) {
@@ -455,6 +473,9 @@
         opt.cost = E.cost(g, HUMAN, hc);
         if (d.overcharge && p.energy >= opt.cost + d.overcharge) {
           notes.push(`<div><b>⚡ Overcharge Ready</b> — Playing now spends +${d.overcharge} Energy for the bonus!</div>`);
+        }
+        if (E.isArchivable(d)) {
+          notes.push(`<div><b>↻ Archive ${E.ARCHIVE_COST}</b> — Click to select, then click Archive (${E.ARCHIVE_COST} Energy) to draw a replacement and shuffle this back into your deck.</div>`);
         }
       }
     }
@@ -672,6 +693,23 @@
         const el = elFor(e.ref);
         if (el) ghost(el);
         logLine(`${whose(e.pid)} ${logCard(e.id)} is destroyed.`, foe);
+      } else if (e.t === 'purge') {
+        const el = elFor(e.ref);
+        if (el) ghost(el);
+        SFX.psi();
+        logLine(`${whose(e.pid)} ${logCard(e.id)} is <b>Purged</b> (no Last Stand, removed from the fallen pile).`, foe);
+      } else if (e.t === 'purge_grave') {
+        logLine(`${logCard(e.id)} is <b>Purged</b> from ${e.pid === HUMAN ? 'your' : 'the enemy'} fallen pile.`, foe);
+      } else if (e.t === 'forecast') {
+        logLine(`${who(e.pid)} ${e.pid === HUMAN ? 'forecast' : 'forecasts'} the top ${e.n} cards${e.draw ? ' and drew the pick' : ''}.`, foe);
+      } else if (e.t === 'archive') {
+        SFX.move();
+        logLine(`${who(e.pid)} ${e.pid === HUMAN ? 'archived' : 'archives'} ${logCard(e.id, true)} and drew a replacement.`, foe);
+      } else if (e.t === 'bounce') {
+        const el = elFor(e.ref);
+        if (el) ghost(el);
+        SFX.move();
+        logLine(CARDS[e.id].token ? `${whose(e.pid)} ${logCard(e.id)} is removed from play.` : `${whose(e.pid)} ${logCard(e.id)} returns to ${e.pid === HUMAN ? 'your' : 'the enemy'} hand.`, foe);
       } else if (e.t === 'raze') {
         const el = elFor(e.ref);
         if (el) ghost(el);
@@ -707,6 +745,8 @@
         logLine(`${e.pid === HUMAN ? 'Your' : "The enemy's"} deck is empty — the colony takes ${e.n} damage.`, 'sys');
       } else if (e.t === 'burn') {
         logLine(`${e.pid === HUMAN ? 'Your' : "The enemy's"} hand is full — ${e.pid === HUMAN ? logCard(e.id) : 'a card'} is lost.`, 'sys');
+      } else if (e.t === 'mulligan') {
+        logLine(e.n ? `${who(e.pid)} swapped ${e.n} card${e.n > 1 ? 's' : ''} of the opening hand.` : `${who(e.pid)} kept the opening hand.`, foe);
       } else if (e.t === 'design') {
         const c = CARDS[e.id];
         const kws = Object.keys(KW).filter((k) => c.kw[k]).map((k) => KW[k].name + (typeof c.kw[k] === 'number' ? ' ' + c.kw[k] : ''));
@@ -753,18 +793,21 @@
       const f = E.find(g, a.uid);
       logLine(`${whose(pid)} ${logCard(f.unit.id)} moves to ${laneName(a.lane)}.`, foe);
       E.move(g, pid, a.uid, a.lane);
+    } else if (a.type === 'archive') {
+      E.archiveCard(g, pid, a.hand);
     } else if (a.type === 'play') {
       const hc = g.players[pid].hand.find((h) => h.uid === a.hand);
       const d = CARDS[hc.id];
       const verb = d.type === 'unit' ? ['deploy', 'deploys'] : d.type === 'site' ? ['build', 'builds'] : ['play', 'plays'];
       const where = a.lane != null ? ' in ' + laneName(a.lane) : '';
-      logLine(`${who(pid)} ${verb[pid === HUMAN ? 0 : 1]} ${logCard(hc.id, true)}${where}${a.target ? (where ? ', targeting ' : ' on ') + refName(a.target) : ''}.`, foe);
+      const modeLabel = d.modes && a.choice != null && d.modes[a.choice] ? ` (${d.modes[a.choice].name})` : '';
+      logLine(`${who(pid)} ${verb[pid === HUMAN ? 0 : 1]} ${logCard(hc.id, true)}${modeLabel}${where}${a.target ? (where ? ', targeting ' : ' on ') + refName(a.target) : ''}.`, foe);
       if (d.type === 'site') SFX.build(); else SFX.play();
       if (pid === BOT) {
         // for a Workshop, show the unit it designed rather than the Order itself
         const made = d.design ? Design.ensure(Design.idOf(a.choice)) : null;
         if (made) await flash(cardHTML(made), null, 'Enemy designs a unit');
-        else await flash(cardHTML(d, { cost: E.cost(g, pid, hc) }), a.target || (a.lane != null ? { k: 'c', lane: a.lane } : null), 'Enemy plays');
+        else await flash(cardHTML(d, { cost: E.cost(g, pid, hc) }), a.target || (a.lane != null ? { k: 'c', lane: a.lane } : null), 'Enemy plays' + modeLabel);
       }
       E.playCard(g, pid, a.hand, a.target, a.lane, a.choice);
     } else if (a.type === 'power') {
@@ -789,6 +832,7 @@
     busy = false;
     if (g.over) return gameOver();
     render();
+    checkForecast();
   }
 
   async function botTurn() {
@@ -807,6 +851,7 @@
     await banner('Your Turn');
     busy = false;
     render();
+    checkForecast();
   }
 
   async function endTurn() {
@@ -841,6 +886,11 @@
       return render();
     }
     if (!E.canPlay(g, HUMAN, hc)) {
+      if (E.canArchive(g, HUMAN, hc)) {
+        SFX.click();
+        sel = { kind: 'card', hand: uid, archiveOnly: true };
+        return render();
+      }
       sel = null;
       render();
       const el = $(`#hand-0 [data-hand="${uid}"]`);
@@ -853,6 +903,7 @@
       return warn(`${d.name} has no valid target right now.`);
     }
     if (d.design) return openDesigner(uid);
+    if (d.modes) return openModeModal(uid);
     SFX.click();
     if (d.type === 'unit') sel = { kind: 'card', hand: uid, slot: { row: 'mu', lanes: E.emptyLanes(g, HUMAN) } };
     else if (d.type === 'site') sel = { kind: 'card', hand: uid, slot: { row: 'ms', lanes: E.emptyPlots(g, HUMAN) } };
@@ -879,7 +930,7 @@
   }
 
   function resolveSelection(ref) {
-    if (sel.kind === 'card') return humanAct({ type: 'play', hand: sel.hand, target: ref, lane: sel.lane == null ? null : sel.lane });
+    if (sel.kind === 'card') return humanAct({ type: 'play', hand: sel.hand, target: ref, lane: sel.lane == null ? null : sel.lane, choice: sel.mode != null ? sel.mode : undefined });
     if (sel.kind === 'unit') return humanAct({ type: 'attack', uid: sel.uid, target: ref });
     return humanAct({ type: 'power', target: ref });
   }
@@ -947,6 +998,10 @@
     if (e.target.closest('#side')) return;
     if (e.target.closest('#end-turn')) return endTurn();
     if (locked()) return;
+    if (e.target.closest('#archive-btn')) {
+      if (sel && sel.kind === 'card') return humanAct({ type: 'archive', hand: sel.hand });
+      return;
+    }
     hintMsg = null;
     const hand = e.target.closest('[data-hand]');
     if (hand) return clickHand(+hand.dataset.hand);
@@ -986,13 +1041,58 @@
   let modalClosable = true;
   let designer = null;   // the Design Workshop picker's state while it is open: { hand, chassis, weapon, armor, abilities }
   let lastDesign = null; // the last unit designed this session, offered again as the starting point
+  let modePickHand = null; // hand uid while the modal Order chooser is open
   function openModal(html, closable) {
     modalClosable = closable !== false;
     $('#modal-box').innerHTML = html;
     $('#modal').classList.remove('hidden');
     $('#modal-box').scrollTop = 0;
   }
-  function closeModal() { designer = null; $('#modal').classList.add('hidden'); }
+  function closeModal() { designer = null; modePickHand = null; $('#modal').classList.add('hidden'); }
+
+  /* ============================================================ Forecast & Modal Order pickers */
+  function checkForecast() {
+    if (!g || g.over || !g.forecast || g.forecast.pid !== HUMAN) return;
+    showForecast();
+  }
+
+  function showForecast() {
+    const f = g.forecast;
+    if (!f || f.pid !== HUMAN) return;
+    const cards = f.options.map((id, i) =>
+      `<div class="fc-choice" data-fcpick="${i}">${cardHTML(CARDS[id])}</div>`).join('');
+    const dest = f.draw ? 'draw it immediately' : 'place it on top of your deck';
+    const bonus = f.nativeBuffUid ? ' Picking a <b>Native</b> unit gives Prescient Empath <b>+1/+1</b>.' : '';
+    openModal(`<div class="fc-wrap f-${g.players[HUMAN].faction}">
+      <h2>📡 Forecast ${f.options.length}</h2>
+      <p class="dz-sub">Choose 1 card to <b>${dest}</b>. The rest go to the bottom of your deck.${bonus}</p>
+      <div class="mull-row fc-row">${cards}</div>
+    </div>`, false);
+  }
+
+  function openModeModal(uid) {
+    const p = g.players[HUMAN];
+    const hc = p.hand.find((h) => h.uid === uid);
+    if (!hc) return;
+    const d = CARDS[hc.id];
+    modePickHand = uid;
+    SFX.click();
+    const opts = d.modes.map((m, idx) => {
+      const ts = E.modeTargets(g, HUMAN, d, idx);
+      const ok = !m.target || (ts && ts.length > 0);
+      return `<button class="mode-card ${ok ? '' : 'disabled'}" data-mode="${idx}" ${ok ? '' : 'disabled'}>
+        <div class="mode-icon">${m.icon || '⚡'}</div>
+        <div class="mode-name">${esc(m.name)}</div>
+        <div class="mode-text">${esc(m.text)}</div>
+      </button>`;
+    }).join('');
+    openModal(`<div class="mode-wrap f-${d.faction}">
+      <h2>${d.art} ${esc(d.name)}</h2>
+      <p class="dz-sub">Choose one mode to execute:</p>
+      <div class="mode-choices">${opts}</div>
+      <div class="modal-actions"><button class="btn ghost" data-do="close">Cancel</button></div>
+    </div>`, true);
+  }
 
   /* ============================================================ Design Workshop picker */
   function openDesigner(uid) {
@@ -1019,6 +1119,8 @@
     const why = Design.why(g, HUMAN, choice);
     const slots = Design.abilitySlots(g, HUMAN);
     const left = p.energy - E.cost(g, HUMAN, hc);
+    const disc = CARDS[hc.id].designDiscount || 0;
+    const finalCost = Math.max(0, def.cost - disc);
     const fmt = (n) => (n > 0 ? '+' + n : n < 0 ? '−' + (-n) : '0');
 
     const column = (slot) => {
@@ -1042,18 +1144,18 @@
     const tierNote = next ? `More parts unlock at Tech ${next}.` : 'Every part is unlocked.';
     const sum = b.lines.map((l) => `${Design.SLOT_NAMES[l.slot]} ${fmt(l.pts)}`).join(' · ');
     const verdict = why ? `<div class="dz-note bad">${why}</div>`
-      : def.cost <= left ? `<div class="dz-note good">You will have ${left} Energy left after the Workshop — enough to deploy it this turn.</div>`
-        : `<div class="dz-note">You will have ${left} Energy left after the Workshop, so this unit waits for a later turn.</div>`;
+      : finalCost <= left ? `<div class="dz-note good">You will have ${left} Energy left after ${esc(CARDS[hc.id].name)} — enough to deploy it this turn.</div>`
+        : `<div class="dz-note">You will have ${left} Energy left after ${esc(CARDS[hc.id].name)}, so this unit waits for a later turn.</div>`;
     const kwNotes = Object.keys(KW).filter((k) => def.kw[k]).map((k) => `<span>${KW[k].icon} ${KW[k].name}</span><span>${KW[k].text}</span>`).join('');
 
     openModal(`<div class="dz f-${g.players[HUMAN].faction}">
-      <h2>🛠️ Design Workshop</h2>
-      <p class="dz-sub">Pick one part from each column. You have <b>${p.research} Research</b>. ${tierNote} Every 2 points cost 1 Energy.</p>
+      <h2>${CARDS[hc.id].art} ${esc(CARDS[hc.id].name)}</h2>
+      <p class="dz-sub">Pick one part from each column. You have <b>${p.research} Research</b>. ${tierNote} Every 2 points cost 1 Energy${disc ? ` (${CARDS[hc.id].name} discounts the finished unit by ${disc})` : ''}.</p>
       <div class="dz-body">
         <div class="dz-cols">${Design.SLOTS.map(column).join('')}</div>
         <div class="dz-side">
-          ${cardHTML(def, { cls: 'dz-card' })}
-          <div class="dz-sum">${sum}<br><b>${b.points} points → ${def.cost} Energy</b></div>
+          ${cardHTML(def, { cls: 'dz-card', cost: finalCost })}
+          <div class="dz-sum">${sum}<br><b>${b.points} points → ${finalCost} Energy${disc ? ` (${def.cost}−${disc})` : ''}</b></div>
           ${verdict}
           ${kwNotes ? `<div class="kw-list dz-kw">${kwNotes}</div>` : ''}
         </div>
@@ -1092,6 +1194,54 @@
 
   $('#modal').addEventListener('click', (e) => {
     if (e.target.id === 'modal' && modalClosable) return closeModal();
+
+    // opening mulligan
+    if (mull) {
+      const c = e.target.closest('[data-mull]');
+      if (c) {
+        const uid = +c.dataset.mull;
+        if (mull.has(uid)) mull.delete(uid); else mull.add(uid);
+        SFX.click();
+        return showMulligan();
+      }
+      if (e.target.closest('[data-mullgo]')) finishMulligan();
+      return;
+    }
+
+    // Forecast look-ahead picker
+    if (g && g.forecast && g.forecast.pid === HUMAN) {
+      const fp = e.target.closest('[data-fcpick]');
+      if (fp) {
+        const idx = +fp.dataset.fcpick;
+        SFX.click();
+        closeModal();
+        E.resolveForecast(g, HUMAN, idx);
+        flush();
+        if (g.over) return gameOver();
+        render();
+        checkForecast();
+      }
+      return;
+    }
+
+    // Modal Order mode picker
+    if (modePickHand != null) {
+      const md = e.target.closest('[data-mode]');
+      if (md && !md.disabled) {
+        const idx = +md.dataset.mode;
+        const uid = modePickHand;
+        const hc = g.players[HUMAN].hand.find((h) => h.uid === uid);
+        closeModal();
+        if (!hc) return;
+        const d = CARDS[hc.id];
+        const mode = d.modes[idx];
+        SFX.click();
+        if (!mode.target) return humanAct({ type: 'play', hand: uid, target: null, lane: null, choice: idx });
+        sel = withTargets({ kind: 'card', hand: uid, mode: idx }, mode.target, E.modeTargets(g, HUMAN, d, idx));
+        render();
+        return;
+      }
+    }
 
     // Design Workshop picker
     if (designer) {
@@ -1170,15 +1320,20 @@
           <h3>Keywords</h3>
           <div class="kw-list">${kws}
             <span>⚡ Overcharge N</span><span>Automatically spends N leftover Energy when played to trigger a bonus effect.</span>
+            <span>📡 Forecast N</span><span>Look at the top N cards of your deck. Put 1 on top (or draw it) and put the rest on the bottom.</span>
+            <span>↻ Archive 1</span><span>Spend 1 Energy to draw a replacement card and shuffle this card back into your deck. All Secret Projects can be Archived.</span>
+            <span>☣ Purge</span><span>Removes a unit without triggering Last Stand or death effects, and keeps it out of the fallen pile.</span>
             <span>⊘ Jam</span><span>Disables a unit or location until the end of its owner’s next turn.</span>
             <span>🏛 Secret Project</span><span>Unique legendary location (max 1 per deck) with global colony effects.</span>
           </div>
+          <h3>Opening Hand</h3>
+          <p>The first player starts with ${E.START_CARDS} cards and ${E.FIRST_HP} extra Integrity; the second gets ${E.SECOND_EXTRA_CARDS} more cards and an Energy Cell. Before the first turn you may <b>swap</b> any cards of your opening hand for new ones from your deck, once.</p>
           <h3>Decks & Pacts</h3>
           <p>A deck is ${Decks.DECK_SIZE} cards: up to 2 copies of each card, 1 of a Secret Project. Your <b>faction</b> supplies the leader and leader power. You may sign a <b>Pact</b> with one other faction and include up to ${Decks.PACT_LIMIT} of its cards — but not its Secret Project. Build your own in the <b>Deckbuilder</b>.</p>
           <h3>Design Workshop</h3>
           <p>The <b>Design Workshop</b> Order builds a unit card to your own plan: a chassis, a weapon, armor and an ability. Parts unlock with Research at Tech 4, 8 and ${Design.SECOND_SLOT_TECH}, your faction (and Pact partner) each add a signature part, and the unit’s Energy cost is the sum of its parts.</p>
-          <h3>Research & Social Engineering</h3>
-          <p>Every Order and every staffed Landing Site grants Research. Milestones grant permanent Breakthroughs, and <b>Social Engineering</b> lets you trade one planetary advantage against a sharp drawback.</p>
+          <h3>Research & Doctrines</h3>
+          <p>Every Order and every staffed Landing Site grants Research. Milestones grant permanent Breakthroughs, and your <b>Doctrine</b> trades one planetary advantage against a sharp drawback.</p>
         </div>
       </div>
       <div class="modal-actions"><button class="btn primary" data-do="close">Got it</button></div>
@@ -1483,7 +1638,7 @@
       </div>
       <span class="label">Pact</span>
       <div class="bd-row"><div class="chips">${pactChips}</div><span class="bd-inline">${pactNote}</span></div>
-      <span class="label">Social</span>
+      <span class="label">Doctrine</span>
       <div class="bd-row"><div class="chips">${docChips}</div></div>
       <div class="bd-note"><span><b>${doc.icon} ${doc.name}:</b> ${doc.benefit}${doc.drawback !== 'None.' ? ` <i>(${doc.drawback})</i>` : ''}</span></div>`;
   }
@@ -1687,7 +1842,7 @@
     const f = FACTIONS[myFaction];
     openModal(`<div class="camp-wrap">
       <h2>🪐 Planetary Conquest</h2>
-      <p>Lead <b>${f.name}</b> across all seven regions of Tau Ceti. Each rival holds a fortified biome with a signature Social Engineering policy and deck. (${prog.cleared.length} / ${CAMPAIGN.length} sectors conquered)</p>
+      <p>Lead <b>${f.name}</b> across all seven regions of Tau Ceti. Each rival holds a fortified biome with a signature Doctrine and deck. (${prog.cleared.length} / ${CAMPAIGN.length} sectors conquered)</p>
       <div class="camp-grid">
         ${CAMPAIGN.map((m) => {
           const done = prog.cleared.includes(m.id);
@@ -1907,6 +2062,9 @@
     $('#biome-chips').innerHTML = Object.values(BIOMES).map((b) =>
       `<span class="chip f-neutral ${b.id === myBiome ? 'on' : ''}" data-biome="${b.id}">${b.icon} ${b.name}</span>`).join('');
 
+    $('#decree-chips').innerHTML = Object.values(DECREES).map((dc) =>
+      `<span class="chip f-neutral ${dc.id === myDecree ? 'on' : ''}" data-decree="${dc.id}" title="${esc(dc.desc)}">${dc.icon} ${dc.name}</span>`).join('');
+
     const diffs = [
       ['colonist', 'Colonist', 'Takes one action at a time, and makes mistakes.'],
       ['commander', 'Commander', 'Takes the best single action it can see, one at a time.'],
@@ -1917,11 +2075,12 @@
 
     const doc = DOCTRINES[myDoctrine] || DOCTRINES.standard;
     const biome = BIOMES[myBiome] || BIOMES.tau_ceti;
+    const decree = DECREES[myDecree] || DECREES.none;
     const deckDesc = curDeck.desc;
     $('#setup-desc').innerHTML = `
       <span><b>Deck:</b> ${deckDesc}</span>
       <span><b>${doc.icon} ${doc.name}:</b> ${doc.benefit} ${doc.drawback !== 'None.' ? '(' + doc.drawback + ')' : ''}</span>
-      <span><b>${biome.icon} ${biome.name}:</b> ${biome.desc}</span>`;
+      <span><b>${biome.icon} ${biome.name}:</b> ${biome.desc}</span>${decree.id !== 'none' ? `<span><b>${decree.icon} ${decree.name}:</b> ${decree.desc}</span>` : ''}`;
 
     const campProg = Decks.getCampaignProgress();
     $('#btn-campaign').textContent = `Planetary Conquest (${campProg.cleared.length}/${CAMPAIGN.length})`;
@@ -1931,6 +2090,7 @@
 
   function showTitle() {
     g = null;
+    mull = null;
     activeMode = { kind: 'skirmish' };
     $('#screen-game').classList.add('hidden');
     $('#screen-title').classList.remove('hidden');
@@ -1954,6 +2114,8 @@
     if (opp) { SFX.click(); oppChoice = opp.dataset.opp; return renderTitle(); }
     const bio = e.target.closest('[data-biome]');
     if (bio) { SFX.click(); myBiome = bio.dataset.biome; return renderTitle(); }
+    const dec = e.target.closest('[data-decree]');
+    if (dec) { SFX.click(); myDecree = dec.dataset.decree; return renderTitle(); }
     const dif = e.target.closest('[data-diff]');
     if (dif) { SFX.click(); myDiff = dif.dataset.diff; return renderTitle(); }
   });
@@ -1991,9 +2153,12 @@
     const doc0 = o.doctrine0 || myDoctrine;
     const doc1 = o.doctrine1 || FACTIONS[opp].presets[oppPre].doctrine || 'standard';
     const biome = o.biome || myBiome;
+    const decree = o.decree || (activeMode.kind === 'skirmish' ? myDecree : 'none');
 
     g = E.newGame(p0Fac, opp, seed, first, {
       biome,
+      decree,
+      human: o.auto ? null : HUMAN,
       deck0,
       pact0,
       deck1: o.deck1,
@@ -2004,6 +2169,7 @@
       hp1: o.hp1,
       bossName: o.bossName,
       bossArt: o.bossArt,
+      mulligan: true,
     });
     sel = null;
     hintMsg = null;
@@ -2012,12 +2178,55 @@
     $('#inspector').innerHTML = '<div class="insp-empty">Hover a card, unit, location, or lane terrain to inspect it.</div>';
     $('#screen-title').classList.add('hidden');
     $('#screen-game').classList.remove('hidden');
-    logLine(`${FACTIONS[p0Fac].name} versus ${o.bossName || FACTIONS[opp].name} on ${BIOMES[biome].name}.`, 'sys');
-    if (g.active === BOT) logLine('The enemy moves first. You start with two extra cards and an Energy Cell.', 'sys');
-    else logLine('You move first. The enemy starts with two extra cards and an Energy Cell.', 'sys');
+    const decInfo = DECREES[decree];
+    logLine(`${FACTIONS[p0Fac].name} versus ${o.bossName || FACTIONS[opp].name} on ${BIOMES[biome].name}${decInfo && decInfo.id !== 'none' ? ` · Council Decree: ${decInfo.name}` : ''}.`, 'sys');
+    if (g.active === BOT) logLine(`The enemy moves first, with ${E.FIRST_HP} extra Integrity. You start with two extra cards and an Energy Cell.`, 'sys');
+    else logLine(`You move first, with ${E.FIRST_HP} extra Integrity. The enemy starts with two extra cards and an Energy Cell.`, 'sys');
 
-    if (o.auto) fastForward(o.auto);
     busy = true;
+    if (o.auto) {
+      // a fast-forwarded game (the ?auto= link) lets the AI choose both opening hands
+      AI.mulligan(g, null, [null, myDiff]);
+      fastForward(o.auto);
+      g.humanPid = HUMAN;
+      return beginFirstTurn();
+    }
+    mull = new Set();
+    render();
+    showMulligan();
+  }
+
+  /* ============================================================ opening mulligan */
+  let mull = null; // while the opening-hand choice is open: the uids of the hand cards marked to swap
+  function showMulligan() {
+    const p = g.players[HUMAN];
+    const cards = p.hand.map((hc) => {
+      const d = CARDS[hc.id];
+      if (d.token) return cardHTML(d, { cls: 'mull-card kept' });
+      const out = mull.has(hc.uid);
+      return cardHTML(d, { cls: 'mull-card' + (out ? ' out' : ''), attrs: `data-mull="${hc.uid}"`, extra: out ? '<div class="mull-x">↻ Swap</div>' : '' });
+    }).join('');
+    const n = mull.size;
+    openModal(`<div class="mull f-${p.faction}">
+      <h2>Opening Hand</h2>
+      <p class="dz-sub">${g.active === HUMAN ? `You move first, so your colony starts with ${E.FIRST_HP} extra Integrity.` : 'The enemy moves first, so you start with two extra cards and an Energy Cell.'}
+        Click any cards you would rather swap for new ones from your deck. You get one swap, before the first turn.</p>
+      <div class="mull-row">${cards}</div>
+      <div class="modal-actions"><button class="btn primary" data-mullgo="1">${n ? `Swap ${n} card${n > 1 ? 's' : ''}` : 'Keep this hand'}</button></div>
+    </div>`, false);
+  }
+
+  function finishMulligan() {
+    const mine = Array.from(mull);
+    mull = null;
+    closeModal();
+    SFX.click();
+    E.mulligan(g, HUMAN, mine);
+    E.mulligan(g, BOT, AI.mulliganChoice(g, BOT, null, myDiff));
+    beginFirstTurn();
+  }
+
+  function beginFirstTurn() {
     flush();
     if (g.over) { busy = false; return gameOver(); }
     (async () => {
@@ -2025,6 +2234,7 @@
         await banner('Your Turn');
         busy = false;
         render();
+        checkForecast();
       } else {
         await banner('Enemy Turn', true);
         await botTurn();

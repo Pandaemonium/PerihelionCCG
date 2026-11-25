@@ -55,7 +55,8 @@ for (const a of ids) for (const b of ids) {
     const preset1 = pb[Math.floor(n / 2) % pb.length];
     const doc0 = FACTIONS[a].presets[preset0].doctrine || 'standard';
     const doc1 = FACTIONS[b].presets[preset1].doctrine || 'standard';
-    const g = E.newGame(a, b, 1000 + total * 7919, first, { biome: BIOME, preset0, preset1, doctrine0: doc0, doctrine1: doc1 });
+    const g = E.newGame(a, b, 1000 + total * 7919, first, { biome: BIOME, preset0, preset1, doctrine0: doc0, doctrine1: doc1, mulligan: true });
+    AI.mulligan(g);
     const starter = g.active;
     let steps = 0;
     while (!g.over && g.turn < 160) {

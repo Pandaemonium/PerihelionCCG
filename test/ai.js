@@ -106,6 +106,30 @@ const has = (g, id) => g.players[0].board.some((u) => u.id === id) || g.players[
   ok(g2.players[0].preset === null && AI.planOf(g2, 0).keystones[0] === 'survey_drone', 'a custom deck uses the plan it was given');
   ok(AI.planOf(E.newGame('synod', 'tide', 3, 0, { deck0: FILLER }), 0) === null, 'a custom deck without a plan has none');
 }
+/* ---------------------------------------------------------------- the opening mulligan */
+{
+  const deal = (ids, opts) => {
+    const g = E.newGame('auric', 'ironwake', 7, 0, Object.assign({ biome: 'classic', deck0: FILLER, deck1: FILLER, mulligan: true }, opts || {}));
+    const p = g.players[0];
+    p.hand = ids.map((id, i) => ({ uid: 9000 + i, id, cost: CARDS[id].cost }));
+    return g;
+  };
+  const tossed = (g, T, level) => AI.mulliganChoice(g, 0, T, level).map((uid) => g.players[0].hand.find((h) => h.uid === uid).id).sort().join();
+  ok(tossed(deal(['survey_drone', 'rover_scout', 'storm_skiff'])) === 'storm_skiff', 'the AI keeps its cheap cards and sends back a dear one');
+  ok(tossed(deal(['survey_drone', 'field_medic', 'planet_buster'])) === 'planet_buster', 'a 3-cost card is kept beside a cheap one');
+  ok(tossed(deal(['field_medic', 'probe_team', 'storm_skiff'])) === 'field_medic,probe_team,storm_skiff', 'a hand with nothing cheap goes back whole');
+  ok(tossed(deal(['field_medic', 'cell', 'storm_skiff'])) === 'storm_skiff', 'an Energy Cell makes a 3-cost card worth keeping, and is never sent back itself');
+  ok(tossed(deal(['aegis_algorithm', 'survey_drone', 'survey_drone'])) === 'aegis_algorithm', 'a Secret Project goes back');
+  ok(tossed(deal(['field_medic', 'storm_skiff', 'storm_skiff'], { plan0: { keystones: ['field_medic'] } })) === 'storm_skiff,storm_skiff', 'a 3-cost keystone is kept');
+  ok(tossed(deal(['survey_drone', 'storm_skiff', 'planet_buster'], { plan0: { mulligan: { keep: ['storm_skiff'], toss: ['survey_drone'] } } })) === 'planet_buster,survey_drone', 'a plan can name cards to keep and to send back');
+  ok(tossed(deal(['storm_skiff', 'planet_buster', 'survey_drone']), Object.assign({}, AI.TUNE, { mulligan: 0 })) === '', 'mulligan: 0 keeps every card');
+  ok(tossed(deal(['storm_skiff', 'planet_buster', 'survey_drone']), null, 'colonist') === '' && tossed(deal(['storm_skiff', 'survey_drone', 'survey_drone']), null, 'commander') === 'storm_skiff', 'the Colonist keeps what it is dealt; the Commander chooses');
+  const g = deal(['survey_drone', 'rover_scout', 'storm_skiff']);
+  AI.mulligan(g);
+  ok(g.mulligan === null && g.turn === 1 && g.players[0].mulliganed === 1, 'AI.mulligan takes both mulligans and the game starts');
+  AI.mulligan(g);
+  ok(g.turn === 1, 'and does nothing once they are taken');
+}
 // every preset's plan is well formed
 Object.keys(FACTIONS).forEach((f) => Object.keys(FACTIONS[f].presets).forEach((k) => {
   const pre = FACTIONS[f].presets[k], plan = pre.plan;
@@ -130,7 +154,8 @@ Object.keys(AI.LEVELS).forEach((l) => Object.keys(AI.LEVELS[l]).forEach((k) => o
 
 /* ---------------------------------------------------------------- the copy the AI plans on */
 function playGame(seed, a, b, tunes, levels, check) {
-  const g = E.newGame(a.f, b.f, seed, seed % 2, { preset0: a.k, preset1: b.k, doctrine0: a.doc, doctrine1: b.doc });
+  const g = E.newGame(a.f, b.f, seed, seed % 2, { preset0: a.k, preset1: b.k, doctrine0: a.doc, doctrine1: b.doc, mulligan: true });
+  AI.mulligan(g, tunes, levels);
   let illegal = 0;
   while (!g.over && g.turn < 160) {
     const pid = g.active;

@@ -108,7 +108,7 @@
     },
   };
 
-  /* ------------------------------------------------------------ Social Engineering policies
+  /* ------------------------------------------------------------ doctrines
    * `rules` holds the numbers the engine applies, so the text beside them has to be kept in step by hand:
    *   hp           change to the colony's starting Integrity
    *   cells        Energy Cells added to the opening hand
@@ -120,8 +120,11 @@
    *   fungusSafe   Xenofungus does not damage the player's units
    *   fungusLanes  lanes (0-based) that start as Xenofungus, replacing the map's terrain there
    *   guardAtk     Attack a Guard unit gains when it arrives
+   *   firstUnitHp  Health the first unit you deploy each turn gains
+   *   siteHp       extra Integrity locations you build enter with
+   *   maxEnergy    change to the maximum Energy cap
    *   hand         change to the maximum hand size
-   * The six are priced to be worth about the same: `node test/meta.js 40 1 --doctrines all` shows what each adds
+   * The doctrines are priced to be worth about the same: `node test/meta.js 40 1 --doctrines all` shows what each adds
    * to every preset over a deck with no doctrine at all. Re-run it after changing any of these numbers.
    */
   const DOCTRINES = {
@@ -156,10 +159,40 @@
       quote: 'Listen to the soil before you pour concrete over it.',
     },
     police: {
-      id: 'police', name: 'Police State', icon: '🛡️', rules: { guardAtk: 1, hand: -1 },
-      benefit: 'Your Guard units gain +1/+0 on arrival.',
-      drawback: 'Your maximum hand size is 8 instead of 9.',
+      id: 'police', name: 'Police State', icon: '🛡️', rules: { firstUnitHp: 1, cards: -1, milestones: 1 },
+      benefit: 'The first unit you deploy each turn gains +0/+1.',
+      drawback: 'Your opening hand is one card smaller, and Research Breakthroughs need +1 Research (5 / 9 / 14).',
       quote: 'Order is expensive. Chaos is fatal.',
+    },
+    planned: {
+      id: 'planned', name: 'Planned', icon: '🏗️', rules: { siteHp: 1, research: 1, maxEnergy: -1 },
+      benefit: 'Locations you build enter with +1 Integrity, and you start at 1 Research.',
+      drawback: 'Your maximum Energy cap is 9 instead of 10.',
+      quote: 'Five-year plans look slow until year four.',
+    },
+  };
+
+  /* ------------------------------------------------------------ Planetary Council Decrees (optional mutators) */
+  const DECREES = {
+    none: {
+      id: 'none', name: 'Standard', icon: '🪐',
+      desc: 'Standard Planetary Council mandate with no global mutator.',
+    },
+    solar_shade: {
+      id: 'solar_shade', name: 'Solar Shade', icon: '🕶️',
+      desc: 'All lanes start clear of terrain; both colonies gain +1 Research at each Cycle Start.',
+    },
+    fungal_bloom: {
+      id: 'fungal_bloom', name: 'Planetbloom', icon: '🟣',
+      desc: 'Lanes 1, 4, and 7 start as Xenofungus; Native units cost 1 less (min 1).',
+    },
+    repeal_charter: {
+      id: 'repeal_charter', name: 'Repeal Charter', icon: '☢️',
+      desc: 'Both colonies start with +5 Integrity and shuffle a Planet Buster into their deck.',
+    },
+    orbital_salvage: {
+      id: 'orbital_salvage', name: 'Orbital Salvage', icon: '📦',
+      desc: 'Extra Supply Pods drop from orbit on Cycles 3, 5, and 7.',
     },
   };
 
@@ -221,5 +254,6 @@
   V.TERRAIN = TERRAIN;
   V.BIOMES = BIOMES;
   V.DOCTRINES = DOCTRINES;
+  V.DECREES = DECREES;
   V.CAMPAIGN = CAMPAIGN;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
