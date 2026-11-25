@@ -498,16 +498,16 @@ function cycle(g) { const pid = g.active; E.endTurn(g, pid); E.endTurn(g, 1 - pi
   const face = { k: 'l', pid: 1 };
   let hp = g.players[1].hp;
   play(g, 0, 'critical_mass');
-  ok(hp - g.players[1].hp === 1, 'Critical Mass: 1 damage as the first card of the turn', hp - g.players[1].hp);
+  ok(hp - g.players[1].hp === 2, 'Critical Mass: 2 damage as the first card of the turn', hp - g.players[1].hp);
   E.playCard(g, 0, give(g, 0, 'cell'), null, null);
   play(g, 0, 'survey_drone', { lane: 0 });
   hp = g.players[1].hp;
   play(g, 0, 'critical_mass');
-  ok(hp - g.players[1].hp === 7, 'Critical Mass: +2 for each other card played this turn, Energy Cells included', hp - g.players[1].hp);
+  ok(hp - g.players[1].hp === 8, 'Critical Mass: +2 for each other card played this turn, Energy Cells included', hp - g.players[1].hp);
   cycle(g);
   hp = g.players[1].hp;
   play(g, 0, 'critical_mass');
-  ok(hp - g.players[1].hp === 1, 'Critical Mass: the count starts again each turn', hp - g.players[1].hp);
+  ok(hp - g.players[1].hp === 2, 'Critical Mass: the count starts again each turn', hp - g.players[1].hp);
 }
 {
   const g = game('tide', 'ironwake');
@@ -578,7 +578,9 @@ Object.values(CARDS).forEach((c) => {
   ok(Number.isInteger(c.cost) && c.cost >= 0, where + ' has a cost');
   if (c.type === 'unit') ok(Number.isInteger(c.atk) && Number.isInteger(c.hp) && c.hp > 0, where + ' has stats');
   if (c.type === 'site') ok(Number.isInteger(c.hp) && c.hp > 0 && typeof c.brief === 'string', where + ' has integrity and a brief');
-  if (c.type === 'order') ok(typeof c.play === 'function', where + ' has an effect');
+  if (c.type === 'order') {
+    ok(typeof c.play === 'function' || (Array.isArray(c.modes) && c.modes.length >= 2 && c.modes.every((m) => typeof m.play === 'function' && m.name && m.text)), where + ' has an effect');
+  }
   ok(typeof c.text === 'string' && typeof c.flavor === 'string' && c.art, where + ' has text, flavour and art');
   Object.keys(c.kw || {}).forEach((k) => ok(!!globalThis.TauCeti.KEYWORDS[k], where + ' keyword ' + k + ' exists'));
   // keywords printed on the card match the keywords it has
@@ -587,6 +589,467 @@ Object.values(CARDS).forEach((c) => {
     ok(new RegExp('<b>' + name).test(c.text), where + ' text mentions ' + name);
   });
 });
+
+/* ---------------------------------------------------------------- New Doctrines expansion */
+{
+  // Overrun: what is left after destroying a unit carries on into the colony
+  const g = game();
+  const t = unit(g, 0, 'thunderback', 2), foe = unit(g, 1, 'sprout', 2);
+  ok(E.hasKw(g, t, 'overrun'), 'Thunderback has Overrun');
+  E.attack(g, 0, t.uid, uref(foe));
+  ok(!E.find(g, foe.uid) && g.players[1].hp === 30 - (CARDS.thunderback.atk - CARDS.sprout.hp), 'Overrun: damage beyond the unit hits the enemy colony', g.players[1].hp);
+  // a Shield swallows the whole hit, and a unit that survives lets nothing through
+  const g2 = game();
+  const t2 = unit(g2, 0, 'thunderback', 2), wall = unit(g2, 1, 'bulwark_drone', 2);
+  E.attack(g2, 0, t2.uid, uref(wall));
+  ok(g2.players[1].hp === 30 && E.find(g2, wall.uid), 'Overrun: nothing carries past a Shield', g2.players[1].hp);
+  const g3 = game();
+  const t3 = unit(g3, 0, 'thunderback', 2), big = unit(g3, 1, 'worldroot_titan', 2);
+  E.attack(g3, 0, t3.uid, uref(big));
+  ok(g3.players[1].hp === 30, 'Overrun: nothing carries past a unit that survives');
+  // a unit without Overrun never spills over
+  const g4 = game();
+  const s4 = unit(g4, 0, 'storm_skiff', 2), foe4 = unit(g4, 1, 'sprout', 2);
+  E.attack(g4, 0, s4.uid, uref(foe4));
+  ok(g4.players[1].hp === 30, 'no Overrun, no spill');
+}
+{
+  const g = game();
+  const u = unit(g, 0, 'perimeter_sentry', 2), foe = unit(g, 1, 'sprout', 2);
+  play(g, 0, 'stampede_pheromone', { target: uref(u) });
+  ok(stats(u) === plus('perimeter_sentry', 2, 2) && E.hasKw(g, u, 'overrun'), 'Stampede Pheromone: +2/+2 and Overrun', stats(u));
+  E.attack(g, 0, u.uid, uref(foe));
+  ok(g.players[1].hp === 30 - (CARDS.perimeter_sentry.atk + 2 - CARDS.sprout.hp), 'and the Overrun it grants works', g.players[1].hp);
+}
+{
+  const g = game();
+  const c = unit(g, 0, 'graft_champion', 2), other = unit(g, 0, 'perimeter_sentry', 1);
+  play(g, 0, 'overgrowth', { target: uref(c) });
+  ok(stats(c) === plus('graft_champion', 3, 3), 'Graftling Champion: an Order aimed at it gives +1/+1 on top', stats(c));
+  E.usePower(g, 0, uref(c));
+  ok(stats(c) === plus('graft_champion', 4, 5), 'Graftling Champion: only the first time each turn', stats(c));
+  g.players[0].energy = 10;
+  cycle(g);
+  E.usePower(g, 0, uref(c));
+  ok(stats(c) === plus('graft_champion', 6, 8), 'Graftling Champion: the leader power counts too, and it works again next turn', stats(c));
+  const g5 = game();
+  const c5 = unit(g5, 0, 'graft_champion', 2), other5 = unit(g5, 0, 'perimeter_sentry', 1);
+  play(g5, 0, 'overgrowth', { target: uref(other5) });
+  play(g5, 0, 'verdant_surge');
+  ok(stats(c5) === plus('graft_champion', 1, 1), 'Graftling Champion: Orders aimed elsewhere, or at nothing, do not count', stats(c5));
+  void other;
+  // an enemy Order aimed at it does not count either
+  const g2 = game('synod', 'rootbound');
+  const c2 = unit(g2, 1, 'graft_champion', 2);
+  play(g2, 0, 'data_spike', { target: uref(c2) });
+  ok(c2.atk === CARDS.graft_champion.atk, 'Graftling Champion: an enemy Order is no boon', stats(c2));
+}
+{
+  const g = game();
+  g.players[0].deck = ['survey_drone'];
+  const u = unit(g, 0, 'perimeter_sentry', 2);
+  play(g, 0, 'ironbark_graft', { target: uref(u) });
+  ok(u.kw.shield === true && hand(g, 0).join() === 'survey_drone', 'Ironbark Graft: Shielded, and draws a card', hand(g, 0));
+}
+{
+  // the fallen are recorded, tokens aside
+  const g = game('ironwake', 'rootbound');
+  const p = g.players[0];
+  const a = unit(g, 0, 'bulwark_drone', 0), b = unit(g, 0, 'dreadnought', 1), c = unit(g, 0, 'scrapbot', 2);
+  [a, b, c].forEach((u) => E.destroy(g, uref(u)));
+  E.endTurn(g, 0); E.endTurn(g, 1);
+  ok(p.grave.slice().sort().join() === 'bulwark_drone,dreadnought' && p.lost === 2, 'destroyed units are recorded, tokens are not', [p.grave, p.lost]);
+  const m = play(g, 0, 'wreck_marshal', { lane: 5 });
+  ok(stats(m) === plus('wreck_marshal', 2, 2), 'Wreck Marshal: +1/+1 for each unit lost', stats(m));
+  p.hand = [];
+  play(g, 0, 'recovery_crawler', { lane: 4 });
+  ok(hand(g, 0).join() === 'dreadnought' && p.grave.join() === 'bulwark_drone', 'Recovery Crawler: returns the costliest fallen unit to hand', [hand(g, 0), p.grave]);
+  p.hand = [];
+  p.lost = 9;
+  p.energy = 10;
+  ok(stats(play(g, 0, 'wreck_marshal', { lane: 6 })) === plus('wreck_marshal', 4, 4), 'Wreck Marshal: capped at +4/+4');
+  // Reassembly Bay rebuilds a cheap fallen unit in its own lane when the lane is empty
+  site(g, 0, 'reassembly_bay', 0);
+  p.grave.push('dreadnought');
+  E.endTurn(g, 0);
+  const back = E.unitAt(g, 0, 0);
+  ok(back && back.id === 'bulwark_drone' && p.grave.join() === 'dreadnought', 'Reassembly Bay: rebuilds a unit costing 3 or less, never a dear one', [back && back.id, p.grave]);
+  E.endTurn(g, 1);
+  p.grave.push('scrap_welder');
+  E.endTurn(g, 0);
+  ok(p.grave.includes('scrap_welder'), 'Reassembly Bay: does nothing while a unit is stationed there');
+  // nothing to bring back
+  const g2 = game('ironwake', 'rootbound');
+  play(g2, 0, 'recovery_crawler', { lane: 4 });
+  ok(hand(g2, 0).length === 0 && stats(play(g2, 0, 'wreck_marshal', { lane: 5 })) === plus('wreck_marshal', 0, 0), 'with no losses the Crawler finds nothing and the Marshal is plain');
+}
+{
+  const g = game('synod', 'ironwake');
+  play(g, 0, 'systems_engineer', { lane: 0 });
+  ok(hand(g, 0).join() === 'design_workshop', 'Systems Engineer: adds a Design Workshop to hand', hand(g, 0));
+  const g2 = game('synod', 'ironwake');
+  site(g2, 0, 'skunkworks', 0);
+  {
+    const hc = E.designUnit(g2, 0, { chassis: 'inf', weapon: 'w2', armor: 'a3', abilities: [] });
+    ok(E.cost(g2, 0, hc) === hc.cost - 1 && E.cost(g2, 1, hc) === hc.cost, 'Skunkworks: units I design cost 1 less', [E.cost(g2, 0, hc), hc.cost]);
+    ok(E.cost(g2, 0, { id: 'survey_drone', cost: 1 }) === 1, 'Skunkworks: other cards cost what they cost');
+    g2.players[0].hand = [];
+  }
+  cycle(g2);
+  ok(hand(g2, 0).filter((id) => id === 'design_workshop').length === 1, 'Skunkworks: a Design Workshop at Cycle Start', hand(g2, 0));
+  cycle(g2);
+  ok(hand(g2, 0).filter((id) => id === 'design_workshop').length === 1, 'Skunkworks: not while one is already in hand', hand(g2, 0));
+  // Proving Ground: a designed unit enters +1/+1, a premade one does not
+  const g3 = game('synod', 'ironwake');
+  site(g3, 0, 'proving_ground', 0);
+  const choice = { chassis: 'inf', weapon: 'w2', armor: 'a3', abilities: [] };
+  const hc = E.designUnit(g3, 0, choice);
+  const def = CARDS[hc.id];
+  E.playCard(g3, 0, hc.uid, null, 1);
+  const made = E.unitAt(g3, 0, 1);
+  ok(made && made.atk === def.atk + 1 && made.hp === def.hp + 1, 'Proving Ground: a unit you designed enters with +1/+1', made && stats(made));
+  ok(stats(play(g3, 0, 'survey_drone', { lane: 2 })) === plus('survey_drone', 0, 0), 'Proving Ground: other units are unchanged');
+}
+{
+  // returning to hand
+  const g = game('tide', 'ironwake');
+  const p = g.players[0];
+  site(g, 0, 'hidden_cove', 0);
+  const r = play(g, 0, 'reef_skirmisher', { lane: 2 });
+  const foe = unit(g, 1, 'sprout', 2);
+  ok(r.ready && E.attackTargets(g, r).length === 1, 'Reef Skirmisher: Blitz, so it can strike a unit at once');
+  E.buff(g, foe, 4, 4);
+  E.attack(g, 0, r.uid, uref(foe));
+  ok(r.hp === CARDS.reef_skirmisher.hp && foe.hp === CARDS.sprout.hp + 4 - CARDS.reef_skirmisher.atk, 'Reef Skirmisher: takes no damage back when it attacks', [r.hp, foe.hp]);
+  p.hand = [];
+  g.silent = false; g.events.length = 0;
+  E.endTurn(g, 0);
+  ok(!E.find(g, r.uid) && hand(g, 0).includes('reef_skirmisher'), 'Reef Skirmisher: returns to hand at Cycle End', hand(g, 0));
+  ok(hand(g, 0).includes('cell'), 'Hidden Cove: a unit returning to hand gives an Energy Cell', hand(g, 0));
+  ok(p.grave.length === 0 && p.lost === 0 && g.events.some((e) => e.t === 'bounce' && e.id === 'reef_skirmisher') && !g.events.some((e) => e.t === 'death' && e.id === 'reef_skirmisher'), 'returning to hand is not being destroyed');
+  ok(p.hand.find((h) => h.id === 'reef_skirmisher').cost === CARDS.reef_skirmisher.cost, 'it comes back at its printed cost');
+}
+{
+  const g = game('tide', 'ironwake');
+  const big = unit(g, 1, 'dreadnought', 2), tok = unit(g, 1, 'scrapbot', 3);
+  E.buff(g, big, 3, 3);
+  play(g, 0, 'undertow', { target: uref(big) });
+  ok(!E.find(g, big.uid) && hand(g, 1).join() === 'dreadnought' && g.players[1].hand[0].cost === CARDS.dreadnought.cost, 'Undertow: the enemy unit goes back to its owner’s hand as a fresh card', hand(g, 1));
+  play(g, 0, 'undertow', { target: uref(tok) });
+  ok(!E.find(g, tok.uid) && hand(g, 1).join() === 'dreadnought' && g.players[1].grave.length === 0, 'Undertow: a token is removed from play', hand(g, 1));
+  // a full hand: the unit is lost
+  const g2 = game('tide', 'ironwake');
+  const u2 = unit(g2, 1, 'dreadnought', 2);
+  for (let i = 0; i < E.maxHand(g2, 1); i++) give(g2, 1, 'cell');
+  play(g2, 0, 'undertow', { target: uref(u2) });
+  ok(!E.find(g2, u2.uid) && g2.players[1].hand.length === E.maxHand(g2, 1), 'Undertow: with a full hand the unit is simply lost');
+}
+{
+  const g = game();
+  const u = unit(g, 0, 'storm_skiff', 2), tok = unit(g, 0, 'sprout', 3);
+  E.buff(g, u, 2, 2);
+  ok(E.cardTargets(g, 0, CARDS.evac_shuttle).length === 1, 'Evac Shuttle: cannot pick a token');
+  play(g, 0, 'evac_shuttle', { target: uref(u) });
+  const hc = g.players[0].hand[0];
+  ok(!E.find(g, u.uid) && hc.id === 'storm_skiff' && hc.cost === CARDS.storm_skiff.cost - 1 && E.find(g, tok.uid), 'Evac Shuttle: returns a friendly unit to hand, 1 cheaper', [hc.id, hc.cost]);
+  const again = E.playCard(g, 0, hc.uid, null, 2) && E.unitAt(g, 0, 2);
+  ok(again && stats(again) === plus('storm_skiff', 0, 0), 'the returned unit is a fresh copy: its buffs are gone', again && stats(again));
+}
+{
+  // surviving damage
+  const g = game('cinder', 'ironwake');
+  const f = unit(g, 0, 'ember_flagellant', 2), foe = unit(g, 1, 'sprout', 2);
+  E.attack(g, 0, f.uid, uref(foe));
+  ok(stats(f) === (CARDS.ember_flagellant.atk + 2) + '/' + (CARDS.ember_flagellant.hp - 1), 'Ember Flagellant: +2 Attack when it survives damage', stats(f));
+  const p = unit(g, 0, 'scarred_penitent', 4);
+  ok(E.effectiveAtk(g, p, null) === CARDS.scarred_penitent.atk, 'Scarred Penitent: plain when unhurt');
+  E.damage(g, uref(p), 3, null);
+  ok(E.effectiveAtk(g, p, null) === CARDS.scarred_penitent.atk + 3, 'Scarred Penitent: +1 Attack for each damage taken', E.effectiveAtk(g, p, null));
+  E.heal(g, uref(p), 2);
+  ok(E.effectiveAtk(g, p, null) === CARDS.scarred_penitent.atk + 1, 'Scarred Penitent: healing takes the Attack away again');
+  const g2 = game('cinder', 'ironwake');
+  const s = unit(g2, 0, 'cinder_scourge', 2);
+  E.damage(g2, uref(s), 1, null);
+  ok(g2.players[1].hp === 28, 'Cinder Scourge: surviving damage deals 2 to a random enemy (here the colony)', g2.players[1].hp);
+  E.damage(g2, uref(s), 9, null);
+  ok(g2.players[1].hp === 28, 'Cinder Scourge: nothing when the damage destroys it');
+}
+{
+  const g = game('cinder', 'ironwake');
+  const mine = unit(g, 0, 'perimeter_sentry', 1), weak = unit(g, 0, 'pilgrim', 2), fl = unit(g, 0, 'ember_flagellant', 4);
+  const foe = unit(g, 1, 'perimeter_sentry', 1), foeWeak = unit(g, 1, 'sprout', 2);
+  play(g, 0, 'trial_by_fire');
+  ok(!E.find(g, weak.uid) && !E.find(g, foeWeak.uid), 'Trial by Fire: 1 damage to every unit, on both sides');
+  ok(stats(mine) === (CARDS.perimeter_sentry.atk + 1) + '/' + CARDS.perimeter_sentry.hp && stats(foe) === CARDS.perimeter_sentry.atk + '/' + (CARDS.perimeter_sentry.hp - 1), 'Trial by Fire: my survivors then gain +1/+1, the enemy’s do not', [stats(mine), stats(foe)]);
+  ok(fl.atk === CARDS.ember_flagellant.atk + 3, 'Trial by Fire: and it counts as damage survived', stats(fl));
+}
+{
+  // Jam and tax
+  const g = game('auric', 'ironwake');
+  const agent = unit(g, 0, 'repo_agent', 0);
+  const foe = unit(g, 1, 'siege_walker', 2), foe2 = unit(g, 1, 'perimeter_sentry', 4);
+  ok(!E.canPlay(g, 0, { id: 'liquidator', cost: 5 }) || !E.needsTarget(g, 0, { id: 'liquidator', cost: 5 }), 'Liquidator: no target while nothing is Jammed');
+  play(g, 0, 'hostile_audit', { target: uref(foe2) });
+  ok(foe2.jammed > 0 && foe2.hp === CARDS.perimeter_sentry.hp - 2, 'Hostile Audit: Jams and deals 2 damage', [foe2.jammed, foe2.hp]);
+  ok(hand(g, 0).join() === 'cell', 'Repo Agent: an enemy Jammed gives an Energy Cell', hand(g, 0));
+  play(g, 0, 'bribe', { target: uref(foe) });
+  ok(hand(g, 0).filter((id) => id === 'cell').length === 1, 'Repo Agent: only the first Jam each turn', hand(g, 0));
+  ok(E.cardTargets(g, 0, CARDS.liquidator).length === 2, 'Liquidator: may pick any Jammed enemy unit');
+  play(g, 0, 'liquidator', { lane: 5, target: uref(foe) });
+  ok(!E.find(g, foe.uid), 'Liquidator: destroys the Jammed unit, Shield or not');
+  void agent;
+}
+{
+  const g = game('auric', 'ironwake');
+  site(g, 0, 'trade_embargo', 0);
+  E.endTurn(g, 0);
+  const p = g.players[1];
+  p.energy = 10;
+  const a = give(g, 1, 'scrap_welder'), b = give(g, 1, 'scrap_welder'), c = give(g, 1, 'cell');
+  const cost = (uid) => E.cost(g, 1, p.hand.find((h) => h.uid === uid));
+  ok(cost(a) === CARDS.scrap_welder.cost + 1 && cost(c) === 0, 'Trade Embargo: the enemy’s first card costs 1 more, an Energy Cell does not', [cost(a), cost(c)]);
+  E.playCard(g, 1, c, null, null);
+  ok(cost(a) === CARDS.scrap_welder.cost + 1, 'Trade Embargo: playing a Cell first does not dodge it', cost(a));
+  const before = p.energy;
+  E.playCard(g, 1, a, null, 0);
+  ok(p.energy === before - CARDS.scrap_welder.cost - 1 && cost(b) === CARDS.scrap_welder.cost, 'Trade Embargo: paid once, then the next card is at its own cost', [p.energy, cost(b)]);
+  E.endTurn(g, 1); E.endTurn(g, 0);
+  ok(cost(b) === CARDS.scrap_welder.cost + 1, 'Trade Embargo: and again next turn');
+  ok(E.cost(g, 0, { id: 'scrap_welder', cost: 1 }) === 1, 'Trade Embargo: its owner pays nothing extra');
+}
+{
+  // Supply Pods
+  const g = game('redline', 'ironwake');
+  const off = unit(g, 0, 'logistics_officer', 0);
+  g.players[0].hand = [];
+  play(g, 0, 'airdrop_beacon', { lane: 5 });
+  ok(g.lanes[5].pod === true && stats(off) === plus('logistics_officer', 0, 0), 'Airdrop Beacon: drops a Supply Pod as soon as it is built, and with nobody stationed the Pod waits');
+  play(g, 0, 'bunker', { lane: 6 });
+  ok(!g.lanes[6].pod, 'Airdrop Beacon: building some other location drops nothing');
+  cycle(g);
+  ok(g.lanes[5].pod === true, 'Airdrop Beacon: one Pod at a time');
+  const u = play(g, 0, 'perimeter_sentry', { lane: 5 });
+  ok(g.lanes[5].pod === false && stats(off) === plus('logistics_officer', 1, 1), 'Logistics Officer: +1/+1 when I claim a Supply Pod', stats(off));
+  cycle(g);
+  ok(g.lanes[5].pod === false && stats(off) === plus('logistics_officer', 2, 2), 'Airdrop Beacon: the unit stationed there claims a new one each cycle', stats(off));
+  void u;
+  const g2 = game('redline', 'ironwake');
+  g2.lanes[3].pod = true;
+  play(g2, 0, 'supply_convoy', { lane: 2 });
+  ok(g2.lanes[1].pod && g2.lanes[3].pod, 'Supply Convoy: a Supply Pod in each neighbouring lane');
+  const g3 = game('redline', 'ironwake');
+  play(g3, 0, 'supply_convoy', { lane: 0 });
+  ok(g3.lanes[1].pod && !g3.lanes[0].pod, 'Supply Convoy: at the edge of the map, one lane only');
+  // an enemy claiming a pod is no business of the officer
+  const g4 = game('redline', 'ironwake');
+  const off4 = unit(g4, 0, 'logistics_officer', 0);
+  g4.lanes[6].pod = true;
+  E.endTurn(g4, 0);
+  play(g4, 1, 'perimeter_sentry', { lane: 6 });
+  ok(stats(off4) === plus('logistics_officer', 0, 0), 'Logistics Officer: an enemy claim does nothing');
+}
+{
+  // the seven presets that came with these cards
+  ['colossus', 'reclaim', 'prototype', 'hitrun', 'trial', 'tradewar', 'supply'].forEach((k) => {
+    const F = globalThis.TauCeti.FACTIONS;
+    const f = Object.keys(F).find((x) => F[x].presets[k]);
+    ok(!!f, 'preset exists: ' + k);
+  });
+}
+
+/* ---------------------------------------------------------------- Planetary Telemetry & Counterplay expansion */
+{
+  // Forecast: look at top N, put 1 on top (or draw), rest on bottom
+  const g = game('rootbound', 'ironwake');
+  g.players[0].deck = ['survey_drone', 'bunker', 'storm_skiff', 'worldroot_titan'];
+  // top 3 are worldroot_titan (top), storm_skiff, bunker
+  g.humanPid = 0;
+  g.silent = false;
+  play(g, 0, 'telemetry_drone', { lane: 0 });
+  ok(!!g.forecast && g.forecast.options.join() === 'worldroot_titan,storm_skiff,bunker', 'Telemetry Drone: pauses human for Forecast 3', g.forecast && g.forecast.options);
+  ok(!E.endTurn(g, 0), 'cannot end turn while Forecast is pending');
+  E.resolveForecast(g, 0, 1); // pick storm_skiff
+  ok(g.forecast === null, 'Forecast cleared after resolve');
+  ok(g.players[0].deck[g.players[0].deck.length - 1] === 'storm_skiff', 'Forecast puts chosen card on top of deck', g.players[0].deck);
+  ok(g.players[0].deck[0] === 'worldroot_titan' && g.players[0].deck[1] === 'bunker', 'Forecast bottoms the unchosen cards', g.players[0].deck);
+
+  // Market Forecast: Overcharge draws the chosen card
+  const g2 = game('auric', 'ironwake');
+  g2.players[0].deck = ['survey_drone', 'bunker', 'storm_skiff', 'worldroot_titan'];
+  g2.players[0].energy = 2; // 1 base + 1 Overcharge
+  g2.humanPid = 0;
+  g2.silent = false;
+  play(g2, 0, 'market_forecast');
+  ok(g2.forecast && g2.forecast.draw === true, 'Market Forecast (Overcharged): sets draw=true');
+  E.resolveForecast(g2, 0, 2); // pick bunker
+  ok(hand(g2, 0).includes('bunker'), 'Market Forecast (Overcharged): draws the picked card into hand', hand(g2, 0));
+
+  // Prescient Empath: +1/+1 when Forecast picks a Native unit
+  const g3 = game('rootbound', 'ironwake');
+  g3.players[0].deck = ['bunker', 'survey_drone', 'seedcaster'];
+  g3.humanPid = 0;
+  g3.silent = false;
+  const emp = play(g3, 0, 'prescient_empath', { lane: 1 });
+  E.resolveForecast(g3, 0, 0); // pick seedcaster (native)
+  ok(stats(emp) === plus('prescient_empath', 1, 1), 'Prescient Empath: +1/+1 when Forecast picks a Native unit', stats(emp));
+}
+{
+  // Archive 1: tradeable Secret Projects & Planet Buster / Liquidator
+  const g = game('auric', 'ironwake');
+  g.players[0].deck = ['survey_drone', 'bunker'];
+  const uid = give(g, 0, 'meridian_exchange');
+  ok(E.canArchive(g, 0, g.players[0].hand[0]), 'Secret Project is Archivable');
+  const eBefore = g.players[0].energy;
+  ok(E.archiveCard(g, 0, uid), 'Archive succeeds');
+  ok(g.players[0].energy === eBefore - 1, 'Archive spends 1 Energy');
+  ok(hand(g, 0).includes('bunker') && !hand(g, 0).includes('meridian_exchange'), 'Archive draws replacement first', hand(g, 0));
+  ok(g.players[0].deck.includes('meridian_exchange'), 'Archive shuffles original back into deck', g.players[0].deck);
+  const pb = give(g, 0, 'planet_buster');
+  ok(E.canArchive(g, 0, g.players[0].hand.find((h) => h.uid === pb)), 'Planet Buster is Archivable');
+}
+{
+  // Modal Orders + Purge + Multi-hit Shield breaking
+  const g = game('auric', 'ironwake');
+  const wall = unit(g, 1, 'bulwark_drone', 2); // 2/3 Guard Shielded
+  const uid = give(g, 0, 'breach_protocol');
+  ok(!E.playCard(g, 0, uid, uref(wall), null, 99), 'Modal Order rejects invalid mode');
+  ok(E.playCard(g, 0, uid, uref(wall), null, 0), 'Breach Protocol mode 0 (Triple Pulse) hits 3 times');
+  ok(wall.kw.shield === false && wall.hp === 1, 'Triple Pulse pops Shield on hit 1 and deals 2 damage on hits 2-3', [wall.kw.shield, wall.hp]);
+  const uid2 = give(g, 0, 'breach_protocol');
+  ok(E.playCard(g, 0, uid2, null, null, 1), 'Breach Protocol mode 1 adds 2 Energy Cells');
+  ok(hand(g, 0).filter((x) => x === 'cell').length === 2, 'Breach Protocol mode 1 gave 2 Cells', hand(g, 0));
+
+  // Salvage Impound: Psi damage + Purge skips Last Stand, onAllyDeath, and grave
+  const g2 = game('auric', 'rootbound');
+  site(g2, 1, 'chrysalis_vats', 0);
+  const pod = unit(g2, 1, 'podling_carrier', 2); // 2/3 Last Stand: 2 sprouts
+  pod.hp = 2;
+  play(g2, 0, 'salvage_impound', { lane: 2, target: uref(pod) });
+  ok(!E.find(g2, pod.uid), 'Salvage Impound destroys damaged unit');
+  ok(g2.players[1].board.length === 0 && g2.players[1].grave.length === 0, 'Purge suppresses Last Stand, Chrysalis Vats, and grave', [g2.players[1].board.length, g2.players[1].grave]);
+
+  // Containment Purge: mode 0 Jams + purges costliest from grave; mode 1 deals 2 + draws on kill
+  const g3 = game('synod', 'ironwake');
+  g3.players[1].grave = ['scrap_welder', 'dreadnought', 'bulwark_drone'];
+  const s = unit(g3, 1, 'siege_walker', 2);
+  const cp1 = give(g3, 0, 'containment_purge');
+  ok(E.playCard(g3, 0, cp1, uref(s), null, 0), 'Containment Purge mode 0 plays');
+  ok(s.jammed > 0 && !g3.players[1].grave.includes('dreadnought') && g3.players[1].grave.length === 2, 'Containment Purge mode 0 Jams and purges costliest unit from grave', g3.players[1].grave);
+  const sp = unit(g3, 1, 'sprout', 4);
+  g3.players[0].hand = [];
+  const cp2 = give(g3, 0, 'containment_purge');
+  ok(E.playCard(g3, 0, cp2, uref(sp), null, 1), 'Containment Purge mode 1 plays');
+  ok(!E.find(g3, sp.uid) && hand(g3, 0).length === 1, 'Containment Purge mode 1 kills and draws', hand(g3, 0));
+}
+{
+  // Terraforming, Pull, and 7-lane geometry cards
+  const g = game('rootbound', 'ironwake');
+  g.lanes[0].terrain = 'monolith';
+  g.lanes[4].terrain = 'fungus';
+  play(g, 0, 'tectonic_shaper', { lane: 4, target: { k: 'c', lane: 0 } });
+  ok(g.lanes[4].terrain === 'monolith' && g.lanes[0].terrain === 'fungus' && hand(g, 0).length === 1, 'Tectonic Shaper swaps terrain and draws', [g.lanes[0].terrain, g.lanes[4].terrain]);
+
+  const g2 = game('ironwake', 'rootbound');
+  g2.lanes[1].terrain = 'fungus';
+  play(g2, 0, 'bio_scrubber', { lane: 1 });
+  ok(g2.lanes[1].terrain === null && g2.players[0].armor === 3 && hand(g2, 0).length === 1, 'Bio-Scrubber Rig clears terrain, +3 Armor, draws');
+
+  const g3 = game('ironwake', 'rootbound');
+  g3.lanes[2].terrain = 'borehole';
+  const foe = unit(g3, 1, 'worldroot_titan', 1);
+  play(g3, 0, 'grav_pull_winch', { target: uref(foe) });
+  ok(foe.lane === 2 && foe.hp === CARDS.worldroot_titan.hp - 3, 'Grav-Pull Winch pulls toward centre and deals +1 on terrain', [foe.lane, foe.hp]);
+
+  const g4 = game('redline', 'ironwake');
+  g4.lanes[0].terrain = 'ridge'; g4.lanes[2].terrain = 'fungus'; g4.lanes[5].terrain = 'monolith';
+  const surv = play(g4, 0, 'frontier_surveyor', { lane: 1 });
+  ok(stats(surv) === plus('frontier_surveyor', 2, 2), 'Frontier Surveyor gains +1/+1 per distinct terrain type (up to +2/+2)', stats(surv));
+
+  const g5 = game('rootbound', 'ironwake');
+  g5.lanes[2].terrain = 'fungus';
+  const u5 = unit(g5, 0, 'seedcaster', 2);
+  play(g5, 0, 'condenser_array', { lane: 2 });
+  ok(stats(u5) === plus('seedcaster', 1, 1), 'Condenser Array buffs stationed unit immediately on terrain', stats(u5));
+}
+{
+  // Field Refit (-2 cost on designed unit) & Salvage Blueprint (0-cost Workshop on Last Stand)
+  const g = game('synod', 'ironwake');
+  g.players[0].research = 4;
+  const choice = { chassis: 'inf', weapon: 'w3', armor: 'a3', abilities: [] }; // 3 Energy normally
+  const fr = give(g, 0, 'field_refit');
+  ok(E.playCard(g, 0, fr, null, null, choice), 'Field Refit builds a designed unit');
+  const designed = g.players[0].hand[0];
+  ok(designed && designed.cost === 1, 'Field Refit discounts designed unit by 2 Energy', designed && designed.cost);
+
+  const g2 = game('ironwake', 'rootbound');
+  const bp = unit(g2, 0, 'salvage_blueprint', 2);
+  play(g2, 0, 'demolition_charge', { target: uref(bp) });
+  ok(g2.players[0].hand.some((h) => h.id === 'design_workshop' && h.cost === 0), 'Salvage Blueprint adds 0-cost Design Workshop on Last Stand', g2.players[0].hand);
+}
+{
+  // A Forecast that waits for a person: nothing that happens while it is open may change which cards they own.
+  const owned = (g, pid) => {
+    const p = g.players[pid];
+    return p.deck.concat(p.hand.map((h) => h.id), g.forecast && g.forecast.pid === pid ? g.forecast.options : []).sort().join();
+  };
+  const g = game('synod', 'ironwake');
+  const p = g.players[0];
+  g.humanPid = 0;
+  p.deck = ['bunker', 'survey_drone', 'acolyte', 'probe_tech', 'data_spike']; // the top of the deck is the last entry
+  p.research = E.milestones(g, 0)[0] - 1;
+  const uid = give(g, 0, 'seismic_ping');
+  const before = owned(g, 0).replace('seismic_ping,', '');
+  // the Order's own Research reaches the first Breakthrough, which draws a card, while the Forecast is still open
+  ok(E.playCard(g, 0, uid, { k: 'l', pid: 1 }, null) && !!g.forecast, 'Forecast: a person\'s Seismic Ping waits for the pick');
+  ok(g.forecast.options.join() === 'data_spike,probe_tech,acolyte' && p.deck.join() === 'bunker,survey_drone', 'Forecast: the cards being looked at are held out of the deck', [g.forecast.options, p.deck]);
+  ok(p.hand.length === 0 && g.forecast.owed === 1, 'Forecast: a draw that falls due while it is open waits for the pick', [hand(g, 0), g.forecast.owed]);
+  E.resolveForecast(g, 0, 1); // pick probe_tech
+  ok(hand(g, 0).join() === 'probe_tech', 'Forecast: the waiting draw then takes the pick, as it does for the AI', hand(g, 0));
+  ok(p.deck.join() === 'data_spike,acolyte,bunker,survey_drone', 'Forecast: the other cards went to the bottom', p.deck);
+  ok(owned(g, 0) === before, 'Forecast: no card was copied or lost', [before, owned(g, 0)]);
+
+  // the same play by the AI's seat ends the same way
+  const ga = game('synod', 'ironwake');
+  ga.players[0].deck = ['bunker', 'survey_drone', 'acolyte', 'probe_tech', 'data_spike'];
+  ga.players[0].research = E.milestones(ga, 0)[0] - 1;
+  E.playCard(ga, 0, give(ga, 0, 'seismic_ping'), { k: 'l', pid: 1 }, null);
+  ok(ga.forecast === null && ga.players[0].hand.length === 1 && ga.players[0].deck.length === 4, 'Forecast: the AI seat picks at once and draws its pick', [hand(ga, 0), ga.players[0].deck]);
+
+  // two Forecasts at once: the second waits its turn and shows the deck as the first left it
+  const g2 = game('synod', 'ironwake');
+  const p2 = g2.players[0];
+  g2.humanPid = 0;
+  p2.deck = ['bunker', 'survey_drone', 'acolyte', 'probe_tech', 'data_spike'];
+  const before2 = owned(g2, 0);
+  E.forecast(g2, 0, 2);
+  E.forecast(g2, 0, 2);
+  ok(g2.forecast.options.join() === 'data_spike,probe_tech' && g2.forecast.queue.length === 1, 'Forecast: a second one queues behind the first', [g2.forecast.options, g2.forecast.queue.length]);
+  E.resolveForecast(g2, 0, 1); // probe_tech on top, data_spike to the bottom
+  ok(!!g2.forecast && g2.forecast.options.join() === 'probe_tech,acolyte' && g2.forecast.queue.length === 0, 'Forecast: the queued one opens next, on the deck as it now stands', g2.forecast && g2.forecast.options);
+  E.resolveForecast(g2, 0, 0);
+  ok(g2.forecast === null && p2.deck.join() === 'acolyte,data_spike,bunker,survey_drone,probe_tech' && owned(g2, 0) === before2, 'Forecast: both resolve and every card is still there', p2.deck);
+  ok(E.endTurn(g2, 0), 'Forecast: the turn can end once none is open');
+
+  // the AI's pick knows about Prescient Empath's bonus for a Native unit
+  const g3 = game('rootbound', 'ironwake');
+  g3.players[0].deck = ['bunker', 'seedcaster', 'survey_drone'];
+  const emp = play(g3, 0, 'prescient_empath', { lane: 1 });
+  ok(stats(emp) === plus('prescient_empath', 1, 1) && g3.players[0].deck[2] === 'seedcaster', 'Prescient Empath: the AI picks the Native unit for the +1/+1', [stats(emp), g3.players[0].deck]);
+}
+{
+  // Pull only ever moves a unit toward the centre lane
+  const g = game('ironwake', 'rootbound');
+  const mid = unit(g, 1, 'worldroot_titan', E.CENTER);
+  ok(!E.pullUnit(g, mid) && mid.lane === E.CENTER, 'Pull: a unit in the centre lane stays there', mid.lane);
+  const out = unit(g, 1, 'seedcaster', 1);
+  unit(g, 1, 'creeping_vine', 2);
+  ok(!E.pullUnit(g, out) && out.lane === 1, 'Pull: a unit whose inward lane is taken stays where it is', out.lane);
+  const right = unit(g, 1, 'seedcaster', 6);
+  ok(E.pullUnit(g, right) && right.lane === 5, 'Pull: a unit on the right flank moves left, toward the centre', right.lane);
+  g.lanes[E.CENTER].terrain = 'borehole';
+  play(g, 0, 'grav_pull_winch', { target: uref(mid) });
+  ok(mid.lane === E.CENTER && mid.hp === CARDS.worldroot_titan.hp - 2, 'Grav-Pull Winch: no pull, so no extra damage, on a unit already in the centre', [mid.lane, mid.hp]);
+}
 
 console.log(failed ? `${failed} FAILED, ${passed} passed` : `all ${passed} checks passed`);
 process.exit(failed ? 1 : 0);

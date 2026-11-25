@@ -5,9 +5,18 @@
  *   orders / powers:   ctx = { pid, target, overcharged }
  * Other triggers a card may define: turnStart, turnEnd, lastStand, onOrder, onEnemyOrder, onBuild ({site}),
  *   onAllyDeath ({dead}), onAllyPromote ({promoted}), onArmor ({n}), onMilestone, onAttack ({target, targetLane}), onKill ({victim}), onMove ({from}),
- *   onPromote, onPlay ({cardId, count, made}), onEnemyRaze ({site}); locations also onArrive, onMoveArrive, onRaze.
+ *   onPromote, onPlay ({cardId, count, made}), onEnemyRaze ({site}), onEnemyJam ({ref}), onAllyBounce ({id}), onPod ({claimer, outcome}),
+ *   onHurt ({n}: this unit survived damage), onBoon (its owner targeted this unit with an Order or the leader power);
+ *   locations also onArrive, onMoveArrive, onRaze, onBuildSelf (this location was just built; ctx as a location trigger).
  * Targets are refs: {k:'u',uid} unit, {k:'s',uid} location, {k:'l',pid} colony, {k:'c',lane} lane.
  * An Order with `design: true` also gets ctx.choice, the parts the player picked (see js/design.js).
+ * An Order with `modes: [{ id, name, icon, text, target, targetFilter, play }, ...]` is a "Choose one" Order. It has
+ *   no `play` or `target` of its own: the player picks a mode, and that mode's target and play are used
+ *   (ctx.choice is the mode's index).
+ * `archive: true` lets a card be Archived from hand; every Secret Project can be without it (E.archiveCard).
+ * Forecast is E().forecast(g, pid, n, { draw }). For the AI it finishes at once. When a person plays the card it
+ *   finishes later, after their pick, and their draws wait for it: nothing after it in an effect may depend on
+ *   the pick or look at the deck. Purge is E().purgeUnit (no Last Stand, not added to the fallen) and E().purgeGrave.
  */
 (function (root) {
   'use strict';
@@ -189,8 +198,8 @@
     flavor: 'Above the dust wall, every border looks imaginary.',
   });
   def('planet_buster', {
-    name: 'Planet Buster', type: 'order', cost: 10, art: '☢️', target: 'column',
-    text: 'Choose a lane. Destroy all units and locations in it and neighbouring lanes, clear their terrain, and deal 4 damage to both colonies.',
+    name: 'Planet Buster', type: 'order', cost: 10, art: '☢️', target: 'column', archive: true,
+    text: '<b>Archive 1.</b> Choose a lane. Destroy all units and locations in it and neighbouring lanes, clear their terrain, and deal 4 damage to both colonies.',
     flavor: '“I will not be lectured on restraint by people who have never stared at an empty radar.” — UN Charter Addendum',
     play(g, ctx) {
       const c = ctx.target.lane;
@@ -244,7 +253,7 @@
     },
   });
   def('orbital_tether', {
-    name: 'The Space Elevator', type: 'site', cost: 4, hp: 7, art: '🛰️', project: true, unique: true,
+    name: 'The Space Elevator', type: 'site', cost: 3, hp: 7, art: '🛰️', project: true, unique: true,
     needsStaff: true, aiValue: 5, aiStaffed: 3.5, firstCardDiscount: 1, aerialBuff: 1,
     brief: 'Aerials +1/+1; 1st card -1E staffed',
     text: '<b>Secret Project.</b> Your newly summoned <b>Aerial</b> units gain +1/+1. While staffed, your first card each turn costs 1 less.',
@@ -409,12 +418,12 @@
   });
   def('hull_plating', {
     name: 'Hull Plating', type: 'order', cost: 1, art: '🔩', faction: 'ironwake', target: 'allySite',
-    text: 'Give a friendly location +3 Max Integrity and restore 3 Integrity to it. Your colony gains 3 Armor.',
+    text: 'Give a friendly location +3 Max Integrity and restore 3 Integrity to it. Your colony gains 4 Armor.',
     flavor: 'Cut straight from the Perihelion keel.',
     play(g, ctx) {
       const f = E().findSite(g, ctx.target.uid);
       if (f) { f.site.maxHp += 3; E().heal(g, ctx.target, 3); }
-      E().gainArmor(g, ctx.pid, 3);
+      E().gainArmor(g, ctx.pid, 4);
     },
   });
   def('bulwark_drone', {
@@ -822,7 +831,7 @@
     lastStand(g, ctx) { E().damage(g, leaderRef(1 - ctx.pid), 1, null); },
   });
   def('zealot_scout', {
-    name: 'Fervent Runner', type: 'unit', cost: 1, atk: 1, hp: 1, art: '🏃‍♂️', faction: 'cinder', kw: { zeal: 2 },
+    name: 'Fervent Runner', type: 'unit', cost: 1, atk: 1, hp: 2, art: '🏃‍♂️', faction: 'cinder', kw: { zeal: 2 },
     text: '<b>Zeal 2.</b>',
     flavor: 'Faith outruns caution every morning.',
   });
@@ -1552,7 +1561,7 @@
     onAllyDeath(g, ctx) { E().buff(g, ctx.self, 1, 1); },
   });
   def('doomsayer', {
-    name: 'Doomsayer', type: 'unit', cost: 4, atk: 3, hp: 4, art: '📯', faction: 'cinder', aiValue: 1.5,
+    name: 'Doomsayer', type: 'unit', cost: 4, atk: 3, hp: 5, art: '📯', faction: 'cinder', aiValue: 1.5,
     text: '<b>Cycle End:</b> Deal 1 damage to the enemy colony for each enemy location razed this game (up to 3).',
     flavor: 'Count your towers. He already has.',
     turnEnd(g, ctx) {
@@ -1684,7 +1693,7 @@
     },
   });
   def('ironclad_behemoth', {
-    name: 'Ironclad Behemoth', type: 'unit', cost: 4, atk: 4, hp: 5, art: '🐘', faction: 'ironwake',
+    name: 'Ironclad Behemoth', type: 'unit', cost: 4, atk: 4, hp: 6, art: '🐘', faction: 'ironwake',
     text: '<b>Deploy:</b> Gain +1/+1 for every 3 Armor your colony has (up to +3/+3).',
     flavor: 'They kept welding plates to it until it stopped fitting through the gate.',
     deploy(g, ctx) {
@@ -1695,11 +1704,11 @@
 
   /* ------------------------------------------------------------ University of Tau Ceti */
   def('critical_mass', {
-    name: 'Critical Mass', type: 'order', cost: 4, art: '💥', faction: 'synod',
-    text: 'Deal 1 <b>Psi</b> damage to the enemy colony, plus 2 for each other card you have played this turn.',
+    name: 'Critical Mass', type: 'order', cost: 3, art: '💥', faction: 'synod',
+    text: 'Deal 2 <b>Psi</b> damage to the enemy colony, plus 2 for each other card you have played this turn.',
     flavor: 'Nothing happens, nothing happens, nothing happens, and then everything does.',
     play(g, ctx) {
-      const n = 1 + 2 * Math.max(0, g.players[ctx.pid].cardsPlayedThisTurn - 1);
+      const n = 2 + 2 * Math.max(0, g.players[ctx.pid].cardsPlayedThisTurn - 1);
       E().damage(g, leaderRef(1 - ctx.pid), n, null, { psi: true, order: true, pid: ctx.pid });
     },
   });
@@ -1757,7 +1766,7 @@
     },
   });
   def('holdings_magnate', {
-    name: 'Holdings Magnate', type: 'unit', cost: 4, atk: 3, hp: 3, art: '🎩', faction: 'auric',
+    name: 'Holdings Magnate', type: 'unit', cost: 4, atk: 3, hp: 4, art: '🎩', faction: 'auric',
     text: '<b>Deploy:</b> Gain +1/+1 for every 2 other cards in your hand.',
     flavor: 'She never plays a card she can afford to keep.',
     deploy(g, ctx) {
@@ -1793,6 +1802,492 @@
     },
   });
 
+  /* ============================================================ Expansion: New Doctrines
+   * Seven more ways to play, one per faction: grow one giant (Overrun), rebuild what was destroyed, design your
+   * own army, strike and slip back to hand, wound your own units to make them stronger, tax and Jam the enemy,
+   * and hunt Supply Pods. Each mechanic is open to every faction through the engine: E.bounce, E.salvage, the
+   * Overrun keyword, and the triggers onBoon, onHurt, onEnemyJam, onAllyBounce and onPod.
+   */
+
+  /* ------------------------------------------------------------ colonist */
+  def('evac_shuttle', {
+    name: 'Evac Shuttle', type: 'order', cost: 1, art: '🚁', target: 'allyUnit',
+    targetFilter: (g, u) => !CARDS[u.id].token,
+    text: 'Return a friendly unit to your hand. It costs 1 less.',
+    flavor: 'Nobody gets left behind. They get sent back in.',
+    play(g, ctx) { E().bounce(g, ctx.target, -1); },
+  });
+
+  /* ------------------------------------------------------------ Planet's Stepdaughters: one giant */
+  def('graft_champion', {
+    name: 'Graftling Champion', type: 'unit', cost: 2, atk: 2, hp: 2, art: '🦌', faction: 'rootbound', native: true, aiValue: 1,
+    text: 'The first time each turn you target this unit with an Order or your leader power, it gains +1/+1.',
+    flavor: 'Every cutting takes. She has stopped counting the limbs that are not hers.',
+    onBoon(g, ctx) {
+      if (ctx.self.lastBoonTurn === g.turn) return;
+      ctx.self.lastBoonTurn = g.turn;
+      E().buff(g, ctx.self, 1, 1);
+    },
+  });
+  def('ironbark_graft', {
+    name: 'Ironbark Graft', type: 'order', cost: 1, art: '🌰', faction: 'rootbound', target: 'allyUnit',
+    text: 'Give a friendly unit <b>Shielded</b>. Draw a card.',
+    flavor: 'The bark grows back harder over every scar.',
+    play(g, ctx) {
+      const f = E().find(g, ctx.target.uid);
+      if (f) f.unit.kw.shield = true;
+      E().draw(g, ctx.pid, 1);
+    },
+  });
+  def('thunderback', {
+    name: 'Thunderback', type: 'unit', cost: 4, atk: 4, hp: 4, art: '🦏', faction: 'rootbound', native: true, kw: { overrun: true },
+    text: '<b>Overrun.</b>',
+    flavor: 'The fence was rated for vehicles. Nobody had rated it for this.',
+  });
+  def('stampede_pheromone', {
+    name: 'Stampede Pheromone', type: 'order', cost: 3, art: '💨', faction: 'rootbound', target: 'allyUnit',
+    text: 'Give a friendly unit +2/+2 and <b>Overrun</b>.',
+    flavor: 'One breath of it and the herd forgets what a wall is.',
+    play(g, ctx) {
+      const f = E().find(g, ctx.target.uid);
+      if (!f) return;
+      f.unit.kw.overrun = true;
+      E().buff(g, f.unit, 2, 2);
+    },
+  });
+
+  /* ------------------------------------------------------------ The Iron Hive: rebuild the fallen */
+  def('recovery_crawler', {
+    name: 'Recovery Crawler', type: 'unit', cost: 3, atk: 3, hp: 3, art: '🦀', faction: 'ironwake',
+    text: '<b>Deploy:</b> Return the costliest friendly unit destroyed this game to your hand.',
+    flavor: 'It drags home whatever still has a serial number.',
+    deploy(g, ctx) {
+      const id = E().salvage(g, ctx.pid);
+      if (id) E().addToHand(g, ctx.pid, id);
+    },
+  });
+  def('reassembly_bay', {
+    name: 'Reassembly Bay', type: 'site', cost: 2, hp: 4, art: '🏗️', faction: 'ironwake', needsEmpty: true, aiValue: 4,
+    brief: 'Rebuilds a fallen unit (cost ≤3)',
+    text: '<b>Cycle End:</b> If no unit is stationed here, rebuild here a friendly unit destroyed this game that costs 3 or less.',
+    flavor: 'Same chassis number, new everything else.',
+    turnEnd(g, ctx) {
+      if (E().unitAt(g, ctx.pid, ctx.self.lane)) return;
+      const id = E().salvage(g, ctx.pid, (c) => c.cost <= 3, true);
+      if (id) E().summon(g, ctx.pid, id, ctx.self.lane);
+    },
+  });
+  def('wreck_marshal', {
+    name: 'Wreck Marshal', type: 'unit', cost: 5, atk: 4, hp: 4, art: '🪦', faction: 'ironwake',
+    text: '<b>Deploy:</b> Gain +1/+1 for each of your units destroyed this game, tokens aside (up to +4/+4).',
+    flavor: 'He wears a plate from every hull the Hive has lost, and he is running out of room.',
+    deploy(g, ctx) {
+      const n = Math.min(4, g.players[ctx.pid].lost || 0);
+      if (n > 0) E().buff(g, ctx.self, n, n);
+    },
+  });
+
+  /* ------------------------------------------------------------ University of Tau Ceti: design your own army */
+  def('systems_engineer', {
+    name: 'Systems Engineer', type: 'unit', cost: 2, atk: 2, hp: 2, art: '👩‍🔧', faction: 'synod',
+    text: '<b>Deploy:</b> Add a <b>Design Workshop</b> to your hand.',
+    flavor: 'She arrived with a sketch. She always arrives with a sketch.',
+    deploy(g, ctx) { E().addToHand(g, ctx.pid, 'design_workshop'); },
+  });
+  def('skunkworks', {
+    name: 'Skunkworks', type: 'site', cost: 3, hp: 3, art: '📐', faction: 'synod', aiValue: 4, designDiscount: 1,
+    brief: 'A Design Workshop each turn; designs cost 1 less',
+    text: '<b>Cycle Start:</b> If you have no <b>Design Workshop</b> in hand, add one. Units you design cost 1 less.',
+    flavor: 'No budget line, no oversight, and no two prototypes alike.',
+    turnStart(g, ctx) {
+      if (!g.players[ctx.pid].hand.some((h) => h.id === 'design_workshop')) E().addToHand(g, ctx.pid, 'design_workshop');
+    },
+  });
+  def('proving_ground', {
+    name: 'Proving Ground', type: 'site', cost: 2, hp: 4, art: '🏁', faction: 'synod', aiValue: 2.5,
+    brief: 'Designed units enter +1/+1',
+    text: 'Whenever you deploy a unit you designed, it gains +1/+1.',
+    flavor: 'If it survives the test track, the enemy is a formality.',
+    onPlay(g, ctx) {
+      if (!ctx.made || !V.Design || !V.Design.isDesign(ctx.cardId)) return;
+      const f = E().find(g, ctx.made);
+      if (f) E().buff(g, f.unit, 1, 1);
+    },
+  });
+
+  /* ------------------------------------------------------------ The Tidewater Pirates: hit and run */
+  def('reef_skirmisher', {
+    name: 'Reef Skirmisher', type: 'unit', cost: 2, atk: 2, hp: 2, art: '🤿', faction: 'tide', kw: { blitz: true }, ambush: true,
+    text: '<b>Blitz.</b> Takes no damage back when it attacks. <b>Cycle End:</b> Return this unit to your hand.',
+    flavor: 'Up through the surf, one knife-stroke, and back under before the alarm.',
+    turnEnd(g, ctx) { E().bounce(g, unitRef(ctx.self)); },
+  });
+  def('undertow', {
+    name: 'Undertow', type: 'order', cost: 4, art: '🌀', faction: 'tide', target: 'enemyUnit',
+    text: 'Return an enemy unit to its owner’s hand. A token is removed from play instead.',
+    flavor: 'The tide gives no notice, and it does not return deposits.',
+    play(g, ctx) { E().bounce(g, ctx.target); },
+  });
+  def('hidden_cove', {
+    name: 'Hidden Cove', type: 'site', cost: 1, hp: 4, art: '🏝️', faction: 'tide', aiValue: 2.5,
+    brief: 'A returned unit gives a Cell',
+    text: 'Whenever a friendly unit returns to your hand, add an Energy Cell to your hand.',
+    flavor: 'Every crew that makes it back pays the harbour in fuel.',
+    onAllyBounce(g, ctx) { E().addToHand(g, ctx.pid, 'cell'); },
+  });
+
+  /* ------------------------------------------------------------ The Cinder Believers: strength through pain */
+  def('ember_flagellant', {
+    name: 'Ember Flagellant', type: 'unit', cost: 2, atk: 1, hp: 4, art: '⛓️', faction: 'cinder', aiValue: 1,
+    text: 'Whenever this unit survives damage, it gains +2 Attack.',
+    flavor: 'Each stripe is a verse. He knows the whole book by now.',
+    onHurt(g, ctx) { E().buff(g, ctx.self, 2, 0); },
+  });
+  def('trial_by_fire', {
+    name: 'Trial by Fire', type: 'order', cost: 3, art: '♨️', faction: 'cinder',
+    text: 'Deal 1 damage to every unit. Then give your units +1/+1.',
+    flavor: 'The faithful walk through. Everyone else merely burns.',
+    play(g, ctx) {
+      E().allUnits(g).forEach((u) => E().damage(g, unitRef(u), 1, null, { order: true, pid: ctx.pid }));
+      g.players[ctx.pid].board.filter(E().alive).forEach((u) => E().buff(g, u, 1, 1));
+    },
+  });
+  def('cinder_scourge', {
+    name: 'Cinder Scourge', type: 'unit', cost: 3, atk: 3, hp: 4, art: '🪢', faction: 'cinder', random: true, aiValue: 1,
+    text: 'Whenever this unit survives damage, deal 2 damage to a random enemy.',
+    flavor: 'What she is given, she passes on.',
+    onHurt(g, ctx) {
+      const t = E().randomEnemy(g, ctx.pid);
+      if (t) E().damage(g, t, 2, null);
+    },
+  });
+  def('scarred_penitent', {
+    name: 'Scarred Penitent', type: 'unit', cost: 4, atk: 2, hp: 7, art: '🩸', faction: 'cinder', woundAtk: 1, aiValue: 0.5,
+    text: 'Has +1 Attack for each damage it has taken.',
+    flavor: 'Do not pity him. Count the wounds, and then count again after the battle.',
+  });
+
+  /* ------------------------------------------------------------ Vance Industries: the trade war */
+  def('trade_embargo', {
+    name: 'Trade Embargo', type: 'site', cost: 2, hp: 5, art: '🚫', faction: 'auric', firstCardTax: 1, aiValue: 4,
+    brief: 'Enemy’s first card each turn +1 cost',
+    text: 'The first card your opponent plays each turn costs 1 more.',
+    flavor: 'Nothing personal. The paperwork simply takes a little longer for you.',
+  });
+  def('hostile_audit', {
+    name: 'Hostile Audit', type: 'order', cost: 2, art: '🧾', faction: 'auric', target: 'enemyUnitOrSite',
+    text: '<b>Jam</b> an enemy unit or location for 1 cycle and deal 2 damage to it.',
+    flavor: 'Operations are suspended pending review. The review will find something.',
+    play(g, ctx) {
+      E().jam(g, ctx.target, 1);
+      E().damage(g, ctx.target, 2, null, { order: true, pid: ctx.pid });
+    },
+  });
+  def('repo_agent', {
+    name: 'Repo Agent', type: 'unit', cost: 2, atk: 2, hp: 3, art: '🕴️', faction: 'auric', aiValue: 1,
+    text: 'The first time each turn an enemy unit or location becomes <b>Jammed</b>, add an Energy Cell to your hand.',
+    flavor: 'If it is not working, you will not miss it.',
+    onEnemyJam(g, ctx) {
+      if (ctx.self.lastJamTurn === g.turn) return;
+      ctx.self.lastJamTurn = g.turn;
+      E().addToHand(g, ctx.pid, 'cell');
+    },
+  });
+  def('liquidator', {
+    name: 'Liquidator', type: 'unit', cost: 4, atk: 4, hp: 5, art: '🔨', faction: 'auric', target: 'enemyUnit',
+    targetFilter: (g, u) => u.jammed > 0,
+    text: '<b>Deploy:</b> Destroy a <b>Jammed</b> enemy unit.',
+    flavor: 'Idle assets are sold for parts. That is not a threat; it is clause nine.',
+    deploy(g, ctx) { if (ctx.target) E().destroy(g, ctx.target); },
+  });
+
+  /* ------------------------------------------------------------ The Redline Federation: supply lines */
+  def('airdrop_beacon', {
+    name: 'Airdrop Beacon', type: 'site', cost: 3, hp: 3, art: '🪂', faction: 'redline', aiValue: 3, aiStaffed: 2.5,
+    brief: 'A Supply Pod here each turn',
+    text: 'When built and at each <b>Cycle Start:</b> Drop a <b>Supply Pod</b> here if there is none. The unit stationed here claims it.',
+    flavor: 'Pop smoke, look up, and stand a little to the left.',
+    onBuild(g, ctx) {
+      if (ctx.site.uid !== ctx.self.uid) return;
+      E().dropPod(g, ctx.self.lane);
+      if (ctx.unit) E().claimPod(g, ctx.pid, ctx.unit);
+    },
+    turnStart(g, ctx) {
+      E().dropPod(g, ctx.self.lane);
+      if (ctx.unit) E().claimPod(g, ctx.pid, ctx.unit);
+    },
+  });
+  def('logistics_officer', {
+    name: 'Logistics Officer', type: 'unit', cost: 2, atk: 2, hp: 2, art: '📦', faction: 'redline', kw: { mobile: true }, aiValue: 0.5,
+    text: '<b>Mobile.</b> Whenever you claim a <b>Supply Pod</b>, this unit gains +1/+1.',
+    flavor: 'Amateurs talk tactics. He signs for the crates.',
+    onPod(g, ctx) { E().buff(g, ctx.self, 1, 1); },
+  });
+  def('supply_convoy', {
+    name: 'Supply Convoy', type: 'unit', cost: 3, atk: 2, hp: 3, art: '🚛', faction: 'redline',
+    text: '<b>Deploy:</b> Drop a <b>Supply Pod</b> into each neighbouring lane that has none.',
+    flavor: 'Three trucks left the depot. Count them again when they arrive.',
+    deploy(g, ctx) {
+      [ctx.self.lane - 1, ctx.self.lane + 1].forEach((ln) => E().dropPod(g, ln));
+    },
+  });
+
+  /* ============================================================ Expansion: Planetary Telemetry & Counterplay
+   * Forecast (look-ahead), Modal Orders, Purge/multi-hit soft answers, Terraforming & cross-faction Workshop cards.
+   */
+
+  /* ------------------------------------------------------------ Colonist (Neutral) */
+  def('telemetry_drone', {
+    name: 'Telemetry Drone', type: 'unit', cost: 1, atk: 1, hp: 2, art: '📡',
+    text: '<b>Deploy:</b> <b>Forecast 3.</b>',
+    flavor: 'Before the convoy moves, the dish listens three valleys ahead.',
+    deploy(g, ctx) { E().forecast(g, ctx.pid, 3); },
+  });
+  def('seismic_ping', {
+    name: 'Seismic Ping', type: 'order', cost: 1, art: '〰️', target: 'any',
+    text: 'Deal 1 damage. <b>Forecast 3.</b>',
+    flavor: 'Tap the crust once and read what answers back.',
+    play(g, ctx) {
+      E().damage(g, ctx.target, 1, null, { order: true, pid: ctx.pid });
+      E().forecast(g, ctx.pid, 3);
+    },
+  });
+  def('containment_purge', {
+    name: 'Containment Purge', type: 'order', cost: 2, art: '☣️',
+    text: '<b>Choose one:</b> <b>Jam</b> an enemy unit or location and <b>Purge</b> the costliest unit from the enemy’s fallen pile; OR deal 2 damage to a unit (draw a card if it dies).',
+    flavor: 'Quarantine the wreckage first. Ask who built it later.',
+    modes: [
+      {
+        id: 'lockdown', name: 'Lockdown & Purge', icon: '⊘', target: 'enemyUnitOrSite',
+        text: 'Jam an enemy unit or location for 1 cycle and Purge the costliest unit from the enemy’s fallen pile.',
+        play(g, ctx) {
+          E().jam(g, ctx.target, 1);
+          E().purgeGrave(g, 1 - ctx.pid);
+        },
+      },
+      {
+        id: 'pulse', name: 'Pulse Shot', icon: '⚡', target: 'unit',
+        text: 'Deal 2 damage to a unit. If it is destroyed, draw a card.',
+        play(g, ctx) {
+          const f = E().find(g, ctx.target.uid);
+          if (!f) return;
+          E().damage(g, ctx.target, 2, null, { order: true, pid: ctx.pid });
+          if (f.unit.hp <= 0) E().draw(g, ctx.pid, 1);
+        },
+      },
+    ],
+  });
+  def('suppressive_scatter', {
+    name: 'Suppressive Scatter', type: 'order', cost: 3, art: '💥', target: 'column',
+    text: 'Choose a lane. Deal 1 damage to enemy units in it and neighbouring lanes, twice.',
+    flavor: 'The first volley pops the shields. The second clears the ridge.',
+    play(g, ctx) {
+      const c = ctx.target.lane;
+      for (let hit = 0; hit < 2; hit++) {
+        g.players[1 - ctx.pid].board.filter((u) => E().alive(u) && near(u.lane, c))
+          .forEach((u) => E().damage(g, unitRef(u), 1, null, { order: true, pid: ctx.pid }));
+      }
+    },
+  });
+  def('tectonic_shaper', {
+    name: 'Tectonic Shaper', type: 'unit', cost: 3, atk: 3, hp: 3, art: '🌋', target: 'column',
+    targetFilter: (g, ln) => !!E().terrainAt(g, ln),
+    text: '<b>Deploy:</b> Swap this lane’s terrain with a chosen terrain lane, then draw a card.',
+    flavor: 'If the monolith sits on their side of the valley, move the valley.',
+    deploy(g, ctx) {
+      if (ctx.target && ctx.target.lane !== ctx.self.lane) E().swapTerrain(g, ctx.self.lane, ctx.target.lane);
+      E().draw(g, ctx.pid, 1);
+    },
+  });
+  def('field_refit', {
+    name: 'Field Refit', type: 'order', cost: 2, art: '🔩', design: true, designDiscount: 2,
+    text: 'Design a unit from your unlocked parts and add it to your hand; it costs 2 less.',
+    flavor: 'No hangar, no blueprint review—just a welding rig and ten minutes before contact.',
+    play(g, ctx) { E().designUnit(g, ctx.pid, ctx.choice, -2); },
+  });
+
+  /* ------------------------------------------------------------ Planet's Stepdaughters */
+  def('prescient_empath', {
+    name: 'Prescient Empath', type: 'unit', cost: 2, atk: 1, hp: 2, art: '🌿', faction: 'rootbound', native: true, kw: { psi: true },
+    text: '<b>Psi.</b> <b>Deploy:</b> <b>Forecast 3.</b> If you pick a Native unit, gain +1/+1.',
+    flavor: 'She hears the roots growing two seasons before they break the crust.',
+    deploy(g, ctx) { E().forecast(g, ctx.pid, 3, { nativeBuffUid: ctx.self.uid }); },
+  });
+  def('condenser_array', {
+    name: 'Condenser Array', type: 'site', cost: 2, hp: 4, art: '💧', faction: 'rootbound', needsStaff: true, aiValue: 2, aiStaffed: 2.5,
+    brief: 'Terrain: unit here +1/+1',
+    text: 'When built and at <b>Cycle End:</b> If this lane has terrain, give the unit stationed here +1/+1.',
+    flavor: 'Pull mist from the ridge and pour it straight into the canopy.',
+    onBuildSelf(g, ctx) { if (E().terrainAt(g, ctx.self.lane) && ctx.unit) E().buff(g, ctx.unit, 1, 1); },
+    turnEnd(g, ctx) { if (E().terrainAt(g, ctx.self.lane) && ctx.unit) E().buff(g, ctx.unit, 1, 1); },
+  });
+
+  /* ------------------------------------------------------------ The Iron Hive */
+  def('bio_scrubber', {
+    name: 'Bio-Scrubber Rig', type: 'unit', cost: 2, atk: 2, hp: 3, art: '🧹', faction: 'ironwake',
+    text: '<b>Deploy:</b> If this lane has terrain, clear it, your colony gains 3 Armor, and draw a card.',
+    flavor: 'Burn the spores, grade the shale, pour ferrocrete before sunset.',
+    deploy(g, ctx) {
+      if (E().terrainAt(g, ctx.self.lane)) {
+        E().setTerrain(g, ctx.self.lane, null);
+        E().gainArmor(g, ctx.pid, 3);
+        E().draw(g, ctx.pid, 1);
+      }
+    },
+  });
+  def('grav_pull_winch', {
+    name: 'Grav-Pull Winch', type: 'order', cost: 2, art: '⛓️', faction: 'ironwake', target: 'enemyUnit',
+    text: 'Deal 2 damage to an enemy unit and pull it 1 lane toward the centre. If it lands on terrain, deal 1 more damage.',
+    flavor: 'Drag them off the ridge and into the kill zone.',
+    play(g, ctx) {
+      const f = E().find(g, ctx.target.uid);
+      if (!f) return;
+      E().damage(g, ctx.target, 2, null, { order: true, pid: ctx.pid });
+      if (E().alive(f.unit) && E().pullUnit(g, f.unit) && E().terrainAt(g, f.unit.lane)) {
+        E().damage(g, ctx.target, 1, null, { order: true, pid: ctx.pid });
+      }
+    },
+  });
+  def('salvage_blueprint', {
+    name: 'Salvage Blueprint', type: 'unit', cost: 2, atk: 2, hp: 3, art: '📐', faction: 'ironwake', aiValue: 0.6,
+    text: '<b>Last Stand:</b> Add a <b>Design Workshop</b> to your hand; it costs 0.',
+    flavor: 'Every wrecked walker teaches the next one what to bolt on.',
+    lastStand(g, ctx) { E().addToHand(g, ctx.pid, 'design_workshop', -1); },
+  });
+
+  /* ------------------------------------------------------------ University of Tau Ceti */
+  def('datalinks_index', {
+    name: 'Datalinks Index', type: 'site', cost: 2, hp: 4, art: '🗂️', faction: 'synod', needsStaff: true, aiValue: 2, aiStaffed: 2.5,
+    brief: 'Staffed: Forecast 2 & +1 Research',
+    text: '<b>Cycle Start:</b> If staffed, <b>Forecast 2</b> and gain 1 Research.',
+    flavor: 'Cross-referenced by orbit, isotope, and probability of catastrophe.',
+    turnStart(g, ctx) { if (ctx.unit) { E().forecast(g, ctx.pid, 2); E().gainResearch(g, ctx.pid, 1); } },
+  });
+
+  /* ------------------------------------------------------------ The Tidewater Pirates */
+  def('squall_chart', {
+    name: 'Squall Chart', type: 'order', cost: 1, art: '🧭', faction: 'tide',
+    text: '<b>Choose one:</b> <b>Forecast 3</b> and add an Energy Cell to your hand; OR deal 1 damage to an enemy unit and push it 1 lane sideways.',
+    flavor: 'Read the barometer right and the storm fights for you.',
+    modes: [
+      {
+        id: 'course', name: 'Plot Course', icon: '🧭', target: null,
+        text: 'Forecast 3 and add an Energy Cell to your hand.',
+        play(g, ctx) { E().forecast(g, ctx.pid, 3); E().addToHand(g, ctx.pid, 'cell'); },
+      },
+      {
+        id: 'gust', name: 'Squall Gust', icon: '💨', target: 'enemyUnit',
+        text: 'Deal 1 damage to an enemy unit and push it 1 lane sideways.',
+        play(g, ctx) {
+          const f = E().find(g, ctx.target.uid);
+          if (!f) return;
+          E().damage(g, ctx.target, 1, null, { order: true, pid: ctx.pid });
+          if (E().alive(f.unit)) E().pushUnit(g, f.unit);
+        },
+      },
+    ],
+  });
+
+  /* ------------------------------------------------------------ The Cinder Believers */
+  def('omen_seer', {
+    name: 'Omen Seer', type: 'unit', cost: 2, atk: 2, hp: 3, art: '🔮', faction: 'cinder',
+    text: '<b>Deploy:</b> <b>Forecast 3.</b> <b>Last Stand:</b> Deal 1 damage to the enemy colony.',
+    flavor: 'She reads the smoke trails before the first shell lands.',
+    deploy(g, ctx) { E().forecast(g, ctx.pid, 3); },
+    lastStand(g, ctx) { E().damage(g, leaderRef(1 - ctx.pid), 1, null); },
+  });
+
+  /* ------------------------------------------------------------ Vance Industries */
+  def('market_forecast', {
+    name: 'Market Forecast', type: 'order', cost: 1, art: '📉', faction: 'auric', overcharge: 1,
+    text: '<b>Forecast 3.</b> <b>Overcharge 1:</b> Draw the chosen card.',
+    flavor: 'Information bought a turn early is indistinguishable from prophecy.',
+    play(g, ctx) { E().forecast(g, ctx.pid, 3, { draw: !!ctx.overcharged }); },
+  });
+  def('breach_protocol', {
+    name: 'Breach Protocol', type: 'order', cost: 3, art: '⚡', faction: 'auric',
+    text: '<b>Choose one:</b> Deal 1 damage to an enemy unit three times; OR add 2 Energy Cells to your hand.',
+    flavor: 'A single heavy round bounces off a shield. Three precision pulses bill right through it.',
+    modes: [
+      {
+        id: 'burst', name: 'Triple Pulse', icon: '⚡', target: 'enemyUnit',
+        text: 'Deal 1 damage to an enemy unit three times (breaks Shields).',
+        play(g, ctx) {
+          const f = E().find(g, ctx.target.uid);
+          if (!f) return;
+          for (let i = 0; i < 3; i++) {
+            if (E().alive(f.unit)) E().damage(g, ctx.target, 1, null, { order: true, pid: ctx.pid });
+          }
+        },
+      },
+      {
+        id: 'liquidity', name: 'Reserve Liquidity', icon: '🔋', target: null,
+        text: 'Add 2 Energy Cells to your hand.',
+        play(g, ctx) { E().addToHand(g, ctx.pid, 'cell'); E().addToHand(g, ctx.pid, 'cell'); },
+      },
+    ],
+  });
+  def('salvage_impound', {
+    name: 'Salvage Impound', type: 'unit', cost: 4, atk: 3, hp: 3, art: '🔐', faction: 'auric', target: 'enemyUnit',
+    text: '<b>Deploy:</b> Deal 2 <b>Psi</b> damage to an enemy unit. If it dies, <b>Purge</b> it.',
+    flavor: 'Impounded hardware does not return to its previous owner.',
+    deploy(g, ctx) {
+      if (!ctx.target) return;
+      const f = E().find(g, ctx.target.uid);
+      if (!f) return;
+      E().damage(g, ctx.target, 2, null, { psi: true });
+      if (f.unit.hp <= 0) E().purgeUnit(g, ctx.target);
+    },
+  });
+  def('thermal_venting', {
+    name: 'Thermal Venting', type: 'order', cost: 2, art: '♨️', faction: 'auric',
+    text: '<b>Choose one:</b> Deal 2 damage to all enemy units in Thermal Boreholes and gain 1 Energy per Borehole (up to 3); OR turn a lane into a <b>Thermal Borehole</b> and gain 1 Energy.',
+    flavor: 'Pressure is either an asset or a liability, depending on which side of the valve you own.',
+    modes: [
+      {
+        id: 'surge', name: 'Vent Surge', icon: '♨️', target: null,
+        text: 'Deal 2 damage to all enemy units in Thermal Boreholes and gain 1 Energy per Borehole (up to 3).',
+        play(g, ctx) {
+          let vents = 0;
+          for (let ln = 0; ln < E().LANES; ln++) if (E().terrainAt(g, ln) === 'borehole') vents++;
+          g.players[1 - ctx.pid].board.filter((u) => E().alive(u) && E().terrainAt(g, u.lane) === 'borehole')
+            .forEach((u) => E().damage(g, unitRef(u), 2, null, { order: true, pid: ctx.pid }));
+          if (vents > 0) E().gainEnergy(g, ctx.pid, Math.min(3, vents));
+        },
+      },
+      {
+        id: 'tap', name: 'Borehole Tap', icon: '🌋', target: 'column',
+        text: 'Turn a lane into a Thermal Borehole and gain 1 Energy this turn.',
+        play(g, ctx) {
+          E().setTerrain(g, ctx.target.lane, 'borehole');
+          E().gainEnergy(g, ctx.pid, 1);
+        },
+      },
+    ],
+  });
+  def('mercenary_contractor', {
+    name: 'Mercenary Contractor', type: 'unit', cost: 3, atk: 3, hp: 3, art: '💼', faction: 'auric', overcharge: 2,
+    text: '<b>Deploy:</b> Add a <b>Design Workshop</b> to your hand. <b>Overcharge 2:</b> Draw a card and gain 2 Armor.',
+    flavor: 'Custom armaments delivered on time, billed at twice the standard margin.',
+    deploy(g, ctx) {
+      E().addToHand(g, ctx.pid, 'design_workshop');
+      if (ctx.overcharged) { E().draw(g, ctx.pid, 1); E().gainArmor(g, ctx.pid, 2); }
+    },
+  });
+
+  /* ------------------------------------------------------------ The Redline Federation */
+  def('frontier_surveyor', {
+    name: 'Frontier Surveyor', type: 'unit', cost: 3, atk: 2, hp: 2, art: '🗺️', faction: 'redline', kw: { mobile: true },
+    text: '<b>Mobile.</b> <b>Deploy:</b> Gain +1/+1 for each different terrain type on the board (up to +2/+2).',
+    flavor: 'Ridge, fungus, monolith, crater—he has fought on every inch of Planet.',
+    deploy(g, ctx) {
+      const kinds = new Set();
+      for (let ln = 0; ln < E().LANES; ln++) { const t = E().terrainAt(g, ln); if (t) kinds.add(t); }
+      const n = Math.min(2, kinds.size);
+      if (n > 0) E().buff(g, ctx.self, n, n);
+    },
+  });
+
   /* ============================================================ factions & presets */
   const FACTIONS = {
     rootbound: {
@@ -1810,6 +2305,8 @@
         'fungal_bloom', 'brood_matron', 'canopy_beast', 'locust_swarm', 'living_canopy', 'worldroot_titan',
         'spore_tender', 'mulch_bed', 'brood_whisperer', 'rootquake',
         'sapwell_tender', 'verdant_surge',
+        'graft_champion', 'ironbark_graft', 'thunderback', 'stampede_pheromone',
+        'prescient_empath', 'condenser_array',
       ],
       presets: {
         swarm: {
@@ -1828,7 +2325,7 @@
           doctrine: 'green',
           plan: { keystones: ['fungal_bloom', 'mycelial_weaver'], weights: { unitRisk: 0.4 } },
           cards: [
-            ['seedcaster', 2], ['symbiotic_bond', 1], ['mycelial_weaver', 2], ['spore_tender', 2], ['spawning_grove', 2],
+            ['seedcaster', 2], ['prescient_empath', 2], ['mycelial_weaver', 2], ['spore_tender', 1], ['spawning_grove', 2],
             ['mind_root', 2], ['native_mind_worm', 2], ['spore_launcher', 2], ['fungal_bloom', 2],
             ['bloomcaller', 2], ['locust_swarm', 2], ['living_canopy', 1], ['worldroot_titan', 1],
             ['canopy_beast', 2], ['brood_whisperer', 1], ['creeping_vine', 2], ['brood_matron', 2],
@@ -1843,6 +2340,16 @@
             ['bloomcaller', 2], ['brood_matron', 2], ['canopy_beast', 1], ['locust_swarm', 2], ['worldroot_titan', 2],
             ['living_canopy', 1], ['brood_whisperer', 1], ['heavy_requisition', 2],
             ['reactor_core', 2], ['bulwark_drone', 2], ['siege_walker', 2], ['dreadnought', 2], ['orbital_bombardment', 1],
+          ],
+        },
+        colossus: {
+          name: 'Heartwood Colossus', desc: 'Pour every Graft and Order into one unit until nothing can stop it, then let Overrun carry the damage through.',
+          doctrine: 'standard',
+          plan: { keystones: ['graft_champion', 'thunderback'] },
+          cards: [
+            ['seedcaster', 2], ['graft_champion', 2], ['creeping_vine', 2], ['thunderback', 2], ['ironbark_graft', 2], ['symbiotic_bond', 2],
+            ['overgrowth', 2], ['stampede_pheromone', 2], ['clean_retrofit', 2], ['heartwood_bower', 2], ['podling_carrier', 2],
+            ['perimeter_sentry', 2], ['worldroot_titan', 2], ['bunker', 1], ['grav_harness', 1], ['canopy_beast', 1], ['field_medic', 1],
           ],
         },
       },
@@ -1863,6 +2370,8 @@
         'bulwark_citadel', 'dreadnought',
         'killing_ground', 'bastion_gunner', 'line_captain', 'works_foreman',
         'bulkhead_slam', 'ironclad_behemoth',
+        'recovery_crawler', 'reassembly_bay', 'wreck_marshal',
+        'bio_scrubber', 'grav_pull_winch', 'salvage_blueprint',
       ],
       presets: {
         fortress: {
@@ -1870,7 +2379,7 @@
           doctrine: 'police',
           plan: { keystones: ['bulwark_citadel'] },
           cards: [
-            ['scrap_welder', 2], ['line_captain', 2], ['bulwark_drone', 2], ['turret_nest', 2], ['riot_plating', 1], ['colony_former', 2],
+            ['scrap_welder', 2], ['line_captain', 2], ['bulwark_drone', 2], ['turret_nest', 2], ['riot_plating', 1], ['bio_scrubber', 2],
             ['killing_ground', 2], ['design_workshop', 1], ['works_foreman', 2], ['mortar_team', 2], ['salvage_hauler', 2],
             ['automated_crane', 2], ['foundry', 2], ['siege_walker', 2], ['bulwark_citadel', 1], ['dreadnought', 1],
             ['railgun_battery', 1], ['reactor_core', 1],
@@ -1898,6 +2407,16 @@
             ['underwriter', 2], ['vault_drone', 2], ['gold_barricade', 2], ['claims_adjuster', 2], ['contract_guard', 2],
           ],
         },
+        reclaim: {
+          name: 'Reclamation Yard', desc: 'Trade units without fear: the Reassembly Bay rebuilds the small ones, Recovery Crawlers bring back the large, and Wreck Marshals grow on every loss.',
+          doctrine: 'standard',
+          plan: { keystones: ['reassembly_bay', 'recovery_crawler'] },
+          cards: [
+            ['scrap_welder', 2], ['perimeter_sentry', 2], ['turret_nest', 2], ['killing_ground', 2], ['reclamation_vats', 2],
+            ['recovery_crawler', 2], ['reassembly_bay', 2], ['salvage_hauler', 2], ['mortar_team', 2], ['line_captain', 2], ['bastion_gunner', 1],
+            ['demolition_charge', 1], ['railgun_battery', 1], ['wreck_marshal', 2], ['siege_walker', 2], ['chrysalis_vats', 1], ['dreadnought', 2],
+          ],
+        },
       },
     },
     synod: {
@@ -1915,6 +2434,8 @@
         'thinkers_node', 'oracle_engine', 'quantum_cascade', 'singularity_lance', 'virtual_archive', 'voice',
         'field_researcher', 'theorem_guard', 'reverse_engineer', 'feedback_pylon',
         'critical_mass', 'datalinks_search',
+        'systems_engineer', 'skunkworks', 'proving_ground',
+        'datalinks_index',
       ],
       presets: {
         arcanum: {
@@ -1933,7 +2454,7 @@
           doctrine: 'knowledge',
           plan: { keystones: ['voice_of_tau_ceti'] },
           cards: [
-            ['data_spike', 2], ['archive_scribe', 2], ['archive_vault', 2], ['probe_tech', 1], ['design_workshop', 1], ['neural_siphon', 2],
+            ['data_spike', 2], ['archive_scribe', 2], ['datalinks_index', 2], ['probe_tech', 1], ['design_workshop', 1], ['neural_siphon', 2],
             ['deep_query', 2], ['resonance_weaver', 2], ['stasis_field', 1], ['theorem_guard', 2], ['thinkers_node', 1], ['reverse_engineer', 1],
             ['oracle_engine', 2], ['quantum_cascade', 1], ['colony_pod', 1], ['virtual_archive', 1], ['voice', 1],
             ['field_theorist', 1], ['field_researcher', 2], ['aegis_algorithm', 1], ['voice_of_tau_ceti', 1],
@@ -1948,6 +2469,16 @@
             ['deep_query', 2], ['critical_mass', 2], ['datalinks_search', 2], ['virtual_archive', 1], ['archive_scribe', 2],
             ['theorem_guard', 2], ['stasis_field', 1],
             ['shiv', 2], ['smuggled_cache', 2], ['smugglers_run', 2],
+          ],
+        },
+        prototype: {
+          name: 'Prototype Lab', desc: 'Turn Research into machines: Skunkworks and Systems Engineers keep Design Workshops coming, Relay Spires make them free, and every prototype is built to fit the fight.',
+          doctrine: 'knowledge',
+          plan: { keystones: ['skunkworks', 'systems_engineer'] },
+          cards: [
+            ['design_workshop', 2], ['systems_engineer', 2], ['skunkworks', 2], ['proving_ground', 2], ['field_refit', 2], ['acolyte', 2],
+            ['survey_drone', 2], ['archive_scribe', 2], ['data_spike', 2], ['neural_siphon', 2], ['prism_adept', 2], ['theorem_guard', 2],
+            ['deep_query', 2], ['field_theorist', 2], ['resonance_weaver', 1], ['oracle_engine', 1],
           ],
         },
       },
@@ -1967,6 +2498,8 @@
         'corsair_interceptor', 'hostile_salvage', 'hijack', 'gunship', 'sovereign_reef', 'kingpin',
         'limpet_charge', 'cell_runner', 'salvage_boss', 'tide_quartermaster',
         'squadron_leader', 'smugglers_run',
+        'reef_skirmisher', 'undertow', 'hidden_cove',
+        'squall_chart',
       ],
       presets: {
         raiders: {
@@ -2001,6 +2534,16 @@
             ['field_spotter', 2], ['combined_arms', 2], ['tactical_airlift', 1], ['task_force_commander', 2], ['flak_battery', 2],
           ],
         },
+        hitrun: {
+          name: 'Hit and Run', desc: 'Strike with Blitz raiders, pull them back to hand before the enemy can answer, and send them in again.',
+          doctrine: 'standard',
+          plan: { keystones: ['reef_skirmisher', 'smugglers_dock'] },
+          cards: [
+            ['deckhand', 2], ['shiv', 2], ['smugglers_dock', 2], ['reef_skirmisher', 2], ['hidden_cove', 2], ['cell_runner', 2],
+            ['leech_diver', 2], ['sabotage', 2], ['grapple_line', 2], ['privateer_cutter', 2], ['skyjack', 2], ['tide_quartermaster', 2],
+            ['squall_chart', 1], ['undertow', 2], ['corsair_captain', 2], ['gunship', 1],
+          ],
+        },
       },
     },
     cinder: {
@@ -2018,6 +2561,8 @@
         'iconoclast', 'purge_archive', 'martyr_engine', 'fanatic_charger', 'eternal_pyre', 'seraph_wreck',
         'fervor', 'heresy_hunter', 'ash_mourner', 'doomsayer',
         'rite_of_ash', 'pyre_keeper',
+        'ember_flagellant', 'trial_by_fire', 'cinder_scourge', 'scarred_penitent',
+        'omen_seer',
       ],
       presets: {
         crusade: {
@@ -2038,7 +2583,7 @@
             ['ash_initiate', 2], ['anathema', 2], ['penitent_shield', 2], ['chapel_of_embers', 2],
             ['inquisitor_cell', 2], ['witch_hunter', 2], ['belfry_spire', 1], ['pyre_bearer', 2],
             ['iconoclast', 2], ['purge_archive', 2], ['martyr_engine', 2], ['eternal_pyre', 1], ['seraph_wreck', 2],
-            ['ash_mourner', 2], ['heresy_hunter', 2], ['cinder_sermon', 2],
+            ['omen_seer', 2], ['heresy_hunter', 2], ['cinder_sermon', 2],
           ],
         },
         garden: {
@@ -2050,6 +2595,16 @@
             ['reliquary_vault', 2], ['ash_mourner', 2], ['cinder_sermon', 1], ['martyr_engine', 2], ['chapel_of_embers', 2], ['vow_of_ruin', 1],
             ['reclamation_vats', 1],
             ['seedcaster', 2], ['symbiote_swarm', 2], ['podling_carrier', 2], ['spawning_grove', 2], ['verdant_surge', 1],
+          ],
+        },
+        trial: {
+          name: 'Trial by Fire', desc: 'Wound your own penitents to make them stronger: every Trial, Debris Rain and enemy blow feeds the Flagellants and Scourges.',
+          doctrine: 'standard',
+          plan: { keystones: ['ember_flagellant', 'cinder_scourge'] },
+          cards: [
+            ['ash_initiate', 2], ['anathema', 2], ['ember_flagellant', 2], ['pyre_bearer', 2], ['penitent_shield', 2], ['chapel_of_embers', 2],
+            ['hab_dome', 2], ['vow_of_ruin', 1], ['cinder_scourge', 2], ['witch_hunter', 2], ['trial_by_fire', 2], ['debris_rain', 2],
+            ['cinder_sermon', 1], ['field_medic', 1], ['scarred_penitent', 2], ['martyr_engine', 2], ['seraph_wreck', 1],
           ],
         },
       },
@@ -2070,6 +2625,8 @@
         'meridian_exchange', 'gilded_leviathan',
         'venture_agent', 'underwriter', 'asset_seizure', 'arbitrageur',
         'claims_adjuster', 'holdings_magnate', 'consortium_titan',
+        'trade_embargo', 'hostile_audit', 'repo_agent', 'liquidator',
+        'market_forecast', 'breach_protocol', 'salvage_impound', 'thermal_venting', 'mercenary_contractor',
       ],
       presets: {
         overcharge: {
@@ -2079,8 +2636,8 @@
           cards: [
             ['courier_broker', 2], ['ledger_bot', 2], ['asset_seizure', 2], ['solar_array', 2], ['contract_guard', 2],
             ['dividend', 2], ['mercenary_lancer', 2], ['hostile_takeover', 2], ['vault_drone', 2],
-            ['guild_enforcer', 1], ['syndicate_titan', 1], ['bribe', 1], ['design_workshop', 1], ['orbital_brokerage', 2], ['meridian_exchange', 1],
-            ['gilded_leviathan', 2], ['aaa_sentry', 1], ['arbitrageur', 2],
+            ['guild_enforcer', 1], ['syndicate_titan', 1], ['bribe', 1], ['aaa_sentry', 1], ['design_workshop', 1], ['orbital_brokerage', 2], ['meridian_exchange', 1],
+            ['gilded_leviathan', 2], ['arbitrageur', 2],
           ],
         },
         syndicate: {
@@ -2091,7 +2648,7 @@
             ['courier_broker', 2], ['venture_agent', 2], ['mercenary_lancer', 2], ['contract_guard', 2], ['hostile_takeover', 2],
             ['collector_skiff', 2], ['gold_barricade', 2], ['exchange_spire', 2], ['thermal_lease', 2],
             ['vault_drone', 2], ['guild_enforcer', 2], ['orbital_brokerage', 1], ['meridian_exchange', 1],
-            ['gilded_leviathan', 1], ['syndicate_titan', 2], ['underwriter', 2], ['arbitrageur', 1],
+            ['gilded_leviathan', 1], ['syndicate_titan', 2], ['thermal_venting', 2], ['arbitrageur', 1],
           ],
         },
         portfolio: {
@@ -2103,6 +2660,16 @@
             ['holdings_magnate', 2], ['consortium_titan', 2], ['vault_drone', 2], ['contract_guard', 2], ['orbital_brokerage', 1],
             ['guild_enforcer', 1], ['bribe', 1],
             ['deep_query', 2], ['stasis_field', 1], ['neural_siphon', 2], ['theorem_guard', 2], ['oracle_engine', 1], ['probe_tech', 1],
+          ],
+        },
+        tradewar: {
+          name: 'Trade War', desc: 'Tax every enemy turn with Embargoes, Jam their best pieces, and send Liquidators to collect whatever is frozen.',
+          doctrine: 'standard',
+          plan: { keystones: ['trade_embargo', 'repo_agent'] },
+          cards: [
+            ['courier_broker', 2], ['salvage_impound', 1], ['solar_array', 1], ['repo_agent', 2], ['contract_guard', 2], ['hostile_audit', 2],
+            ['dividend', 2], ['trade_embargo', 2], ['probe_team', 2], ['mercenary_lancer', 2], ['gold_barricade', 2], ['hostile_takeover', 2],
+            ['exchange_spire', 1], ['vault_drone', 2], ['liquidator', 2], ['guild_enforcer', 2], ['syndicate_titan', 1],
           ],
         },
       },
@@ -2126,6 +2693,8 @@
         'elite_commando', 'command_nexus', 'marshals_vanguard',
         'combined_arms', 'drill_instructor', 'ridge_battery', 'headhunter',
         'war_college', 'task_force_commander',
+        'airdrop_beacon', 'logistics_officer', 'supply_convoy',
+        'frontier_surveyor',
       ],
       presets: {
         maneuver: {
@@ -2144,10 +2713,10 @@
           doctrine: 'standard',
           plan: { keystones: ['ridge_engineers'], weights: { unitRisk: 0.4 } },
           cards: [
-            ['outrider_recon', 2], ['field_spotter', 2], ['shock_trooper', 2], ['ridge_engineers', 2],
+            ['outrider_recon', 2], ['field_spotter', 1], ['shock_trooper', 2], ['ridge_engineers', 2],
             ['suppressive_salvo', 2], ['ridge_battery', 2], ['valkyrie_drop', 2], ['sniper_nest', 2],
-            ['aa_cruiser', 2], ['artillery_barrage', 2], ['elite_commando', 2],
-            ['marshals_vanguard', 2], ['drill_instructor', 2], ['combined_arms', 2], ['headhunter', 1], ['design_workshop', 1],
+            ['aa_cruiser', 2], ['artillery_barrage', 2], ['elite_commando', 2], ['frontier_surveyor', 2],
+            ['marshals_vanguard', 2], ['drill_instructor', 2], ['combined_arms', 2], ['design_workshop', 1],
           ],
         },
         veterans: {
@@ -2159,6 +2728,16 @@
             ['headhunter', 2], ['elite_commando', 2], ['marshals_vanguard', 1], ['field_spotter', 2], ['suppressive_salvo', 1],
             ['aa_cruiser', 1], ['flak_battery', 1],
             ['fervor', 2], ['vow_of_ruin', 2], ['pyre_bearer', 2], ['witch_hunter', 2], ['cinder_sermon', 2],
+          ],
+        },
+        supply: {
+          name: 'Supply Lines', desc: 'Call down Supply Pods with Beacons and Convoys, sweep them up with Mobile units, and let the Logistics Officers grow on every crate.',
+          doctrine: 'standard',
+          plan: { keystones: ['airdrop_beacon', 'logistics_officer'] },
+          cards: [
+            ['outrider_recon', 2], ['field_spotter', 1], ['supply_drop', 2], ['flanking_maneuver', 2], ['command_post', 2], ['forward_outpost', 1],
+            ['logistics_officer', 2], ['shock_trooper', 2], ['airdrop_beacon', 2], ['supply_convoy', 2], ['ambush_squad', 2],
+            ['rover_scout', 2], ['wayfarer', 2], ['suppressive_salvo', 2], ['drill_instructor', 1], ['valkyrie_drop', 1], ['headhunter', 1], ['elite_commando', 1],
           ],
         },
       },
@@ -2179,6 +2758,7 @@
     interceptor: { name: 'Interceptor', icon: '⛨', text: 'Screens Aerial units in reach (they must attack it first) and deals +1 damage to Aerial units.' },
     psi: { name: 'Psi', icon: '✦', text: 'Damage ignores Shielded, Colony Armor, and location armor.' },
     flank: { name: 'Flank', icon: '⤢', text: 'Gains bonus Attack when attacking a target in a neighbouring lane.' },
+    overrun: { name: 'Overrun', icon: '⤋', text: 'Damage beyond what destroys an enemy unit carries on into the enemy colony.' },
     veteran: { name: 'Veteran', icon: '★', text: 'The first time this unit destroys an enemy unit, it permanently promotes (+1/+1 or special bonus).' },
     zeal: { name: 'Zeal', icon: '🔥', text: 'Has bonus Attack during your own turn.' },
   };

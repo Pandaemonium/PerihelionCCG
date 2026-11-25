@@ -45,6 +45,7 @@
       { id: 'rover', name: 'Rover', word: 'Rover', art: '🚙', tech: 4, pts: 1, kw: 'mobile' },
       { id: 'gun', name: 'Gun Carriage', word: 'Battery', art: '🎯', tech: 8, pts: (atk) => 2 + Math.ceil(atk / 2), kw: 'artillery' },
       { id: 'skim', name: 'Skimmer', word: 'Skimmer', art: '🛩️', tech: 8, pts: (atk) => Math.ceil(atk / 2), kw: 'aerial' },
+      { id: 'drop', name: 'Drop Pod', word: 'Drop-Unit', art: '🪂', tech: 8, pts: (atk) => 1 + Math.ceil(atk / 3), kw: 'blitz', kw2: 'flank', val2: 1, brief: 'Blitz, Flank +1' },
     ],
     weapon: [
       { id: 'w1', name: 'Sidearms', word: 'Sidearm', tech: 0, atk: 1 },
@@ -69,10 +70,24 @@
     ability: [
       { id: 'guard', name: 'Sentinel Drill', word: 'Sentinel', tech: 0, pts: 1, kw: 'guard' },
       { id: 'blitz', name: 'Assault Boosters', word: 'Assault', tech: 0, pts: (atk) => Math.ceil(atk / 4), kw: 'blitz' },
+      { id: 'sensor', name: 'Telemetry Mast', word: 'Recon', tech: 0, pts: 1, aiValue: 0.35,
+        text: '<b>Deploy:</b> <b>Forecast 2.</b>',
+        deploy(g, ctx) { E().forecast(g, ctx.pid, 2); } },
       { id: 'flak', name: 'Flak Mount', word: 'Flak', tech: 4, pts: 1, kw: 'interceptor' },
       { id: 'vet', name: 'Combat Recorder', word: 'Veteran', tech: 4, pts: 1, kw: 'veteran' },
+      { id: 'overrun', name: 'Ramming Prow', word: 'Ram', tech: 4, pts: (atk) => Math.ceil(atk / 4), kw: 'overrun' },
+      { id: 'disrupt', name: 'Shield Disruptor', word: 'Disruptor', tech: 4, pts: 2, aiValue: 0.65,
+        text: '<b>Deploy:</b> Deal 1 <b>Psi</b> damage to a random enemy unit and remove its Shield.',
+        deploy(g, ctx) {
+          const foes = g.players[1 - ctx.pid].board.filter(E().alive);
+          const t = E().pick(g, foes);
+          if (t) { t.kw.shield = false; E().damage(g, E().unitRef(t), 1, null, { psi: true }); }
+        } },
       { id: 'shield', name: 'Aegis Field', word: 'Aegis', tech: 8, pts: 3, kw: 'shield' },
       { id: 'siphon', name: 'Leech Coils', word: 'Leech', tech: 8, pts: (atk) => Math.ceil(atk / 3), kw: 'siphon' },
+      { id: 'regen', name: 'Nano-Repair', word: 'Nano', tech: 8, pts: 2, aiValue: 0.75,
+        text: '<b>Cycle End:</b> Restore 2 health to this unit.',
+        turnEnd(g, ctx) { E().heal(g, E().unitRef(ctx.self), 2); } },
       // signature parts: one per faction (the Iron Hive's is the Bastion Plate above)
       { id: 'psi', name: 'Psi Lattice', word: 'Psi', tech: 0, pts: 1, kw: 'psi', faction: 'rootbound' },
       { id: 'lab', name: 'Field Lab', word: 'Survey', tech: 0, pts: 1, faction: 'synod', aiValue: 0.4,
@@ -195,6 +210,7 @@
     const abs = b.lines.slice(3).map((l) => l.part);
     const kw = {};
     if (ch.kw) kw[ch.kw] = true;
+    if (ch.kw2) kw[ch.kw2] = ch.val2 || true;
     abs.forEach((p) => { if (p.kw) kw[p.kw] = p.val || true; });
 
     const kwText = Object.keys(KW).filter((k) => kw[k]).map((k) => `<b>${KW[k].name}${typeof kw[k] === 'number' ? ' ' + kw[k] : ''}.</b>`);
@@ -212,7 +228,7 @@
     };
     const aiValue = abs.reduce((n, p) => n + (p.aiValue || 0), 0);
     if (aiValue) def.aiValue = aiValue;
-    ['deploy', 'lastStand'].forEach((hook) => {
+    ['deploy', 'lastStand', 'turnEnd'].forEach((hook) => {
       const fns = abs.filter((p) => p[hook]).map((p) => p[hook]);
       if (fns.length) def[hook] = chain(fns);
     });

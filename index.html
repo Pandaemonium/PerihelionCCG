@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;700&family=Rajdhani:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
   <link rel="stylesheet" href="css/planet.css?v=2">
 </head>
 <body>
@@ -35,7 +35,7 @@
           <button id="btn-builder" class="btn ghost small">Deckbuilder</button>
         </div>
         <div class="setup-group">
-          <span class="label">Social</span>
+          <span class="label">Doctrine</span>
           <div id="doc-chips" class="chips"></div>
         </div>
       </div>
@@ -47,6 +47,10 @@
         <div class="setup-group">
           <span class="label">Biome</span>
           <div id="biome-chips" class="chips"></div>
+        </div>
+        <div class="setup-group">
+          <span class="label">Decree</span>
+          <div id="decree-chips" class="chips"></div>
         </div>
         <div class="setup-group">
           <span class="label">AI</span>
@@ -139,6 +143,7 @@
         <div id="lanes"></div>
         <div class="mid-row">
           <div id="hint" class="hint"></div>
+          <button id="archive-btn" class="btn ghost small archive-btn hidden" title="Spend 1 Energy to draw a replacement card and shuffle this back into your deck">↻ Archive (1)</button>
           <button id="end-turn" class="btn end-turn">End Turn</button>
         </div>
       </div>

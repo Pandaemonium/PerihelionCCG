@@ -22,6 +22,10 @@
  *   PATCH=trial.js node test/meta.js …                  try a change without editing the game: trial.js exports a
  *                                                       function (TauCeti) that alters cards, presets or rule
  *                                                       constants, and is applied before any game is played
+ *   NO_MULLIGAN=1 node test/meta.js …                   play without the opening mulligan, to measure what it does
+ *
+ * Every game opens with the mulligan, each side choosing by the AI's rule (AI.mulligan). In an --ab run the
+ * variant's mulligan setting applies to its own seat, so `--ab mulligan=0` prices the keep rule itself.
  *
  * What it prints
  *   decks      overall win rate of each preset (target 45–55%), how its games end and how long they run
@@ -110,8 +114,9 @@ function playGame(d0, d1, seed, first, tunes, problems, plans) {
   const decks = [d0, d1];
   const g = E.newGame(d0.faction, d1.faction, seed, first, {
     biome: BIOME, preset0: d0.preset, preset1: d1.preset, pact0: d0.pact, pact1: d1.pact, doctrine0: d0.doctrine, doctrine1: d1.doctrine,
-    plan0: plans && plans[0], plan1: plans && plans[1],
+    plan0: plans && plans[0], plan1: plans && plans[1], mulligan: !process.env.NO_MULLIGAN,
   });
+  AI.mulligan(g, tunes);
   const report = (m) => { if (problems.length < 20) problems.push(m); };
   const own = [0, 0], seen = [null, null];
   let steps = 0;

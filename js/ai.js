@@ -49,6 +49,7 @@
     plans: 1,    // follow the deck's game plan: its own weights and its hold rules
     holdScale: 1, // multiplies every hold value (0 = never hold a card back)
     unitRisk: 0.25, // how much to mark down my units that enemy units in reach could destroy
+    mulligan: 2, // opening mulligan: keep cards costing up to this and send the rest back (0 = keep every card)
     noise: 0,    // random error added to every action's value (the Colonist level's mistakes)
   };
 
@@ -113,15 +114,46 @@
   }
 
   /** What a card is worth while it stays in hand. A hold value makes the AI wait for a better moment to play it. */
-  function handValue(T, id) {
+  function handValue(T, id, g, pid) {
     if (id === 'cell') return T.cellHand;
-    const hold = T.hold && T.hold[id] != null ? T.hold[id] : CARDS[id].aiHold || 0;
+    const d = CARDS[id];
+    const hold = T.hold && T.hold[id] != null ? T.hold[id] : d.aiHold || 0;
+    if (g && pid != null && E.isArchivable(d)) {
+      const p = g.players[pid];
+      if (d.cost >= Math.max(4, p.maxEnergy + 2)) {
+        return T.hand * 0.25;
+      }
+    }
     return T.hand + T.holdScale * hold;
   }
 
+  /** Pick the best index from a Forecast look-ahead list for the AI. `f` is the Forecast being settled, if any. */
+  AI.pickForecast = function (g, pid, options, f) {
+    if (!options || !options.length) return 0;
+    const p = g.players[pid];
+    const plan = AI.planOf(g, pid);
+    const keys = (plan && plan.keystones) || [];
+    f = f || g.forecast;
+    const needNative = !!(f && f.nativeBuffUid);
+    const nextCap = Math.min(E.maxEnergyCap(g, pid), p.maxEnergy + 1);
+    let bestIdx = 0, bestSc = -Infinity;
+    options.forEach((id, i) => {
+      const d = CARDS[id];
+      if (!d) return;
+      let sc = d.cost <= nextCap ? 2.4 + d.cost * 0.18 : (d.cost <= nextCap + 1 ? 0.9 : -1.2);
+      if (d.project && d.cost > nextCap) sc -= 1.8;
+      if (keys.includes(id)) sc += (d.project && d.cost > nextCap) ? 0.3 : 1.6;
+      if (needNative && d.native) sc += 2.2;
+      if (p.hp <= 12 && d.kw && (d.kw.guard || d.kw.siphon)) sc += 1.2;
+      if (d.type === 'unit' && p.board.length < 2 && d.cost <= nextCap) sc += 0.8;
+      if (sc > bestSc) { bestSc = sc; bestIdx = i; }
+    });
+    return bestIdx;
+  };
+
   function unitValue(g, u) {
     const d = CARDS[u.id];
-    const atk = u.atk + (u.tempAtk || 0);
+    const atk = u.atk + (u.tempAtk || 0) + (d.woundAtk ? d.woundAtk * Math.max(0, u.maxHp - u.hp) : 0);
     const zeal = E.kwVal(g, u, 'zeal');
     const effAtk = atk + zeal * 0.55;
     let v = effAtk > 0 ? effAtk * 1.1 + u.hp * 0.9 : 0.5 + u.hp * 0.5;
@@ -133,6 +165,7 @@
     if (E.hasKw(g, u, 'artillery')) v += 1 + effAtk * 0.3;
     if (E.hasKw(g, u, 'interceptor')) v += 0.7 + u.hp * 0.12;
     if (E.hasKw(g, u, 'psi')) v += 0.45 + effAtk * 0.15;
+    if (E.hasKw(g, u, 'overrun')) v += effAtk * 0.25;
     const flank = E.kwVal(g, u, 'flank');
     if (flank > 0) v += flank * 0.45;
     if (E.hasKw(g, u, 'veteran') && !u.promoted) v += 0.55;
@@ -223,7 +256,7 @@
     const hasAscent = me.sites.some((x) => E.siteActive(g, x) && CARDS[x.id].ascentProject);
     const foeAscent = foe.sites.some((x) => E.siteActive(g, x) && CARDS[x.id].ascentProject);
     let handVal = 0;
-    me.hand.forEach((h) => { handVal += handValue(T, h.id); });
+    me.hand.forEach((h) => { handVal += handValue(T, h.id, g, pid); });
     s += handVal + me.research * (hasAscent ? T.researchAscent : T.research) + me.energy * T.energy;
     if (foeAscent) s -= foe.research * T.foeAscent;
     return s;
@@ -234,7 +267,11 @@
   function designValue(x, need) {
     const kw = {};
     let extra = 0;
-    x.parts.forEach((p) => { if (p.kw) kw[p.kw] = p.val || 1; if (p.aiValue) extra += p.aiValue; });
+    x.parts.forEach((p) => {
+      if (p.kw) kw[p.kw] = p.val || 1;
+      if (p.kw2) kw[p.kw2] = p.val2 || 1;
+      if (p.aiValue) extra += p.aiValue;
+    });
     const effAtk = x.atk + (kw.zeal || 0) * 0.55;
     let v = effAtk * 1.1 + x.hp * 0.9 + extra;
     // lopsided bodies trade badly: a 6/1 dies to anything, a 1/7 threatens nothing
@@ -247,6 +284,7 @@
     if (kw.artillery) v += 1 + effAtk * 0.3;
     if (kw.interceptor) v += need.flak ? 1.6 + x.hp * 0.12 : 0.2;
     if (kw.psi) v += 0.45 + effAtk * 0.15 + (need.psi ? 0.6 : 0);
+    if (kw.overrun) v += effAtk * 0.25;
     if (kw.flank) v += kw.flank * 0.45;
     if (kw.veteran) v += 0.55;
     if (kw.blitz) v += need.blitz ? 0.5 + x.atk * 0.15 : 0.15;
@@ -268,13 +306,14 @@
    * The design the AI would build with the Workshop: the best-valued legal one it can pay for. If enough Energy is
    * left after the Order to deploy at once it builds for now, otherwise for next turn's Energy. Returns a choice.
    */
-  AI.pickDesign = function (g, pid, orderCost) {
+  AI.pickDesign = function (g, pid, orderCost, discount) {
     const D = V.Design;
     const p = g.players[pid], foe = g.players[1 - pid];
+    const disc = discount || 0;
     const left = p.energy - orderCost;
-    const budget = left >= 2 && E.emptyLanes(g, pid).length
-      ? left
-      : Math.min(D.MAX_COST, E.maxEnergyCap(g, pid), p.maxEnergy + 1);
+    const budget = Math.min(D.MAX_COST, (left + disc >= 2 && E.emptyLanes(g, pid).length
+      ? left + disc
+      : Math.min(D.MAX_COST, E.maxEnergyCap(g, pid), p.maxEnergy + 1) + disc));
     const need = {
       flak: foe.board.some((u) => E.alive(u) && E.hasKw(g, u, 'aerial')),
       psi: foe.armor > 0 || foe.board.some((u) => E.alive(u) && u.kw.shield),
@@ -307,16 +346,30 @@
     const p = g.players[pid];
     if (g.over || g.active !== pid) return out;
     const seen = {};
+    const seenArchive = {};
     p.hand.forEach((hc) => {
+      const d = CARDS[hc.id];
+      if (E.canArchive(g, pid, hc) && !seenArchive[hc.id] && (!E.canPlay(g, pid, hc) || E.cost(g, pid, hc) >= 6)) {
+        seenArchive[hc.id] = true;
+        out.push({ type: 'archive', hand: hc.uid, id: hc.id });
+      }
       if (!E.canPlay(g, pid, hc)) return;
       const key = hc.id + ':' + hc.cost;
       if (seen[key]) return;
       seen[key] = true;
-      const d = CARDS[hc.id];
       if (d.design) {
         // one design, picked by rule: the one-step look-ahead cannot tell two cards in hand apart
-        const choice = AI.pickDesign(g, pid, E.cost(g, pid, hc));
+        const choice = AI.pickDesign(g, pid, E.cost(g, pid, hc), d.designDiscount || 0);
         if (choice) out.push({ type: 'play', hand: hc.uid, id: hc.id, target: null, lane: null, choice });
+        return;
+      }
+      if (d.modes) {
+        d.modes.forEach((m, mIdx) => {
+          const ts = E.modeTargets(g, pid, d, mIdx);
+          if (m.target && (!ts || !ts.length)) return;
+          const tlist = ts && ts.length ? ts : [null];
+          tlist.forEach((t) => out.push({ type: 'play', hand: hc.uid, id: hc.id, target: t, lane: null, choice: mIdx }));
+        });
         return;
       }
       const lanes = E.deployLanes(g, pid, d) || [null];
@@ -340,6 +393,7 @@
 
   AI.apply = function (g, pid, a) {
     if (a.type === 'play') return E.playCard(g, pid, a.hand, a.target, a.lane, a.choice);
+    if (a.type === 'archive') return E.archiveCard(g, pid, a.hand);
     if (a.type === 'attack') return E.attack(g, pid, a.uid, a.target);
     if (a.type === 'move') return E.move(g, pid, a.uid, a.lane);
     if (a.type === 'power') return E.usePower(g, pid, a.target);
@@ -348,6 +402,7 @@
   };
 
   function isRandom(g, pid, a) {
+    if (a.type === 'archive') return true;
     if (a.type === 'power') return !!FACTIONS[g.players[pid].faction].power.random;
     if (a.type === 'move') return !!(g.lanes[a.lane] && g.lanes[a.lane].pod);
     if (a.type !== 'play') return false;
@@ -376,7 +431,8 @@
     }
     const t = a.target;
     const tk = t ? t.k + (t.uid || '') + (t.lane == null ? '' : 'L' + t.lane) + (t.pid == null ? '' : 'P' + t.pid) : '';
-    return a.type + ':' + (a.hand || a.uid || '') + ':' + tk + ':' + (a.lane == null ? '' : a.lane) + mode;
+    const mk = a.choice != null && typeof a.choice !== 'object' ? ':M' + a.choice : '';
+    return a.type + ':' + (a.hand || a.uid || '') + ':' + tk + ':' + (a.lane == null ? '' : a.lane) + mk + mode;
   }
 
   /**
@@ -484,11 +540,20 @@
   function stillLegal(g, pid, a) {
     const p = g.players[pid];
     const hit = (list, t) => !!list && list.some((x) => x.k === t.k && x.uid === t.uid && x.lane === t.lane && x.pid === t.pid);
+    if (a.type === 'archive') {
+      const hc = p.hand.find((h) => h.uid === a.hand);
+      return !!hc && hc.id === a.id && E.canArchive(g, pid, hc);
+    }
     if (a.type === 'play') {
       const hc = p.hand.find((h) => h.uid === a.hand);
       if (!hc || hc.id !== a.id || !E.canPlay(g, pid, hc)) return false;
       const d = CARDS[hc.id], lanes = E.deployLanes(g, pid, d);
       if (lanes && !lanes.includes(a.lane)) return false;
+      if (d.modes) {
+        const mo = E.modeOf(d, a.choice);
+        if (!mo) return false;
+        return !mo.mode.target || (!!a.target && hit(E.modeTargets(g, pid, d, a.choice), a.target));
+      }
       return !E.needsTarget(g, pid, hc) || (!!a.target && hit(E.cardTargets(g, pid, d), a.target));
     }
     if (a.type === 'power') {
@@ -519,6 +584,41 @@
     if (cell && p.hand.length >= E.maxHand(g, pid) - 1) { plan.expect = undefined; return cellPlay(cell); }
     return null;
   }
+
+  /* ------------------------------------------------------------ opening mulligan */
+  /**
+   * Which cards of the opening hand to send back: the uids to pass to E.mulligan. The AI wants something to do on
+   * its first turns, so it keeps cards costing up to T.mulligan, keeps a card one dearer when it has a cheap card
+   * or an Energy Cell to go with it or the card is one of the deck's keystones, and sends back the rest, Secret
+   * Projects included. A deck's plan may name cards to always keep or always send back:
+   * mulligan: { keep: [card id, …], toss: [card id, …] }. The Colonist level keeps whatever it is dealt.
+   */
+  AI.mulliganChoice = function (g, pid, T, difficulty) {
+    T = forLevel(T || AI.TUNE, difficulty || AI.difficulty);
+    if (!T.mulligan || T.noise > 0) return [];
+    const plan = T.plans ? AI.planOf(g, pid) : null;
+    const rule = (plan && plan.mulligan) || {};
+    const keys = (plan && plan.keystones) || [];
+    const can = E.mulliganOptions(g, pid);
+    const cells = g.players[pid].hand.some((h) => h.id === 'cell');
+    const cheap = can.some((hc) => !CARDS[hc.id].project && CARDS[hc.id].cost <= T.mulligan);
+    return can.filter((hc) => {
+      const d = CARDS[hc.id];
+      if (rule.keep && rule.keep.includes(hc.id)) return false;
+      if (rule.toss && rule.toss.includes(hc.id)) return true;
+      if (d.project) return true;
+      if (d.cost <= T.mulligan) return false;
+      if (d.cost === T.mulligan + 1) return !(cells || cheap || keys.includes(hc.id));
+      return true;
+    }).map((hc) => hc.uid);
+  };
+
+  /** Take the opening mulligan for every player who still has one to take. `tunes` and `levels` are optional [seat 0, seat 1]. */
+  AI.mulligan = function (g, tunes, levels) {
+    [0, 1].forEach((pid) => {
+      if (g.mulligan && g.mulligan[pid]) E.mulligan(g, pid, AI.mulliganChoice(g, pid, tunes && tunes[pid], levels && levels[pid]));
+    });
+  };
 
   /* ------------------------------------------------------------ choosing an action */
   AI.choose = function (g, pid, T, difficulty) {

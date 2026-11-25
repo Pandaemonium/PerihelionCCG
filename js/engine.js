@@ -20,10 +20,14 @@
   E.RAZE_DAMAGE = 3;
   E.PROJECT_RAZE_DAMAGE = 5;
   E.ASCENT_RESEARCH = 22;
-  // Opening hands: the player who moves second is compensated with extra cards and Reserve Cells.
+  E.ARCHIVE_COST = 1;
+  // Opening hands: the player who moves second is compensated with extra cards and Reserve Cells. With the
+  // opening mulligan those extra cards are worth more (more cards to swap), and the first player won only 46%,
+  // so the first player's colony starts with a little more Integrity: 4 measured 49.7% (test/meta.js, 2026-11-25).
   E.START_CARDS = 3;
   E.SECOND_EXTRA_CARDS = 2;
   E.SECOND_CELLS = 1;
+  E.FIRST_HP = 4;
   E.MILESTONES = [4, 8, 13];
   E.MILESTONE_TEXT = [
     'Breakthrough I — draw a card.',
@@ -120,7 +124,7 @@
     return total;
   }
 
-  E.maxEnergyCap = (g, pid) => (siteSum(g, pid, 'energyCap') > 0 ? 12 : E.MAX_ENERGY);
+  E.maxEnergyCap = (g, pid) => Math.max(1, (siteSum(g, pid, 'energyCap') > 0 ? 12 : E.MAX_ENERGY) + (E.doctrine(g, pid).maxEnergy || 0));
 
   /** Numeric value for stackable keywords (zeal, flank). */
   E.kwVal = function (g, u, k) {
@@ -162,6 +166,7 @@
   E.effectiveAtk = function (g, u, target, isAttacking) {
     const attacking = isAttacking !== false;
     let a = u.atk + (u.tempAtk || 0);
+    if (CARDS[u.id].woundAtk) a += CARDS[u.id].woundAtk * Math.max(0, u.maxHp - u.hp);
     if (g.active === u.owner) a += E.kwVal(g, u, 'zeal');
     if (siteSum(g, u.owner, 'raiderBuff') > 0 && (E.hasKw(g, u, 'blitz') || E.hasKw(g, u, 'aerial'))) a += 1;
     if (target) {
@@ -272,9 +277,11 @@
       armor: 0,
       energy: 0, maxEnergy: 0,
       research: rules.research || 0,
-      powerUsed: false, fatigue: 0, cardsPlayedThisTurn: 0, diedThisTurn: 0,
+      powerUsed: false, fatigue: 0, cardsPlayedThisTurn: 0, unitsDeployedThisTurn: 0, diedThisTurn: 0,
       razed: 0,     // enemy locations razed this game
       blackBox: 0,  // Black Box cards played this game
+      grave: [],    // card ids of my non-token units destroyed this game and not yet brought back
+      lost: 0,      // how many of my non-token units have been destroyed this game
       deck: [], hand: [], board: [], sites: [],
     };
   }
@@ -290,16 +297,21 @@
   /**
    * Create a new game.
    * Backwards compatible with E.newGame(f0, f1, seed, first) plus optional opts:
-   *   { biome, deck0, deck1, preset0, preset1, pact0, pact1, doctrine0, doctrine1, plan0, plan1, hp0, hp1, bossName, bossArt }
+   *   { biome, deck0, deck1, preset0, preset1, pact0, pact1, doctrine0, doctrine1, plan0, plan1, hp0, hp1, bossName, bossArt, mulligan }
+   * mulligan: true deals the opening hands and then waits for each player's E.mulligan before the first turn.
    * pact0 / pact1 name each side's Pact partner faction, if its deck has one. A preset that has a Pact supplies it.
    * plan0 / plan1 give a custom deck a game plan for the AI to pilot it by (see the presets in cards.js).
    */
   E.newGame = function (f0, f1, seed, first, opts) {
     opts = opts || {};
     const biomeId = opts.biome || 'tau_ceti';
+    const decreeId = opts.decree || 'none';
     const g = {
       seed: (seed | 0) || 1,
       biome: biomeId,
+      decree: decreeId,
+      humanPid: opts.human != null ? opts.human : null,
+      forecast: null,
       players: [
         mkPlayer(0, f0, opts.doctrine0, opts.hp0, presetPact(f0, opts.deck0, opts.preset0, opts.pact0)),
         mkPlayer(1, f1, opts.doctrine1, opts.hp1, presetPact(f1, opts.deck1, opts.preset1, opts.pact1)),
@@ -313,6 +325,12 @@
     const biome = BIOMES[biomeId] || BIOMES.classic;
     g.lanes = biome ? biome.generate((n) => E.rand(g, n)) : Array.from({ length: E.LANES }, () => ({ terrain: null, pod: false }));
 
+    if (decreeId === 'solar_shade') {
+      g.lanes.forEach((l) => { l.terrain = null; });
+    } else if (decreeId === 'fungal_bloom') {
+      [0, 3, 6].forEach((ln) => { g.lanes[ln].terrain = 'fungus'; });
+    }
+
     // a doctrine may turn lanes into Xenofungus, replacing whatever terrain the map put there
     g.players.forEach((p) => {
       (docRules(p.doctrine).fungusLanes || []).forEach((ln) => { g.lanes[ln].terrain = 'fungus'; });
@@ -322,6 +340,10 @@
       const customDeck = idx === 0 ? opts.deck0 : opts.deck1;
       const preset = idx === 0 ? opts.preset0 : opts.preset1;
       const list = customDeck ? customDeck.slice() : V.buildDeck(p.faction, preset);
+      if (decreeId === 'repeal_charter') {
+        list.push('planet_buster');
+        if ((idx === 0 ? opts.hp0 : opts.hp1) == null) { p.hp += 5; p.maxHp += 5; }
+      }
       // The AI looks up a preset's game plan by its key; a custom deck may bring a plan of its own (plain data).
       const presets = FACTIONS[p.faction].presets || {};
       p.preset = customDeck ? null : (presets[preset] ? preset : Object.keys(presets)[0] || null);
@@ -333,13 +355,54 @@
     });
 
     const a = g.active;
+    // the first player's extra Integrity, unless the caller fixed that colony's Integrity (a campaign boss, a test)
+    if ((a === 0 ? opts.hp0 : opts.hp1) == null) { g.players[a].hp += E.FIRST_HP; g.players[a].maxHp += E.FIRST_HP; }
     const extra = (pid) => docRules(g.players[pid].doctrine).cards || 0;
     E.draw(g, a, E.START_CARDS + extra(a));
     E.draw(g, 1 - a, E.START_CARDS + E.SECOND_EXTRA_CARDS + extra(1 - a));
     for (let i = 0; i < E.SECOND_CELLS; i++) E.addToHand(g, 1 - a, 'cell');
     g.events = [];
-    startTurn(g);
+    // With opts.mulligan the game waits here: each player calls E.mulligan once, and the first turn starts
+    // after the second of them. Without it the game starts at once, which is what the unit tests want.
+    if (opts.mulligan) g.mulligan = [true, true];
+    else startTurn(g);
     return g;
+  };
+
+  /* ------------------------------------------------------------ opening mulligan */
+  /** The cards of pid's opening hand that may be swapped: everything but tokens such as Energy Cells. */
+  E.mulliganOptions = function (g, pid) {
+    if (!g.mulligan || !g.mulligan[pid]) return [];
+    return g.players[pid].hand.filter((hc) => !CARDS[hc.id].token);
+  };
+
+  /**
+   * Swap cards of the opening hand, once: `uids` are the hand cards to send back (an empty list keeps the hand).
+   * The replacements are drawn first and the returned cards are then shuffled into the deck, so a card sent back
+   * cannot come straight back. The first turn starts when both players have had their mulligan.
+   */
+  E.mulligan = function (g, pid, uids) {
+    if (!g.mulligan || !g.mulligan[pid]) return false;
+    const p = g.players[pid];
+    const can = E.mulliganOptions(g, pid);
+    const back = can.filter((hc) => (uids || []).includes(hc.uid));
+    if (back.length !== new Set(uids || []).size || back.length > p.deck.length) return false;
+    back.forEach((hc) => {
+      const id = p.deck.pop();
+      p.hand[p.hand.indexOf(hc)] = { uid: g.nextUid++, id, cost: CARDS[id].cost };
+    });
+    if (back.length) {
+      back.forEach((hc) => p.deck.push(hc.id));
+      shuffle(g, p.deck);
+    }
+    p.mulliganed = back.length;
+    g.mulligan[pid] = false;
+    ev(g, { t: 'mulligan', pid, n: back.length });
+    if (!g.mulligan[0] && !g.mulligan[1]) {
+      g.mulligan = null;
+      startTurn(g);
+    }
+    return true;
   };
 
   // The state is plain JSON, so a field-by-field copy is the same as a JSON round trip and several times faster.
@@ -405,6 +468,7 @@
       if (!psi && u.kw.shield) { u.kw.shield = false; ev(g, { t: 'block', ref, id: u.id, pid: f.pid }); return 0; } // pid = the shielded unit's owner
       u.hp -= n;
       ev(g, { t: 'dmg', ref, n, psi });
+      if (alive(u) && CARDS[u.id].onHurt) CARDS[u.id].onHurt(g, { pid: f.pid, self: u, n });
     }
     if (src && E.hasKw(g, src, 'siphon')) E.heal(g, leaderRef(src.owner), n);
     return n;
@@ -434,16 +498,68 @@
     const t = turns || 1;
     if (ref.k === 's') {
       const f = E.findSite(g, ref.uid);
-      if (f && alive(f.site)) { f.site.jammed = Math.max(f.site.jammed || 0, t); ev(g, { t: 'jam', ref }); }
+      if (f && alive(f.site)) { f.site.jammed = Math.max(f.site.jammed || 0, t); ev(g, { t: 'jam', ref }); fire(g, 1 - f.pid, 'onEnemyJam', { ref }); }
     } else if (ref.k === 'u') {
       const f = E.find(g, ref.uid);
-      if (f && alive(f.unit)) { f.unit.jammed = Math.max(f.unit.jammed || 0, t); ev(g, { t: 'jam', ref }); }
+      if (f && alive(f.unit)) { f.unit.jammed = Math.max(f.unit.jammed || 0, t); ev(g, { t: 'jam', ref }); fire(g, 1 - f.pid, 'onEnemyJam', { ref }); }
     }
+  };
+
+  /**
+   * Return a unit to its owner's hand as a fresh card (costMod changes what it costs there). It is not destroyed:
+   * no Last Stand, and it does not count as lost. A token simply leaves play, and so does a card that finds the
+   * hand full. Returns the new hand card, or null.
+   */
+  E.bounce = function (g, ref, costMod) {
+    const f = ref && ref.k === 'u' ? E.find(g, ref.uid) : null;
+    if (!f || !alive(f.unit)) return null;
+    const u = f.unit, p = g.players[f.pid];
+    p.board.splice(f.idx, 1);
+    ev(g, { t: 'bounce', ref, id: u.id, pid: f.pid });
+    let hc = null;
+    if (!CARDS[u.id].token) {
+      if (p.hand.length >= E.maxHand(g, f.pid)) ev(g, { t: 'burn', pid: f.pid, id: u.id });
+      else {
+        hc = { uid: g.nextUid++, id: u.id, cost: Math.max(0, CARDS[u.id].cost + (costMod || 0)) };
+        p.hand.push(hc);
+      }
+    }
+    fire(g, f.pid, 'onAllyBounce', { id: u.id });
+    return hc;
+  };
+
+  /**
+   * Take one of pid's destroyed units out of the record of the fallen: the costliest that passes `test(cardDef)`,
+   * or a random one that does if `random` is set. Returns its card id, or null if there is none.
+   */
+  E.salvage = function (g, pid, test, random) {
+    const p = g.players[pid];
+    const at = [];
+    p.grave.forEach((id, i) => { if (!test || test(known(id))) at.push(i); });
+    if (!at.length) return null;
+    let i;
+    if (random) i = E.pick(g, at);
+    else i = at.reduce((best, x) => (CARDS[p.grave[x]].cost > CARDS[p.grave[best]].cost ? x : best), at[0]);
+    return p.grave.splice(i, 1)[0];
   };
 
   E.destroy = function (g, ref) {
     const f = ref.k === 's' ? E.findSite(g, ref.uid) : E.find(g, ref.uid);
     if (f) (f.unit || f.site).doomed = true;
+  };
+
+  /** Mark a unit as purged (no Last Stand, does not enter the fallen pile). Works whether alive or freshly at <=0 HP. */
+  E.purgeUnit = function (g, ref) {
+    if (!ref || ref.k !== 'u') return;
+    const f = E.find(g, ref.uid);
+    if (f) { f.unit.purged = true; f.unit.doomed = true; }
+  };
+
+  /** Remove the costliest unit from pid's fallen pile. Returns its card id, or null if empty. */
+  E.purgeGrave = function (g, pid) {
+    const id = E.salvage(g, pid);
+    if (id) ev(g, { t: 'purge_grave', pid, id });
+    return id;
   };
 
   E.gainArmor = function (g, pid, n) {
@@ -460,6 +576,17 @@
     if (g.lanes[lane].terrain === terrainId) return;
     g.lanes[lane].terrain = terrainId;
     ev(g, { t: 'terrain', lane, terrain: terrainId });
+  };
+
+  E.swapTerrain = function (g, a, b) {
+    if (a < 0 || a >= E.LANES || b < 0 || b >= E.LANES || a === b) return false;
+    const ta = g.lanes[a].terrain, tb = g.lanes[b].terrain;
+    if (ta === tb) return false;
+    g.lanes[a].terrain = tb;
+    g.lanes[b].terrain = ta;
+    ev(g, { t: 'terrain', lane: a, terrain: tb });
+    ev(g, { t: 'terrain', lane: b, terrain: ta });
+    return true;
   };
 
   E.dropPod = function (g, lane) {
@@ -490,6 +617,7 @@
     } else if (outcome === 'worm') {
       E.summon(g, pid, 'mind_worm', u.lane);
     }
+    fire(g, pid, 'onPod', { claimer: u, outcome });
   };
 
   E.pushUnit = function (g, u) {
@@ -506,6 +634,114 @@
     const s = E.siteBehind(g, u);
     if (s && CARDS[s.id].onMoveArrive) CARDS[s.id].onMoveArrive(g, { pid: u.owner, self: s, unit: u });
     if (alive(u) && CARDS[u.id].onMove) CARDS[u.id].onMove(g, { pid: u.owner, self: u, from });
+    return true;
+  };
+
+  E.pullUnit = function (g, u) {
+    if (!u || !alive(u) || u.immobile) return false;
+    const opts = [u.lane - 1, u.lane + 1].filter((x) => x >= 0 && x < E.LANES && !E.unitAt(g, u.owner, x));
+    if (!opts.length) return false;
+    // only ever toward the centre lane: a unit already there, or with the inward lane taken, stays put
+    const from = u.lane;
+    const to = opts.find((x) => Math.abs(x - E.CENTER) < Math.abs(from - E.CENTER));
+    if (to == null) return false;
+    u.lane = to;
+    ev(g, { t: 'move', pid: u.owner, ref: unitRef(u), id: u.id, from, to });
+    E.claimPod(g, u.owner, u);
+    const s = E.siteBehind(g, u);
+    if (s && CARDS[s.id].onMoveArrive) CARDS[s.id].onMoveArrive(g, { pid: u.owner, self: s, unit: u });
+    if (alive(u) && CARDS[u.id].onMove) CARDS[u.id].onMove(g, { pid: u.owner, self: u, from });
+    return true;
+  };
+
+  /* ------------------------------------------------------------ Forecast (look-ahead) & Archive (tradeable) */
+  /**
+   * Look at the top `n` cards of pid's deck; choose one to put on top (or draw if opts.draw) and bottom the rest.
+   * The AI, a clone and a headless game pick and finish at once. The human seat of a game on the page
+   * (`g.humanPid`) waits in `g.forecast` for E.resolveForecast, and until then:
+   *   - the cards being looked at are held in `g.forecast.options`, out of the deck, so nothing else can move them;
+   *   - any card that player is due to draw is counted in `g.forecast.owed` and drawn after the pick, which is
+   *     the order the AI's Forecast gets (pick, then draw);
+   *   - a second Forecast for that player waits in `g.forecast.queue` and opens when this one is done.
+   */
+  E.forecast = function (g, pid, n, opts) {
+    opts = opts || {};
+    const p = g.players[pid];
+    const req = { pid, n: n || 3, draw: !!opts.draw, nativeBuffUid: opts.nativeBuffUid || null };
+    if (g.forecast && opts.pickIdx == null) {
+      g.forecast.queue.push(req);
+      return null;
+    }
+    const count = Math.min(req.n, p.deck.length);
+    if (count <= 0) return null;
+    const options = p.deck.splice(p.deck.length - count, count).reverse();
+    const state = { pid, options, draw: req.draw, nativeBuffUid: req.nativeBuffUid, owed: 0, queue: [] };
+    if (!g.silent && g.humanPid === pid && opts.pickIdx == null) {
+      g.forecast = state;
+      return null;
+    }
+    const idx = opts.pickIdx != null ? opts.pickIdx : (V.AI && V.AI.pickForecast ? V.AI.pickForecast(g, pid, options, state) : 0);
+    const picked = settleForecast(g, state, idx);
+    resolve(g);
+    return picked;
+  };
+
+  /** Put a Forecast's cards back: the rest on the bottom, the pick on top (or into hand). */
+  function settleForecast(g, f, pickIdx) {
+    const p = g.players[f.pid];
+    const idx = Math.max(0, Math.min(f.options.length - 1, pickIdx | 0));
+    const picked = f.options[idx];
+    const rest = f.options.filter((_, i) => i !== idx);
+    for (let i = rest.length - 1; i >= 0; i--) p.deck.unshift(rest[i]);
+    p.deck.push(picked);
+    if (f.draw) E.draw(g, f.pid, 1);
+    if (f.nativeBuffUid && CARDS[picked] && CARDS[picked].native) {
+      const u = E.find(g, f.nativeBuffUid);
+      if (u && alive(u.unit)) E.buff(g, u.unit, 1, 1);
+    }
+    ev(g, { t: 'forecast', pid: f.pid, n: f.options.length, draw: f.draw, picked: f.pid === g.humanPid ? picked : null });
+    return picked;
+  }
+
+  E.resolveForecast = function (g, pid, pickIdx) {
+    const f = g.forecast;
+    if (!f || f.pid !== pid) return null;
+    g.forecast = null;
+    const picked = settleForecast(g, f, pickIdx);
+    if (f.owed) E.draw(g, pid, f.owed);
+    resolve(g);
+    // the Forecasts that were waiting behind this one: the first that has cards to show opens, the rest wait on it
+    const queue = f.queue;
+    while (queue.length && !g.over && !g.forecast) {
+      const q = queue.shift();
+      E.forecast(g, q.pid, q.n, q);
+    }
+    if (g.forecast) g.forecast.queue.push(...queue);
+    return picked;
+  };
+
+  E.isArchivable = (d) => !!(d && (d.project || d.archive));
+
+  E.canArchive = function (g, pid, hc) {
+    if (g.over || g.mulligan || g.forecast || g.active !== pid || !hc) return false;
+    const p = g.players[pid];
+    return E.isArchivable(CARDS[hc.id]) && p.energy >= E.ARCHIVE_COST && p.deck.length > 0;
+  };
+
+  /** Spend 1 Energy to draw a replacement card and shuffle this card back into your deck. */
+  E.archiveCard = function (g, pid, handUid) {
+    const p = g.players[pid];
+    const i = p.hand.findIndex((h) => h.uid === handUid);
+    if (i < 0) return false;
+    const hc = p.hand[i];
+    if (!E.canArchive(g, pid, hc)) return false;
+    p.energy -= E.ARCHIVE_COST;
+    p.hand.splice(i, 1);
+    E.draw(g, pid, 1);
+    p.deck.push(hc.id);
+    shuffle(g, p.deck);
+    ev(g, { t: 'archive', pid, id: hc.id });
+    resolve(g);
     return true;
   };
 
@@ -542,8 +778,12 @@
     if (g.players[pid].cardsPlayedThisTurn === 0) {
       c -= siteSum(g, pid, 'firstCardDiscount', true);
     }
+    // firstCardTax: an enemy location makes my first card of the turn dearer. Energy Cells and other tokens are exempt.
+    if (!d.token && !g.players[pid].taxPaid) c += siteSum(g, 1 - pid, 'firstCardTax');
+    if (V.Design && V.Design.isDesign(hc.id)) c -= siteSum(g, pid, 'designDiscount');
     // handDiscount: the card costs this much less for each other card in its owner's hand
     if (d.handDiscount) c -= d.handDiscount * Math.max(0, g.players[pid].hand.length - 1);
+    if (g.decree === 'fungal_bloom' && d.native) c = Math.max(1, c - 1);
     return Math.max(0, c);
   };
 
@@ -554,13 +794,13 @@
    * Build a unit card from a choice of parts { chassis, weapon, armor, abilities } and add it to pid's hand.
    * Returns the hand card, or null if the design is not legal for that player or the hand is full.
    */
-  E.designUnit = function (g, pid, choice) {
+  E.designUnit = function (g, pid, choice, costMod) {
     const D = V.Design;
     if (D.why(g, pid, choice)) return null;
     const id = D.idOf(choice);
     D.ensure(id);
     ev(g, { t: 'design', pid, id });
-    return E.addToHand(g, pid, id);
+    return E.addToHand(g, pid, id, costMod);
   };
 
   /**
@@ -591,6 +831,8 @@
 
   E.draw = function (g, pid, n) {
     const p = g.players[pid];
+    // while this player's Forecast is open, the draw waits for the pick (see E.forecast)
+    if (g.forecast && g.forecast.pid === pid) { g.forecast.owed += n; return; }
     const cap = E.maxHand(g, pid);
     for (let i = 0; i < n; i++) {
       if (!p.deck.length) {
@@ -635,12 +877,13 @@
     const d = CARDS[id];
     let hp = d.hp;
     if (!isInitial) {
-      hp += siteSum(g, pid, 'siteBuildHp');
+      hp += siteSum(g, pid, 'siteBuildHp') + (E.doctrine(g, pid).siteHp || 0);
     }
     const s = { uid: g.nextUid++, id, owner: pid, lane, hp, maxHp: hp, jammed: 0 };
     g.players[pid].sites.push(s);
     ev(g, { t: 'build', pid, uid: s.uid, id, lane });
     if (d.project && !isInitial) ev(g, { t: 'project_built', pid, id });
+    if (!isInitial && d.onBuildSelf) d.onBuildSelf(g, { pid, self: s, unit: E.stationed(g, s) });
     if (!isInitial) fire(g, pid, 'onBuild', { site: s });
     return s;
   };
@@ -665,8 +908,9 @@
 
   /* ------------------------------------------------------------ triggers / cleanup
    * Card triggers fired here: turnStart, turnEnd, onOrder, onEnemyOrder, onBuild, onAllyDeath, onAllyPromote, onArmor, onMilestone,
-   * onPlay ({cardId, count, made}), onEnemyRaze ({site}). Fired directly on one card: deploy, lastStand,
-   * onAttack, onKill, onMove, onPromote, onArrive / onMoveArrive / onRaze (locations). */
+   * onPlay ({cardId, count, made}), onEnemyRaze ({site}), onEnemyJam ({ref}), onAllyBounce ({id}), onPod ({claimer, outcome}).
+   * Fired directly on one card: deploy, lastStand, onAttack, onKill, onMove, onPromote, onHurt ({n}: it survived damage),
+   * onBoon (its owner targeted it with an Order or the leader power), onArrive / onMoveArrive / onRaze (locations). */
   function fire(g, pid, name, extra) {
     const p = g.players[pid];
     p.board.slice().forEach((u) => {
@@ -698,7 +942,8 @@
         const b = g.players[u.owner].board;
         b.splice(b.indexOf(u), 1);
         g.players[u.owner].diedThisTurn++;
-        ev(g, { t: 'death', ref: unitRef(u), id: u.id, pid: u.owner });
+        if (!u.purged && !CARDS[u.id].token) { g.players[u.owner].grave.push(u.id); g.players[u.owner].lost++; }
+        ev(g, { t: u.purged ? 'purge' : 'death', ref: unitRef(u), id: u.id, pid: u.owner });
       });
       razed.forEach((s) => {
         const b = g.players[s.owner].sites;
@@ -715,8 +960,8 @@
       });
       dead.forEach((u) => {
         const d = CARDS[u.id];
-        if (d.lastStand) d.lastStand(g, { pid: u.owner, self: u, target: null });
-        fire(g, u.owner, 'onAllyDeath', { dead: u });
+        if (!u.purged && d.lastStand) d.lastStand(g, { pid: u.owner, self: u, target: null });
+        if (!u.purged) fire(g, u.owner, 'onAllyDeath', { dead: u });
       });
     }
     const d0 = g.players[0].hp <= 0;
@@ -749,10 +994,20 @@
     p.energy = p.maxEnergy;
     p.powerUsed = false;
     p.cardsPlayedThisTurn = 0;
+    p.unitsDeployedThisTurn = 0;
+    p.taxPaid = false;
     p.diedThisTurn = 0;
     p.board.forEach((u) => { u.ready = true; u.attacked = false; u.moved = false; u.tempAtk = 0; });
     ev(g, { t: 'turn', pid: g.active, turn: g.turn });
     E.draw(g, g.active, 1);
+
+    // Planetary Council Decree turn-start effects
+    if (g.decree === 'solar_shade') E.gainResearch(g, g.active, 1);
+    if (g.decree === 'orbital_salvage' && (g.turn === 5 || g.turn === 9 || g.turn === 13)) {
+      const open = lanesWhere((ln) => !g.lanes[ln].pod && !E.unitAt(g, 0, ln) && !E.unitAt(g, 1, ln));
+      const drop = E.pick(g, open);
+      if (drop != null) E.dropPod(g, drop);
+    }
 
     // Mid-game Orbital Supply Pod drop (Cycle 5, non-classic biomes)
     if (g.turn === 9 && g.biome !== 'classic' && !g.lanes.some((l) => l.pod)) {
@@ -816,6 +1071,23 @@
 
   E.cardTargets = (g, pid, d) => E.targets(g, pid, d.target, d.targetFilter);
 
+  /** Look up a modal Order's mode by 0-based index or mode id. Returns { idx, mode } or null. */
+  E.modeOf = function (d, choice) {
+    if (!d || !d.modes || !d.modes.length) return null;
+    if (typeof choice === 'number' && choice >= 0 && choice < d.modes.length) return { idx: choice, mode: d.modes[choice] };
+    if (typeof choice === 'string') {
+      const idx = d.modes.findIndex((m) => m.id === choice);
+      if (idx >= 0) return { idx, mode: d.modes[idx] };
+    }
+    return null;
+  };
+
+  E.modeTargets = function (g, pid, d, choice) {
+    const mo = E.modeOf(d, choice);
+    if (!mo || !mo.mode.target) return null;
+    return E.targets(g, pid, mo.mode.target, mo.mode.targetFilter);
+  };
+
   E.deployLanes = function (g, pid, d) {
     if (d.type === 'unit') return E.emptyLanes(g, pid);
     if (d.type === 'site') return E.emptyPlots(g, pid);
@@ -823,12 +1095,13 @@
   };
 
   E.canPlay = function (g, pid, hc) {
-    if (g.over || g.active !== pid) return false;
+    if (g.over || g.mulligan || g.forecast || g.active !== pid) return false;
     const p = g.players[pid];
     const d = CARDS[hc.id];
     if (E.cost(g, pid, hc) > p.energy) return false;
     if (d.project && p.sites.some((s) => s.id === hc.id)) return false;
     if (d.type !== 'order') return E.deployLanes(g, pid, d).length > 0;
+    if (d.modes) return d.modes.some((m) => !m.target || E.targets(g, pid, m.target, m.targetFilter).length > 0);
     if (d.target) return E.cardTargets(g, pid, d).length > 0;
     return true;
   };
@@ -846,7 +1119,7 @@
 
   E.canAttack = function (g, u) {
     // an immobile unit (a Barricade) never attacks, whatever Attack it has been given; it still strikes back when hit
-    return !g.over && g.active === u.owner && !u.immobile && !(u.jammed > 0) && E.effectiveAtk(g, u, null) > 0 && u.ready && !u.attacked && alive(u);
+    return !g.over && !g.mulligan && !g.forecast && g.active === u.owner && !u.immobile && !(u.jammed > 0) && E.effectiveAtk(g, u, null) > 0 && u.ready && !u.attacked && alive(u);
   };
 
   E.attackTargets = function (g, u) {
@@ -877,7 +1150,7 @@
   };
 
   E.canMove = function (g, u) {
-    if (g.over || g.active !== u.owner || u.immobile || u.jammed > 0 || !u.ready || u.moved || !alive(u)) return false;
+    if (g.over || g.mulligan || g.forecast || g.active !== u.owner || u.immobile || u.jammed > 0 || !u.ready || u.moved || !alive(u)) return false;
     if (u.summonedTurn === g.turn) return false;
     return !u.attacked || E.hasKw(g, u, 'mobile');
   };
@@ -888,7 +1161,7 @@
   };
 
   E.canUsePower = function (g, pid) {
-    if (g.over || g.active !== pid) return false;
+    if (g.over || g.mulligan || g.forecast || g.active !== pid) return false;
     const p = g.players[pid];
     const pw = FACTIONS[p.faction].power;
     if (p.noPower) return false; // test hook: lets the balance tool price a leader power
@@ -899,7 +1172,7 @@
   };
 
   /* ------------------------------------------------------------ player actions */
-  /** `choice` is only for a `design` Order: the parts picked, { chassis, weapon, armor, abilities }. */
+  /** `choice` is for a `design` Order ({ chassis, weapon, armor, abilities }) or a modal Order (mode index or id). */
   E.playCard = function (g, pid, handUid, target, lane, choice) {
     const p = g.players[pid];
     const i = p.hand.findIndex((h) => h.uid === handUid);
@@ -908,14 +1181,21 @@
     const d = CARDS[hc.id];
     if (!E.canPlay(g, pid, hc)) return false;
     if (d.design && V.Design.why(g, pid, choice)) return false;
+    const modal = d.modes ? E.modeOf(d, choice) : null;
+    if (d.modes && !modal) return false;
     const lanes = E.deployLanes(g, pid, d);
     if (lanes && !lanes.includes(lane)) return false;
 
     const baseCost = E.cost(g, pid, hc);
     const willOvercharge = !!(d.overcharge && p.energy >= baseCost + d.overcharge);
-    const needTgt = E.needsTarget(g, pid, hc);
     let tg = null;
-    if (needTgt) {
+    if (modal) {
+      if (modal.mode.target) {
+        const ts = E.targets(g, pid, modal.mode.target, modal.mode.targetFilter);
+        if (!ts.length || !ts.some((t) => sameRef(t, target))) return false;
+        tg = target;
+      }
+    } else if (E.needsTarget(g, pid, hc)) {
       const ts = E.cardTargets(g, pid, d);
       if (ts.length) {
         if (!ts.some((t) => sameRef(t, target))) return false;
@@ -930,19 +1210,27 @@
       overcharged = true;
     }
     p.cardsPlayedThisTurn++;
+    if (!d.token) p.taxPaid = true;
     p.hand.splice(i, 1);
-    ev(g, { t: 'play', pid, id: hc.id, target: tg, lane: lanes ? lane : null, overcharged });
+    ev(g, { t: 'play', pid, id: hc.id, target: tg, lane: lanes ? lane : null, overcharged, mode: modal ? modal.idx : null });
 
     let made = null;
     if (d.type === 'unit') {
       const u = E.summon(g, pid, hc.id, lane);
-      if (u) made = u.uid;
+      if (u) {
+        made = u.uid;
+        const firstHp = E.doctrine(g, pid).firstUnitHp || 0;
+        if (firstHp && p.unitsDeployedThisTurn === 0) E.buff(g, u, 0, firstHp);
+        p.unitsDeployedThisTurn++;
+      }
       if (u && d.deploy) d.deploy(g, { pid, self: u, target: tg, overcharged });
     } else if (d.type === 'site') {
       const st = E.build(g, pid, hc.id, lane);
       if (st) made = st.uid;
     } else {
-      d.play(g, { pid, target: tg, overcharged, choice });
+      if (modal) modal.mode.play(g, { pid, target: tg, overcharged, choice: modal.idx });
+      else d.play(g, { pid, target: tg, overcharged, choice });
+      boon(g, pid, tg);
       resolve(g);
       if (!g.over && !d.noResearch) {
         E.gainResearch(g, pid, 1);
@@ -955,6 +1243,13 @@
     resolve(g);
     return true;
   };
+
+  /** onBoon: a unit's own trigger for when its owner targets it with an Order or the leader power. */
+  function boon(g, pid, tg) {
+    if (!tg || tg.k !== 'u') return;
+    const f = E.find(g, tg.uid);
+    if (f && f.pid === pid && alive(f.unit) && CARDS[f.unit.id].onBoon) CARDS[f.unit.id].onBoon(g, { pid, self: f.unit });
+  }
 
   E.usePower = function (g, pid, target) {
     if (!E.canUsePower(g, pid)) return false;
@@ -971,6 +1266,7 @@
     p.powerUses = (p.powerUses || 0) + 1;
     ev(g, { t: 'power', pid, target: tg });
     pw.run(g, { pid, target: tg });
+    boon(g, pid, tg);
     resolve(g);
     return true;
   };
@@ -1013,9 +1309,13 @@
     } else {
       const d = E.find(g, target.uid).unit;
       const dAtk = E.effectiveAtk(g, d, unitRef(a), false);
-      E.damage(g, target, aAtk, a);
-      if (!artillery) E.damage(g, unitRef(a), dAtk, d);
-      else ev(g, { t: 'noreturn', ref: target, from: unitRef(a), pid }); // Artillery strikes from range: the defender (ref) cannot hit back
+      const before = d.hp;
+      const dealt = E.damage(g, target, aAtk, a);
+      // Overrun: what is left over after destroying the unit carries on into the enemy colony
+      if (dealt > before && E.hasKw(g, a, 'overrun')) E.damage(g, leaderRef(1 - pid), dealt - before, a);
+      // Artillery strikes from range and an `ambush` card strikes first: the defender (ref) cannot hit back
+      if (!artillery && !CARDS[a.id].ambush) E.damage(g, unitRef(a), dAtk, d);
+      else ev(g, { t: 'noreturn', ref: target, from: unitRef(a), pid });
       if (d.hp <= 0 || d.doomed) creditKill(g, a, d);
       if (a.hp <= 0 || a.doomed) creditKill(g, d, a);
     }
@@ -1043,7 +1343,7 @@
   };
 
   E.endTurn = function (g, pid) {
-    if (g.over || g.active !== pid) return false;
+    if (g.over || g.mulligan || g.forecast || g.active !== pid) return false;
     fire(g, pid, 'turnEnd');
 
     // Lane terrain end-of-turn effects for active player's units

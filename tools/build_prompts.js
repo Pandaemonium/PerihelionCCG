@@ -268,9 +268,88 @@ const SCENES = {
   drill_instructor: 'Grizzled hard-bitten Redline sergeant in scarred matte-grey tactical gear barking orders on a foggy highland training plateau as armored recruits run live-fire drills at dawn',
   ridge_battery: 'Compact rugged Redline mobile field artillery piece dug into a windswept rocky highland crest, elevation gears locked and barrel smoking after firing across a misty mountain valley',
   headhunter: 'Keen-eyed female Redline sharpshooter in hooded matte-slate camo cloak crouching on a dark rocky flank checking her compact precision carbine with a subtle cyan optic lens glint',
+
+  // Expansion: Workshop & Archetypes (44 new cards)
+  design_workshop: 'Busy alien colony engineering hangar bay with rugged technicians bolting an electromagnetic rail-lance turret onto a six-wheeled survey rover chassis beside glowing cyan holographic schematics and orange welding sparks',
+  site_planner: 'Confident female colony civil architect in practical weathered slate field jacket and hard hat holding a glowing topographic holo-tablet while gesturing across a windswept rocky crater with survey beacons and a rising dome',
+  heavy_requisition: 'Massive armored heavy combat walker chassis rolling out of an illuminated steel foundry hangar bay onto a foggy dawn tarmac while a logistics officer checks a luminous manifest pad',
+  grav_harness: 'Colony trooper strapping on a compact twin-vectored anti-gravity flight harness backpack with glowing pale-cyan hover-thruster plumes lifting heavy boots off a dusty rocky landing pad',
+  evac_shuttle: 'Rugged twin-engine armored VTOL evacuation dropship hovering low amid swirling red-grey dust with rear ramp lowered and bright amber boarding floodlights as two armored troopers sprint aboard',
+
+  sapwell_tender: 'Serene hooded female forest botanist in damp olive-moss woven cloak kneeling beside a steaming rocky geothermal vent where luminous emerald-violet sap wells up through ancient mossy roots, collecting glowing resin in a glass vial',
+  verdant_surge: 'Sweeping wide nature documentary shot of a misty alien mountain valley erupting in lush towering emerald ferns, giant glowing broadleaf canopies, and warm golden sunbeams piercing a passing tropical rainstorm',
+  graft_champion: 'Powerful scarred female forest warrior in layered dark-bark and living emerald vine armor, bioluminescent moss and knotted ironwood tendrils fused organically along her shoulders and forearm, standing alert in misty rainforest',
+  ironbark_graft: 'Macro botanical close-up of thick dark gnarled ancient ironwood bark and luminous emerald tendrils seamlessly growing and hardening like living layered armor over a scarred wooden shield in heavy rainforest rain',
+  thunderback: 'Wildlife documentary 35mm cinema still of a colossal charging six-ton alien horned forest beast with massive ridged dark-olive bony crest, mossy thick hide, and heavy hooves smashing straight through a splintered perimeter fence in jungle mist',
+  stampede_pheromone: 'Dramatic low-angle wildlife documentary shot of a thundering herd of giant horned mossy alien forest beasts charging headlong through billowing luminous golden-violet pollen mist and splintering barriers',
+
+  bulkhead_slam: 'Colossal nine-tonne riveted starship steel blast bulkhead door slamming violently forward on heavy hydraulic rams, sending a shockwave of sparks, ash, and shattered debris across a dark volcanic industrial yard',
+  ironclad_behemoth: 'Gargantuan heavily layered tracked siege walker welded with overlapping thick slabs of scarred dark-steel starship armor plating, glowing amber furnace vents, and massive hydraulic battering arms squeezing past a steel foundry gate',
+  recovery_crawler: 'Heavy multi-tracked armored salvage recovery crawler with massive hydraulic winch boom dragging a battered combat walker hull back across a smoky volcanic basalt battlefield under amber floodlights',
+  reassembly_bay: 'Vast dim industrial Hive repair gantry bay illuminated by showers of orange welding sparks, overhead cranes lowering freshly forged riveted armor plates onto a partially reconstructed combat walker frame',
+  wreck_marshal: 'Grizzled broad-shouldered Hive veteran commander wearing heavy patchwork scavenged armor plates bolted from dozens of fallen combat hulls, standing defiantly atop a smoking tank wreck in warm amber foundry glow',
+
+  critical_mass: 'Blinding cerulean-and-violet spherical psychic-quantum energy shockwave detonating outward from an overloaded crystal resonance core inside a dark obsidian observatory dome, warping light and shattering glass rings',
+  datalinks_search: 'Focused University scholar standing amid towering curved walls of luminous cerulean floating holographic flight-log archives and orbital telemetry streams inside a darkened obsidian data chamber',
+  systems_engineer: 'Sharp-eyed female University prototype engineer in sleek dark navy lab coat holding a glowing holographic blueprint stylus beside a half-built experimental modular rover frame inside a clean glass workshop',
+  skunkworks: 'Secretive cluttered high-tech underground University prototype lab bathed in cool blue holographic light, housing three experimental modular combat chassis rigs suspended on articulated gantry arms',
+  proving_ground: 'Wide windswept dark basalt weapons testing range under starry twilight skies, illuminated by crisp cyan laser telemetry grids as an experimental prototype combat rig fires a bright blue test beam downrange',
+
+  squadron_leader: 'Daring privateer ace pilot in salt-worn dark leather-and-composite flight jacket and tinted visor standing on a rain-slicked carrier deck as sleek swept-wing needlejet raiders bank overhead through stormy magenta-cyan clouds',
+  smugglers_run: 'Two heavy waterproof titanium crates glowing faintly cyan being winched over the dark gunwale of a sleek stealth hover-skiff into foaming misty dark-teal surf at low tide under storm twilight',
+  reef_skirmisher: 'Agile amphibious pirate commando in wet matte-black pressurized dive-weave stealth gear bursting upward out of dark foaming alien surf wielding a gleaming composite vibro-blade in storm mist',
+  undertow: 'Massive surging bioluminescent magenta-and-teal alien tidal wave crashing violently over a rocky coastal outpost and sweeping an armored combat unit back out into the dark foaming sea',
+  hidden_cove: 'Secret sheltered sea-cave pirate harbour carved inside towering black volcanic sea-cliffs, lit by warm lanterns and glowing blue fuel cells stacked along wet steel piers beside sleek docked hover-skiffs',
+
+  rite_of_ash: 'Solemn circle of hooded Cinder Believers kneeling in swirling volcanic ash around a blazing tall crimson ritual pyre rising beneath charred fallen starship ribs at dusk',
+  pyre_keeper: 'Austere bearded Believer zealot priest in soot-darkened crimson-trimmed heavy mantle tending a roaring iron brazier tower as glowing embers stream across a dark stormy battlefield',
+  ember_flagellant: 'Fierce bare-armed Believer zealot warrior with glowing ritual burn scars and charred ash-cloth wraps striding fearlessly through roaring crimson flames raising a heavy iron brazier flail',
+  trial_by_fire: 'Blinding wall of roaring crimson-gold flame sweeping across a dark basalt battlefield while resolute armored Believer soldiers march calmly forward through the firestorm untouched',
+  cinder_scourge: 'Unyielding female Believer zealot warrior in scorched blackened plate armor with glowing red-hot chains wrapped around her gauntlets, sparks and fire exploding outward around her on a volcanic ridge',
+  scarred_penitent: 'Towering battle-scarred Believer veteran in cracked soot-blackened armor plates and tattered crimson hood standing unbowed amid volcanic smoke, wielding a blazing plasma-tipped war-halberd',
+
+  claims_adjuster: 'Composed sharp-eyed corporate inspector in tailored obsidian-and-gold armored trench coat examining a thick reinforced titanium colony dome plate with a glowing golden holographic caliper scanner',
+  holdings_magnate: 'Commanding impeccably dressed female corporate executive in sleek charcoal-and-gold armored coat seated at a panoramic glass penthouse table surrounded by glowing golden holographic asset portfolios and gleaming orbital spires',
+  consortium_titan: 'Colossal gleaming obsidian-and-brushed-gold multi-turreted corporate super-heavy dreadnought mech striding across an alien trade plaza beneath sunlit glass exchange towers',
+  trade_embargo: 'Fortified golden-glass orbital customs blockade checkpoint with towering illuminated holographic barrier gates halting a long convoy of heavy cargo crawlers on a dusty alien highway at dusk',
+  hostile_audit: 'Intense focused golden-cyan corporate EMP disruption beam descending onto an enemy armored combat mech, freezing its systems inside a bright geometric holographic quarantine cage',
+  repo_agent: 'Slick black-and-gold armored corporate recovery operative unhooking a glowing cyan energy cell pack from a disabled jammed enemy combat unit amid swirling frontier dust',
+  liquidator: 'Cold menacing corporate specialist in matte-obsidian and brushed-gold tactical armor leveling a heavy high-energy disassembly plasma cutter at a paralyzed enemy combat walker in dramatic sunset glare',
+
+  war_college: 'Imposing brutalist concrete-and-steel Federation military academy compound perched on a high misty mountain plateau with holographic tactical war-tables glowing cyan behind armored panoramic windows',
+  task_force_commander: 'Seasoned female Federation field commander in crisp matte-slate tactical composite armor and headset standing on a rocky highland overlook directing advancing armor, infantry, and overhead VTOL gunships',
+  airdrop_beacon: 'Rugged titanium orbital drop-zone transponder tripod planted on a windy rocky ridge venting thick luminous amber-orange signal smoke straight up into stormy skies as a supply pod streaks down from orbit',
+  logistics_officer: 'Sharp disciplined Federation quartermaster officer in weathered matte-slate tactical vest checking a luminous manifest tablet beside an open newly landed orbital supply pod on a windy highland trail',
+  supply_convoy: 'Column of three rugged six-wheeled matte-slate armored military supply trucks rumbling in dust across a high alien mountain pass while twin orbital supply pods descend on parachutes beside them',
+
+  // Expansion: Planetary Telemetry & Counterplay (20 new cards)
+  telemetry_drone: 'Compact weathered NASA-punk colony reconnaissance quad-rotor drone hovering low over rocky alien valleys at twilight, deploying a folded parabolic radar dish projecting soft cyan telemetry scan rings ahead',
+  seismic_ping: 'Close-up of a heavy titanium ground-thumper seismic charge staked into dark cracked alien basalt, releasing concentric glowing amber-blue subsurface sonar shockwave rings across dusty terrain',
+  containment_purge: 'Hazmat-armored colony quarantine squad inside a smoky perimeter deploying glowing cyan-amber plasma sterilization containment barriers sealing off shattered smoking wreckage in mist',
+  suppressive_scatter: 'Wide cinematic battle shot of a twin-barrel colony flak-scatter launcher sweeping dense overlapping bursts of glowing amber-white airburst flechettes across three rocky frontier lanes, shattering shimmering blue shields',
+  tectonic_shaper: 'Massive heavy tracked planetary terraforming rig with twin glowing orange plasma-cutter plows and seismic hydraulic rams shifting glowing basalt strata and purple fungus across a fractured valley',
+  field_refit: 'Rugged frontier combat mechanics working under bright halogen portable floodlights beside an open armored utility truck at dusk, rapidly welding an upgraded coilgun turret onto a dusty infantry walker frame amid flying sparks',
+  prescient_empath: 'Serene hooded Stepdaughter empath woman standing barefoot in luminous misty violet-and-emerald alien rainforest, eyes gently closed as bioluminescent fungal spores swirl around her outstretched palms in quiet prophetic focus',
+  condenser_array: 'Towering elegant living-steel atmospheric moisture condenser tower wrapped in climbing emerald vines and glowing violet moss, harvesting swirling mountain mist into cascading luminous water channels over a mossy forest outpost',
+  bio_scrubber: 'Heavy tracked industrial Iron Hive decontamination rig mounted with twin high-pressure superheated steam-and-plasma flame lances clearing dense glowing purple xenofungus from basalt rock under harsh amber floodlights',
+  grav_pull_winch: 'Armored industrial Iron Hive grav-winch tractor braced on hydraulic anchor spades firing a glowing amber electromagnetic tow beam dragging a staggering enemy walker sideways across volcanic gravel',
+  salvage_blueprint: 'Weathered armored Iron Hive recovery technician kneeling beside a smoking wrecked combat walker hull in volcanic ash, capturing glowing cyan-amber holographic structural blueprints onto a rugged field tablet',
+  datalinks_index: 'Sleek University of Tau Ceti subterranean glass-and-obsidian holographic library chamber lined with towering crystalline index columns projecting crisp floating blue orbital star-charts and predictive probability graphs',
+  squall_chart: 'Dramatic shot on a rain-lashed Tidewater privateer navigation bridge at night, weathered navigator plotting glowing magenta-and-cyan barometric storm-front vectors across a wet glass chart table as lightning flashes outside',
+  omen_seer: 'Austere hooded Cinder Believers prophetess standing on a charred volcanic crag at dusk, gazing intently into rising crimson embers and swirling black smoke trails as distant burning artillery streaks cross the sky',
+  market_forecast: 'Sharp Vance Industries financial strategist inside a sleek sunlit obsidian-and-gold orbital observatory studying sweeping golden holographic probability curves and energy-commodity projections overlooking arid solar plains',
+  breach_protocol: 'Dramatic action still of three rapid precision golden-blue plasma pulse bolts striking in rapid sequence against a heavy enemy mech energy shield, shattering the translucent barrier into bright sparks on dark rock',
+  salvage_impound: 'Imposing Vance Industries armored corporate enforcement walker clamping glowing violet-gold stasis-impound cuffs onto a disabled enemy mech inside a floodlit titanium containment yard',
+  thermal_venting: 'Spectacular wide shot of a Vance Industries gleaming gold-and-steel geothermal borehole station opening massive pressure relief valves, blasting towering illuminated columns of incandescent steam and golden energy across rocky vents',
+  mercenary_contractor: 'Sharp-eyed elite Vance Industries field arms-dealer in obsidian-and-brushed-gold armored trench coat standing beside an open titanium weapons crate displaying modular rail-lances and glowing blueprint slates on a landing pad',
+  frontier_surveyor: 'Battle-hardened Redline Federation scout sergeant in dusty matte-slate tactical armor perched on an outcrop overlooking diverse alien ridges, purple fungus valleys, and a distant glowing teal monolith, holding a cyan rangefinder',
 };
 
-const ORGANIC_ONLY = new Set(['spore_tender', 'mulch_bed', 'brood_whisperer', 'rootquake']);
+const ORGANIC_ONLY = new Set([
+  'spore_tender', 'mulch_bed', 'brood_whisperer', 'rootquake',
+  'sapwell_tender', 'verdant_surge', 'graft_champion', 'ironbark_graft', 'thunderback', 'stampede_pheromone',
+  'prescient_empath',
+]);
 const STYLE_ORGANIC =
   'Photorealistic 35mm cinema still, natural wildlife and botanical documentary photography, wet tactile bark and foliage textures, volumetric rainforest mist, natural lens optics and subtle film grain, cinematic lighting';
 

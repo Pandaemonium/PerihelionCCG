@@ -268,7 +268,8 @@ function design(g, choice) {
   for (let n = 0; n < 14; n++) {
     const f0 = facs[n % 7], f1 = facs[(n * 3 + 1) % 7];
     const deck = (f) => globalThis.TauCeti.buildDeck(f).slice(0, 26).concat(['design_workshop', 'design_workshop', 'design_workshop', 'design_workshop']);
-    const g = E.newGame(f0, f1, 700 + n * 37, n % 2, { biome: 'tau_ceti', deck0: deck(f0), deck1: deck(f1), pact0: facs[(n + 2) % 7] });
+    const g = E.newGame(f0, f1, 700 + n * 37, n % 2, { biome: 'tau_ceti', deck0: deck(f0), deck1: deck(f1), pact0: facs[(n + 2) % 7], mulligan: true });
+    AI.mulligan(g);
     g.silent = false;
     let steps = 0;
     while (!g.over && g.turn < 160 && steps < 6000) {
