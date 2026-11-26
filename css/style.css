@@ -396,10 +396,10 @@ b { color: var(--gold); font-weight: 700; }
   color: #bfd0e8;
   border-top: 1px solid rgba(138, 178, 232, 0.14);
   padding-top: 0.7rem;
+  /* one line each for deck, doctrine, biome and Decree, always in that order, so nothing moves when a text gets longer */
   display: flex;
-  justify-content: space-between;
-  gap: 1.8rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 .setup-desc span b { color: var(--gold); }
 .label {
@@ -2238,6 +2238,172 @@ b { color: var(--gold); font-weight: 700; }
 .mode-icon { font-size: 3rem; line-height: 1; }
 .mode-name { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--gold); letter-spacing: 0.04em; }
 .mode-text { font-size: 1.35rem; color: #d3dfef; line-height: 1.4; }
+
+/* ------------------------------------------------------------ Top-right Audio & Settings Popover */
+.top-row { padding-right: 17.5rem; }
+.bd-top { padding-right: 17.5rem; }
+
+.top-controls {
+  position: fixed;
+  top: 1.05rem;
+  right: 1.4rem;
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.top-icon-btn,
+.top-settings-btn {
+  background: linear-gradient(180deg, rgba(16, 26, 48, 0.88), rgba(8, 14, 28, 0.94));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(138, 178, 232, 0.3);
+  box-shadow: 0 0.45rem 1.4rem rgba(0, 0, 0, 0.5);
+  color: var(--ink);
+}
+.top-icon-btn { min-width: 3.4rem; padding-left: 0.6rem; padding-right: 0.6rem; font-size: 1.45rem; }
+.top-icon-btn.muted { color: #ff9a9a; border-color: rgba(255, 110, 110, 0.45); }
+.top-settings-btn.on {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 1.4rem rgba(255, 212, 107, 0.3), 0 0.45rem 1.4rem rgba(0, 0, 0, 0.55);
+}
+
+.settings-panel {
+  position: fixed;
+  top: 5.1rem;
+  right: 1.4rem;
+  z-index: 90;
+  width: 33.5rem;
+  max-width: calc(100vw - 2.8rem);
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+  background: linear-gradient(175deg, rgba(16, 27, 50, 0.96) 0%, rgba(8, 14, 28, 0.98) 100%);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(138, 178, 232, 0.34);
+  border-radius: 1.25rem;
+  padding: 1.35rem 1.45rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1.4rem 3.8rem rgba(0, 0, 0, 0.72);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.settings-panel.hidden { display: none; }
+.set-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(138, 178, 232, 0.18);
+  padding-bottom: 0.7rem;
+}
+.set-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.set-close {
+  background: transparent;
+  border: 1px solid rgba(138, 178, 232, 0.22);
+  color: var(--muted);
+  border-radius: 0.55rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.set-close:hover { color: var(--ink); border-color: rgba(185, 215, 255, 0.45); background: rgba(255, 255, 255, 0.06); }
+
+.set-group { display: flex; flex-direction: column; gap: 0.7rem; }
+.set-row { display: flex; align-items: center; gap: 0.75rem; }
+.set-mute {
+  width: 3rem;
+  height: 3rem;
+  flex: none;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(138, 178, 232, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-size: 1.45rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.set-mute:hover { border-color: var(--energy); background: rgba(76, 216, 255, 0.14); }
+.set-mute.off { opacity: 0.55; border-color: rgba(255, 110, 110, 0.4); }
+.set-lbl {
+  font-family: var(--font-display);
+  font-size: 1.38rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #bfd0e8;
+  width: 4.8rem;
+  flex: none;
+}
+.set-range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--energy);
+  cursor: pointer;
+  height: 0.55rem;
+}
+.set-val {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  color: var(--energy);
+  width: 3.9rem;
+  text-align: right;
+  flex: none;
+}
+
+.set-now {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.85rem;
+  background: rgba(76, 216, 255, 0.08);
+  border: 1px solid rgba(76, 216, 255, 0.24);
+}
+.set-now-meta { display: flex; flex-direction: column; min-width: 0; gap: 0.12rem; }
+.set-now-kicker { font-family: var(--font-mono); font-size: 0.96rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--energy); }
+.set-now-name { font-family: var(--font-display); font-size: 1.55rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-now-sub { font-size: 1.14rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-skip { display: flex; gap: 0.4rem; flex: none; }
+.set-skip .btn { padding: 0.4rem 0.7rem; font-size: 1.2rem; }
+
+.set-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.34rem;
+}
+.set-track {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.52rem 0.78rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(138, 178, 232, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.set-track:hover { background: rgba(255, 255, 255, 0.09); border-color: rgba(138, 178, 232, 0.32); }
+.set-track.active { border-color: rgba(76, 216, 255, 0.42); background: rgba(76, 216, 255, 0.1); }
+.set-track.on { border-color: var(--gold); background: rgba(255, 212, 107, 0.13); }
+.set-track.auto-row { margin-bottom: 0.25rem; }
+.st-dot { font-family: var(--font-mono); color: var(--gold); width: 1.2rem; text-align: center; flex: none; }
+.st-name { font-size: 1.28rem; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-sub { font-size: 1.06rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 12.5rem; }
 
 /* ------------------------------------------------------------ responsive */
 @media (max-width: 1180px) {
