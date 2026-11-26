@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@500;700&family=Rajdhani:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
   <link rel="stylesheet" href="css/planet.css?v=2">
 </head>
 <body>
@@ -179,6 +179,11 @@
   </section>
 
   <div id="fx"></div>
+  <div id="top-controls" class="top-controls">
+    <button id="btn-top-mute" class="btn ghost small top-icon-btn" title="Mute / Unmute audio">🔊</button>
+    <button id="btn-settings" class="btn ghost small top-settings-btn" title="Audio & Soundtrack Settings">⚙ Settings</button>
+  </div>
+  <div id="settings-panel" class="settings-panel hidden" role="dialog" aria-label="Audio Settings"></div>
   <div id="modal" class="modal hidden"><div id="modal-box" class="modal-box"></div></div>
 
   <script src="js/world.js"></script>

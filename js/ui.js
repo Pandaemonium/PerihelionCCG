@@ -4,7 +4,7 @@
   const V = window.TauCeti;
   const E = V.Engine, AI = V.AI, CARDS = V.CARDS, FACTIONS = V.FACTIONS, KW = V.KEYWORDS;
   const TERRAIN = V.TERRAIN, BIOMES = V.BIOMES, DOCTRINES = V.DOCTRINES, DECREES = V.DECREES, CAMPAIGN = V.CAMPAIGN;
-  const Decks = V.Decks, SFX = V.SFX, Design = V.Design;
+  const Decks = V.Decks, SFX = V.SFX, Music = V.Music, Design = V.Design;
   const HUMAN = 0, BOT = 1;
   const $ = (s, r) => (r || document).querySelector(s);
   const fx = $('#fx');
@@ -353,7 +353,7 @@
     const idle = !locked() && !p.hand.some((hc) => E.canPlay(g, HUMAN, hc))
       && !p.board.some((u) => E.attackTargets(g, u).length) && !E.canUsePower(g, HUMAN);
     btn.classList.toggle('nudge', idle);
-    $('#btn-mute').textContent = SFX.muted ? '🔇' : '🔊';
+    $('#btn-mute').textContent = (Music && Music.allMuted) || (!Music && SFX.muted) ? '🔇' : '🔊';
   }
 
   function render() {
@@ -1030,6 +1030,7 @@
   });
 
   function cancel() {
+    if ($('#settings-panel') && !$('#settings-panel').classList.contains('hidden')) { closeSettings(); return; }
     if (!$('#modal').classList.contains('hidden')) { if (modalClosable) closeModal(); return; }
     if (sel || hintMsg) { sel = null; hintMsg = null; render(); }
   }
@@ -1412,6 +1413,7 @@
     }
     $('#screen-title').classList.add('hidden');
     $('#screen-builder').classList.remove('hidden');
+    if (Music) Music.setContext(builder.faction);
   }
 
   function closeBuilder() {
@@ -1486,6 +1488,7 @@
     builderReshape(fid, pact, builder.pact === fid
       ? `${facName(fid)} now leads, with ${facName(pact)} as Pact partner.`
       : `${facName(fid)} now leads this deck.`);
+    if (Music) Music.setContext(fid);
   }
 
   function builderSetPact(pid) {
@@ -2095,6 +2098,7 @@
     $('#screen-game').classList.add('hidden');
     $('#screen-title').classList.remove('hidden');
     renderTitle();
+    if (Music) Music.setContext('title');
   }
 
   $('#screen-title').addEventListener('click', (e) => {
@@ -2178,6 +2182,7 @@
     $('#inspector').innerHTML = '<div class="insp-empty">Hover a card, unit, location, or lane terrain to inspect it.</div>';
     $('#screen-title').classList.add('hidden');
     $('#screen-game').classList.remove('hidden');
+    if (Music) Music.setContext(o.bossName ? 'title' : p0Fac);
     const decInfo = DECREES[decree];
     logLine(`${FACTIONS[p0Fac].name} versus ${o.bossName || FACTIONS[opp].name} on ${BIOMES[biome].name}${decInfo && decInfo.id !== 'none' ? ` · Council Decree: ${decInfo.name}` : ''}.`, 'sys');
     if (g.active === BOT) logLine(`The enemy moves first, with ${E.FIRST_HP} extra Integrity. You start with two extra cards and an Energy Cell.`, 'sys');
@@ -2253,9 +2258,155 @@
     g.events.length = 0;
   }
 
+  /* ============================================================ audio & soundtrack settings */
+  let settingsOpen = false;
+  let slidingVol = false;
+  function closeSettings() {
+    settingsOpen = false;
+    const panel = $('#settings-panel');
+    if (panel) panel.classList.add('hidden');
+    const btn = $('#btn-settings');
+    if (btn) btn.classList.remove('on');
+  }
+
+  function renderAudioUI() {
+    if (!Music) return;
+    const allMuted = Music.allMuted;
+    const topMute = $('#btn-top-mute');
+    if (topMute) {
+      topMute.textContent = allMuted ? '🔇' : (Music.muted ? '🔉' : '🔊');
+      topMute.classList.toggle('muted', allMuted);
+      topMute.title = allMuted ? 'Unmute audio' : 'Mute all audio';
+    }
+    const sideMute = $('#btn-mute');
+    if (sideMute) sideMute.textContent = allMuted ? '🔇' : '🔊';
+    if (!settingsOpen || slidingVol) return;
+
+    const panel = $('#settings-panel');
+    if (!panel) return;
+    const tr = Music.currentTrack;
+    const mPct = Math.round(Music.volume * 100);
+    const sPct = Math.round(SFX.volume * 100);
+    const isAuto = Music.mode === 'auto';
+
+    panel.innerHTML = `
+      <div class="set-head">
+        <span class="set-title">⚙ Audio &amp; Soundtrack</span>
+        <button class="set-close" data-set="close" title="Close">✕</button>
+      </div>
+      <div class="set-group">
+        <div class="set-row">
+          <button class="set-mute ${Music.muted ? 'off' : ''}" data-set="mute-music" title="Mute / Unmute music">${Music.muted ? '🔇' : '🎵'}</button>
+          <span class="set-lbl">Music</span>
+          <input class="set-range" id="set-music-vol" type="range" min="0" max="100" value="${mPct}">
+          <span class="set-val" id="set-music-val">${Music.muted ? 'Mute' : mPct + '%'}</span>
+        </div>
+        <div class="set-row">
+          <button class="set-mute ${SFX.muted ? 'off' : ''}" data-set="mute-sfx" title="Mute / Unmute SFX">${SFX.muted ? '🔇' : '🔊'}</button>
+          <span class="set-lbl">SFX</span>
+          <input class="set-range" id="set-sfx-vol" type="range" min="0" max="100" value="${sPct}">
+          <span class="set-val" id="set-sfx-val">${SFX.muted ? 'Mute' : sPct + '%'}</span>
+        </div>
+      </div>
+      <div class="set-now">
+        <div class="set-now-meta">
+          <span class="set-now-kicker">${isAuto ? 'Auto · Faction Theme' : 'Pinned Track'}</span>
+          <span class="set-now-name">♪ ${esc(tr.title)}</span>
+          <span class="set-now-sub">${esc(tr.sub)}</span>
+        </div>
+        <div class="set-skip">
+          <button class="btn ghost small" data-set="prev" title="Previous track">⏮</button>
+          <button class="btn ghost small" data-set="next" title="Next track">⏭</button>
+        </div>
+      </div>
+      <div class="set-tracks">
+        <button class="set-track auto-row ${isAuto ? 'on' : ''}" data-track="auto">
+          <span class="st-dot">${isAuto ? '✦' : '○'}</span>
+          <span class="st-name">Auto (Match Faction &amp; Boss)</span>
+        </button>
+        ${Music.TRACKS.map((t) => {
+          const active = Music.currentId === t.id;
+          const pinned = Music.mode === t.id;
+          return `<button class="set-track ${active ? 'active' : ''} ${pinned ? 'on' : ''}" data-track="${t.id}">
+            <span class="st-dot">${active ? '♪' : '·'}</span>
+            <span class="st-name">${esc(t.title)}</span>
+            <span class="st-sub">${esc(t.sub)}</span>
+          </button>`;
+        }).join('')}
+      </div>`;
+  }
+
+  function openSettings() {
+    settingsOpen = true;
+    const panel = $('#settings-panel');
+    if (panel) panel.classList.remove('hidden');
+    const btn = $('#btn-settings');
+    if (btn) btn.classList.add('on');
+    renderAudioUI();
+  }
+
+  $('#btn-settings').addEventListener('click', (e) => {
+    e.stopPropagation();
+    SFX.click();
+    if (settingsOpen) closeSettings(); else openSettings();
+  });
+  $('#btn-top-mute').addEventListener('click', (e) => {
+    e.stopPropagation();
+    SFX.toggle();
+    renderAudioUI();
+  });
+  $('#settings-panel').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const act = e.target.closest('[data-set]');
+    if (act) {
+      const k = act.dataset.set;
+      if (k === 'close') { SFX.click(); return closeSettings(); }
+      if (k === 'mute-music') { Music.toggleMute(); SFX.click(); return; }
+      if (k === 'mute-sfx') { SFX.toggleSfx(); return; }
+      if (k === 'prev') { SFX.click(); Music.stepTrack(-1); return; }
+      if (k === 'next') { SFX.click(); Music.stepTrack(1); return; }
+    }
+    const tr = e.target.closest('[data-track]');
+    if (tr) {
+      SFX.click();
+      Music.selectTrack(tr.dataset.track);
+    }
+  });
+  $('#settings-panel').addEventListener('input', (e) => {
+    slidingVol = true;
+    if (e.target.id === 'set-music-vol') {
+      const v = +e.target.value;
+      Music.setVolume(v / 100);
+      const val = $('#set-music-val');
+      if (val) val.textContent = v + '%';
+      const mb = $('#settings-panel [data-set="mute-music"]');
+      if (mb) { mb.textContent = v > 0 ? '🎵' : '🔇'; mb.classList.toggle('off', v === 0); }
+    } else if (e.target.id === 'set-sfx-vol') {
+      const v = +e.target.value;
+      SFX.setVolume(v / 100);
+      const val = $('#set-sfx-val');
+      if (val) val.textContent = v + '%';
+      const sb = $('#settings-panel [data-set="mute-sfx"]');
+      if (sb) { sb.textContent = v > 0 ? '🔊' : '🔇'; sb.classList.toggle('off', v === 0); }
+    }
+    slidingVol = false;
+  });
+  $('#settings-panel').addEventListener('change', (e) => {
+    if (e.target.id === 'set-sfx-vol') SFX.click();
+    renderAudioUI();
+  });
+  document.addEventListener('click', (e) => {
+    if (!settingsOpen) return;
+    if (e.target.closest('#settings-panel') || e.target.closest('#top-controls')) return;
+    closeSettings();
+  });
+  if (Music) Music.onChange(renderAudioUI);
+
   /* ============================================================ boot */
   syncFactionDefaults(FACTIONS[prefs.faction] ? prefs.faction : myFaction);
   renderTitle();
+  if (Music) Music.setContext('title');
+  renderAudioUI();
   const q = new URLSearchParams(location.search);
   if (q.get('f') && FACTIONS[q.get('f')]) {
     syncFactionDefaults(q.get('f'));
